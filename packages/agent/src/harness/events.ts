@@ -4,7 +4,7 @@ import type { Context } from "./context.ts";
 type UntypedEventListener = (event: HarnessEvent, context: Context) => void | Promise<void>;
 type ResnapshotCapture<T> = (context: Context, markBoundary: () => void) => Promise<T>;
 
-/** Passive harness event bus with isolated handler failures. */
+/** 隔离处理函数失败的被动代理框架事件总线。 */
 export class HarnessEventBus implements Events {
 	private readonly listeners = new Map<HarnessEventType, Set<UntypedEventListener>>();
 	private readonly watchListeners = new Set<UntypedEventListener>();
@@ -31,7 +31,7 @@ export class HarnessEventBus implements Events {
 		return this.emitBatch([event], context);
 	}
 
-	/** Bind current recipients and append one contiguous batch to the global delivery tail. */
+	/** 绑定当前接收方，并将一个连续事件批次追加到全局发送队尾。 */
 	emitBatch(events: readonly HarnessEvent[], context: Context): Promise<void> {
 		if (this.closedError !== undefined || events.length === 0) return Promise.resolve();
 		const bound = events.map((event) => {
@@ -162,6 +162,10 @@ export class HarnessEventBus implements Events {
 	}
 }
 
+/**
+ * 在调用方开始监听前缓冲事件，并在重新获取快照时维护明确的事件边界。
+ * 同一观察器内的事件按顺序发送，监听器失败由事件总线隔离并报告。
+ */
 class BufferedEventWatcher<T> implements WatchHandle<T> {
 	snapshot: T;
 	private readonly resnapshotCallback: ((context: Context) => Promise<T>) | undefined;

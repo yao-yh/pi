@@ -3,6 +3,7 @@ import type { CompactionSettings } from "./compaction/compaction.ts";
 
 export const DEFAULT_RETRY_POLICY: RetryPolicy = { enabled: true, maxRetries: 3, baseDelayMs: 1_000 };
 
+/** 校验工具名称唯一性，发现重复名称时抛出 TypeError。 */
 export function validateToolNames(tools: readonly { name: string }[]): void {
 	const names = new Set<string>();
 	for (const tool of tools) {
@@ -11,6 +12,7 @@ export function validateToolNames(tools: readonly { name: string }[]): void {
 	}
 }
 
+/** 校验重试次数和基础延迟均为有限的非负安全整数。 */
 export function validateRetryPolicy(policy: RetryPolicy): void {
 	if (
 		!Number.isSafeInteger(policy.maxRetries) ||
@@ -23,6 +25,7 @@ export function validateRetryPolicy(policy: RetryPolicy): void {
 	}
 }
 
+/** 校验压缩令牌设置均为非负安全整数。 */
 export function validateCompactionSettings(settings: CompactionSettings): void {
 	if (
 		!Number.isSafeInteger(settings.reserveTokens) ||

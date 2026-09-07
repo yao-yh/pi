@@ -38,12 +38,18 @@ export type ReadImageProcessor = (
 ) => Promise<ReadImageProcessorResult>;
 
 export interface ReadToolOptions {
-	/** Whether an injected image processor should resize images. Default: true. */
+	/** 注入的图像处理器是否应调整图像大小，默认为 true。 */
 	autoResizeImages?: boolean;
-	/** Optional image conversion/resizing implementation. */
+	/** 可选的图像转换或缩放实现。 */
 	imageProcessor?: ReadImageProcessor;
 }
 
+/**
+ * 创建可读取文本和受支持图像的内置工具。
+ *
+ * 文本按行和字节限制截断并提供继续读取偏移量；图像可交由注入的处理器转换，
+ * 否则直接以内联 Base64 附件返回受支持的格式。
+ */
 export function createReadTool<TContext extends ExecutionToolContext = ExecutionToolContext>(
 	options?: ReadToolOptions,
 ): AgentHarnessTool<TContext, typeof readSchema, ReadToolDetails | undefined> {

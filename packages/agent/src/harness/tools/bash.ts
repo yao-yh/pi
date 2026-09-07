@@ -48,6 +48,12 @@ function validateTimeout(timeout: number | undefined): void {
 	}
 }
 
+/**
+ * 创建代理框架内置的 Bash 工具。
+ *
+ * 工具在执行环境中运行命令，合并捕获标准输出和标准错误，按限制截断实时视图，
+ * 并定期发布可持久化检查点；完整输出超过限制时由执行环境保存到临时文件。
+ */
 export function createBashTool<TContext extends ExecutionToolContext = ExecutionToolContext>(
 	options?: BashToolOptions<TContext>,
 ): AgentHarnessTool<TContext, typeof bashSchema, BashToolDetails | undefined> {

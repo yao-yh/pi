@@ -121,7 +121,7 @@ type LegacyV3Backing = {
 
 type JsonlBacking = { kind: "v4" } | LegacyV3Backing;
 
-/** JSONL storage backed by an injected filesystem capability. */
+/** 由注入的文件系统能力支持的 JSONL 存储。 */
 export class JsonlStorage implements Storage {
 	private readonly fileSystem: FileSystem;
 	private readonly path: string;
@@ -155,7 +155,7 @@ export class JsonlStorage implements Storage {
 		return storage;
 	}
 
-	/** Atomically create storage from a complete prepared snapshot. */
+	/** 根据完整的已准备快照原子创建存储。 */
 	static async createFromForkSnapshot(
 		options: JsonlStorageOptions,
 		header: JsonlStorageHeader,
@@ -261,7 +261,7 @@ export class JsonlStorage implements Storage {
 		return { ...prepared.result, stats: this.withImportedUsage(stats) };
 	}
 
-	/** Atomically upgrade legacy v3 backing and preserve the first caller write as a v4 transaction. */
+	/** 原子升级旧版 v3 存储，并将调用方的首次写入保留为 v4 事务。 */
 	private async upgradeLegacyV3ToV4(
 		backing: LegacyV3Backing,
 		callerWrites: Write[],
@@ -292,7 +292,7 @@ export class JsonlStorage implements Storage {
 
 		const stats = this.storageState.applyValidated(prepared.writes);
 		this.backing = { kind: "v4" };
-		// The first sequence belongs to the internal usage adjustment; return only caller-write sequences.
+		// 第一个序号属于内部用量调整，只返回调用方写入对应的序号。
 		return {
 			...prepared.result,
 			firstSeq: prepared.result.firstSeq + 1,
@@ -354,7 +354,7 @@ export class JsonlStorage implements Storage {
 		return this.backing.kind === "v4" ? stats : { ...stats, usage: this.backing.importedUsage };
 	}
 
-	/** Capture the state needed to fork at one serialized boundary between commits. */
+	/** 在两次提交之间的串行化边界捕获创建分叉所需的状态。 */
 	captureForkSource(_context: Context): Promise<ForkSourceSnapshot> {
 		if (this.state !== "open") return Promise.reject(new Error("JsonlStorage is closed"));
 		const result = this.commitQueue.then(() => this.storageState.snapshotEntriesAndValues());

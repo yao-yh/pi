@@ -135,6 +135,7 @@ export type AiSpanEventAttributes<
 export type AiTelemetrySpan<Name extends AiSpanName> = SchemaTelemetrySpan<typeof AI_TELEMETRY_SCHEMA, Name>;
 export type AiSpan = TelemetrySchemaSpanUnion<typeof AI_TELEMETRY_SCHEMA>;
 
+/** 启动一个类型安全的 AI 请求遥测跨度，并将该跨度注入回调上下文。 */
 export function startAiSpan<Name extends AiSpanName, const Attributes extends AiSpanStartAttributes<Name>, Result>(
 	name: Name,
 	attributes: ExactTelemetryAttributes<AiSpanStartAttributes<Name>, Attributes>,
@@ -591,7 +592,7 @@ export const HARNESS_TELEMETRY_SCHEMA = {
 	},
 } as const satisfies TelemetrySchemaDefinition;
 
-/** Combined typed span vocabulary for agent-owned AI-request and harness telemetry. */
+/** 代理自有 AI 请求遥测与代理框架遥测合并后的类型化跨度词汇表。 */
 export const AGENT_TELEMETRY_SCHEMAS = [AI_TELEMETRY_SCHEMA, HARNESS_TELEMETRY_SCHEMA] as const;
 
 export type HarnessSpanName = TelemetrySchemaSpanName<typeof HARNESS_TELEMETRY_SCHEMA>;
@@ -619,6 +620,7 @@ export type HarnessTelemetrySpan<Name extends HarnessSpanName> = SchemaTelemetry
 >;
 export type HarnessSpan = TelemetrySchemaSpanUnion<typeof HARNESS_TELEMETRY_SCHEMA>;
 
+/** 启动一个类型安全的代理框架遥测跨度，并将该跨度注入回调上下文。 */
 export function startHarnessSpan<
 	Name extends HarnessSpanName,
 	const Attributes extends HarnessSpanStartAttributes<Name>,

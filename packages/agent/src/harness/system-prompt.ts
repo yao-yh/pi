@@ -1,5 +1,9 @@
 import type { Skill } from "./types.ts";
 
+/**
+ * 将允许模型调用的技能格式化为系统提示中的 XML 列表。
+ * 禁止模型调用的技能会被过滤，所有字段都会进行 XML 转义。
+ */
 export function formatSkillsForSystemPrompt(skills: Skill[]): string {
 	const visibleSkills = skills.filter((skill) => !skill.disableModelInvocation);
 	if (visibleSkills.length === 0) return "";

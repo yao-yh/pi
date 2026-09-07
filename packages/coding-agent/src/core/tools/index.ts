@@ -179,6 +179,12 @@ export function createReadOnlyToolDefinitions(cwd: string, options?: ToolsOption
 	];
 }
 
+/**
+ * Build the complete definition registry before any active-tool filtering.
+ * AgentSession later combines this registry with extension tools, selects the
+ * active subset, and derives both AgentTool executors and system-prompt metadata
+ * from the same definitions.
+ */
 export function createAllToolDefinitions(cwd: string, options?: ToolsOptions): Record<ToolName, ToolDef> {
 	return {
 		read: createReadToolDefinition(cwd, options?.read),

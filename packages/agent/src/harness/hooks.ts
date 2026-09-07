@@ -11,7 +11,7 @@ interface HookRegistration {
 
 type HookErrorReporter = (error: Error, hook: HookName, lane: string, context: Context) => void | Promise<void>;
 
-/** Ordered harness hook registry and aggregate runner. */
+/** 按注册顺序执行并汇总结果的代理框架钩子注册表。 */
 export class HookRegistry implements Hooks {
 	private readonly registrations = new Map<HookName, HookRegistration[]>();
 	private readonly reportError: HookErrorReporter;
@@ -40,7 +40,7 @@ export class HookRegistry implements Hooks {
 		return (this.registrations.get(name)?.length ?? 0) !== 0;
 	}
 
-	/** Invoke one accepted-operation aggregate after synchronously passing its effect gate. */
+	/** 同步通过副作用门后，调用一次已接纳操作的聚合钩子。 */
 	runWithGate<TName extends HookName>(
 		name: TName,
 		event: HookInvocation<TName>,
@@ -54,7 +54,7 @@ export class HookRegistry implements Hooks {
 		});
 	}
 
-	/** Invoke a tool-hook aggregate with one telemetry span per registered handler. */
+	/** 调用工具钩子聚合逻辑，并为每个已注册处理函数创建一个遥测跨度。 */
 	runToolWithGate<TName extends "before_tool" | "after_tool">(
 		name: TName,
 		event: HookInvocation<TName>,
@@ -443,6 +443,10 @@ export class HookRegistry implements Hooks {
 	}
 }
 
+/**
+ * 将流选项补丁应用到基础配置。
+ * 显式 undefined 会删除字段，headers 和 metadata 则按键进行增量合并或删除。
+ */
 export function applyStreamOptionsPatch(
 	base: AgentHarnessStreamOptions,
 	patch: AgentHarnessStreamOptionsPatch,

@@ -72,7 +72,7 @@ export function assistantReadyAtBoundary<TContext extends object | undefined>(
 	};
 }
 
-/** Select and materialize one boundary's lane-owned input without committing it. */
+/** 选择并实体化一个边界上归分支通道所有的输入，但不提交。 */
 export async function planBoundaryInbox<TContext extends object | undefined>(
 	lane: Lane<TContext>,
 	drive: Drive,
@@ -157,7 +157,7 @@ export function boundaryPlacementEvents(
 	];
 }
 
-/** Replan after before_run_end and commit either renewed work or the terminal run result. */
+/** 在 before_run_end 之后重新规划，并提交恢复的任务或最终运行结果。 */
 export async function finishRunBoundary<TContext extends object | undefined, TState extends FinishBoundaryOperation>(
 	lane: Lane<TContext>,
 	drive: Drive,

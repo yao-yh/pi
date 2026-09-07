@@ -6,7 +6,7 @@ import { branchTip, laneConfig, laneState, type StoredValue, type Value, value }
 export interface ForkSourceSnapshot {
 	entries: Entry[];
 	scalarValues: StoredValue<unknown>[];
-	/** False when a backend supplied only the requested branch rather than the full tree. */
+	/** 后端仅提供所请求分支而非完整树时为 false。 */
 	entriesComplete?: boolean;
 }
 
@@ -26,7 +26,7 @@ function findStoredValue<T>(values: readonly StoredValue<unknown>[], address: Va
 	) as StoredValue<T> | undefined;
 }
 
-/** Build the complete logical state for a forked destination session. */
+/** 为派生出的目标会话构建完整逻辑状态。 */
 export function createForkSnapshot(source: ForkSourceSnapshot, options: ForkOptions): ForkDestinationSnapshot {
 	const sourceEntries = new Map(source.entries.map((entry) => [entry.id, entry]));
 	const sourceTips = storedValuesInNamespace(source.scalarValues, branchTip(""));

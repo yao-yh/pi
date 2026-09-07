@@ -1,4 +1,4 @@
-/** Expected internal control flow when cancellation wins effect admission. */
+/** 取消请求先于副作用准入时使用的预期内部控制流异常。 */
 export class AbortRequested extends Error {
 	readonly cancellation: Promise<void>;
 
@@ -9,13 +9,13 @@ export class AbortRequested extends Error {
 	}
 }
 
-/** Procedure-facing synchronous admission capability for one drive pass. */
+/** 单次驱动过程中面向执行过程的同步准入能力。 */
 export interface Gate {
 	readonly signal: AbortSignal;
 	admit<T>(invoke: () => T): T;
 }
 
-/** Owner-facing lifecycle controls for one drive pass. */
+/** 单次驱动过程中面向所有者的生命周期控制能力。 */
 export interface GateControl {
 	beginAbort(cancellation: Promise<void>): void;
 	signalAbort(): void;
@@ -27,7 +27,10 @@ type GateState =
 	| { status: "aborting"; cancellation: Promise<void> }
 	| { status: "closed"; error: Error };
 
-/** Create separate procedure-facing and owner-facing views of one effect gate. */
+/**
+ * 为同一个副作用门创建相互分离的执行过程视图和所有者视图。
+ * 执行过程只能申请准入，所有者负责开始取消、发出中止信号以及关闭门。
+ */
 export function createGate(): { gate: Gate; control: GateControl } {
 	let state: GateState = { status: "open" };
 	const controller = new AbortController();

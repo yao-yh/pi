@@ -1,12 +1,12 @@
 /**
- * Final action for current state at one address:
- * - copy: emit the current value in the destination;
- * - exclude: omit it from the destination;
- * - reconstruct: do not copy the row because lane handling emits a coherent replacement.
+ * 一个地址上当前状态的最终处理方式：
+ * - copy：将当前值写入目标会话；
+ * - exclude：不写入目标会话；
+ * - reconstruct：不复制该行，由分支通道处理逻辑写入一致的替代状态。
  */
 export type ForkDisposition = "copy" | "exclude" | "reconstruct";
 
-/** Decide the final fork action for one current scalar or list address. */
+/** 决定一个当前标量或列表地址在派生时的最终处理方式。 */
 export function classifyForkAddress(
 	address: { readonly namespace: string; readonly key: string },
 	scope: "branch" | "tree",

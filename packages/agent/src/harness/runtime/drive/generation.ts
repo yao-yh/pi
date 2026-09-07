@@ -21,7 +21,7 @@ import type { ContinueOperationResult, Drive, ProcedureResult } from "../types.t
 import { openAssistantResponse, publishConfigurationFailure, publishResponse } from "./response.ts";
 import { waitUntil } from "./retry.ts";
 
-/** Assistant effect-pending payload without the run-wide scope fields. */
+/** 不含运行级作用域字段的助手待处理副作用载荷。 */
 type AssistantEffectPending = Omit<AssistantEffectPendingOperation, keyof OperationScope>;
 
 type PreparedGeneration = {
@@ -230,7 +230,7 @@ async function performGeneration<TContext extends object | undefined>(
 	}
 }
 
-/** Advance one durable assistant retry wait according to this pass's local wait policy. */
+/** 按本次推进的本地等待策略，推进一次持久化的助手重试等待。 */
 export async function runRetryWait<TContext extends object | undefined>(
 	lane: Lane<TContext>,
 	drive: Drive,
@@ -281,7 +281,7 @@ export async function runRetryWait<TContext extends object | undefined>(
 	return result.kind === "cancel_requested" ? { kind: "continue" } : result.value;
 }
 
-/** Execute one ready assistant generation or advance its durable retry wait. */
+/** 执行一次就绪的助手生成，或推进其持久化重试等待。 */
 export async function runGeneration<TContext extends object | undefined>(
 	lane: Lane<TContext>,
 	drive: Drive,

@@ -1,46 +1,46 @@
 /**
- * Shared truncation utilities for tool outputs.
+ * 工具输出共用的截断工具。
  *
- * Truncation is based on two independent limits - whichever is hit first wins:
- * - Line limit (default: 2000 lines)
- * - Byte limit (default: 50KB)
+ * 截断由两个独立限制决定，以先达到的限制为准：
+ * - 行数限制（默认 2000 行）
+ * - 字节数限制（默认 50KB）
  *
- * Never returns partial lines (except bash tail truncation edge case).
+ * 除 Bash 尾部截断的边界情况外，不会返回不完整的行。
  */
 
 export const DEFAULT_MAX_LINES = 2000;
 export const DEFAULT_MAX_BYTES = 50 * 1024; // 50KB
-export const GREP_MAX_LINE_LENGTH = 500; // Max chars per grep match line
+export const GREP_MAX_LINE_LENGTH = 500; // 每条 grep 匹配行的最大字符数
 
 export interface TruncationResult {
-	/** The truncated content */
+	/** 截断后的内容。 */
 	content: string;
-	/** Whether truncation occurred */
+	/** 是否发生截断。 */
 	truncated: boolean;
-	/** Which limit was hit: "lines", "bytes", or null if not truncated */
+	/** 达到的限制："lines"、"bytes"，未截断时为 null。 */
 	truncatedBy: "lines" | "bytes" | null;
-	/** Total number of lines in the original content */
+	/** 原始内容的总行数。 */
 	totalLines: number;
-	/** Total number of bytes in the original content */
+	/** 原始内容的总字节数。 */
 	totalBytes: number;
-	/** Number of complete lines in the truncated output */
+	/** 截断后输出中的完整行数。 */
 	outputLines: number;
-	/** Number of bytes in the truncated output */
+	/** 截断后输出的字节数。 */
 	outputBytes: number;
-	/** Whether the last line was partially truncated (only for tail truncation edge case) */
+	/** 最后一行是否被部分截断，仅用于尾部截断的边界情况。 */
 	lastLinePartial: boolean;
-	/** Whether the first line exceeded the byte limit (for head truncation) */
+	/** 第一行是否超过字节限制，用于头部截断。 */
 	firstLineExceedsLimit: boolean;
-	/** The max lines limit that was applied */
+	/** 实际应用的最大行数限制。 */
 	maxLines: number;
-	/** The max bytes limit that was applied */
+	/** 实际应用的最大字节数限制。 */
 	maxBytes: number;
 }
 
 export interface TruncationOptions {
-	/** Maximum number of lines (default: 2000) */
+	/** 最大行数，默认为 2000。 */
 	maxLines?: number;
-	/** Maximum number of bytes (default: 50KB) */
+	/** 最大字节数，默认为 50KB。 */
 	maxBytes?: number;
 }
 
@@ -110,7 +110,7 @@ function replaceUnpairedSurrogates(content: string): string {
 }
 
 /**
- * Format bytes as human-readable size.
+ * 将字节数格式化为易读的大小。
  */
 export function formatSize(bytes: number): string {
 	if (bytes < 1024) {
@@ -123,11 +123,11 @@ export function formatSize(bytes: number): string {
 }
 
 /**
- * Truncate content from the head (keep first N lines/bytes).
- * Suitable for file reads where you want to see the beginning.
+ * 从内容尾部截断，保留开头 N 行或指定字节数。
+ * 适用于需要查看文件开头的读取场景。
  *
- * Never returns partial lines. If first line exceeds byte limit,
- * returns empty content with firstLineExceedsLimit=true.
+ * 不会返回不完整的行。如果第一行超过字节限制，
+ * 则返回空内容，并将 firstLineExceedsLimit 设为 true。
  */
 export function truncateHead(content: string, options: TruncationOptions = {}): TruncationResult {
 	const maxLines = options.maxLines ?? DEFAULT_MAX_LINES;
@@ -137,7 +137,7 @@ export function truncateHead(content: string, options: TruncationOptions = {}): 
 	const lines = splitLinesForCounting(content);
 	const totalLines = lines.length;
 
-	// Check if no truncation needed
+	// 检查是否无需截断
 	if (totalLines <= maxLines && totalBytes <= maxBytes) {
 		return {
 			content,
@@ -154,7 +154,7 @@ export function truncateHead(content: string, options: TruncationOptions = {}): 
 		};
 	}
 
-	// Check if first line alone exceeds byte limit
+	// 检查仅第一行是否已经超过字节限制
 	const firstLineBytes = utf8ByteLength(lines[0]);
 	if (firstLineBytes > maxBytes) {
 		return {
@@ -172,14 +172,14 @@ export function truncateHead(content: string, options: TruncationOptions = {}): 
 		};
 	}
 
-	// Collect complete lines that fit
+	// 收集限制范围内能够完整容纳的行
 	const outputLinesArr: string[] = [];
 	let outputBytesCount = 0;
 	let truncatedBy: "lines" | "bytes" = "lines";
 
 	for (let i = 0; i < lines.length && i < maxLines; i++) {
 		const line = lines[i];
-		const lineBytes = utf8ByteLength(line) + (i > 0 ? 1 : 0); // +1 for newline
+		const lineBytes = utf8ByteLength(line) + (i > 0 ? 1 : 0); // 为换行符增加 1 字节
 
 		if (outputBytesCount + lineBytes > maxBytes) {
 			truncatedBy = "bytes";
@@ -190,7 +190,7 @@ export function truncateHead(content: string, options: TruncationOptions = {}): 
 		outputBytesCount += lineBytes;
 	}
 
-	// If we exited due to line limit
+	// 如果因达到行数限制而退出
 	if (outputLinesArr.length >= maxLines && outputBytesCount <= maxBytes) {
 		truncatedBy = "lines";
 	}
@@ -214,10 +214,10 @@ export function truncateHead(content: string, options: TruncationOptions = {}): 
 }
 
 /**
- * Truncate content from the tail (keep last N lines/bytes).
- * Suitable for bash output where you want to see the end (errors, final results).
+ * 从内容头部截断，保留末尾 N 行或指定字节数。
+ * 适用于需要查看末尾内容（错误、最终结果）的 Bash 输出。
  *
- * May return partial first line if the last line of original content exceeds byte limit.
+ * 如果原始内容的最后一行超过字节限制，可能返回不完整的第一行。
  */
 export function truncateTail(content: string, options: TruncationOptions = {}): TruncationResult {
 	const maxLines = options.maxLines ?? DEFAULT_MAX_LINES;
@@ -227,7 +227,7 @@ export function truncateTail(content: string, options: TruncationOptions = {}): 
 	const lines = splitLinesForCounting(content);
 	const totalLines = lines.length;
 
-	// Check if no truncation needed
+	// 检查是否无需截断
 	if (totalLines <= maxLines && totalBytes <= maxBytes) {
 		return {
 			content,
@@ -244,7 +244,7 @@ export function truncateTail(content: string, options: TruncationOptions = {}): 
 		};
 	}
 
-	// Work backwards from the end
+	// 从末尾开始反向处理
 	const outputLinesArr: string[] = [];
 	let outputBytesCount = 0;
 	let truncatedBy: "lines" | "bytes" = "lines";
@@ -252,12 +252,12 @@ export function truncateTail(content: string, options: TruncationOptions = {}): 
 
 	for (let i = lines.length - 1; i >= 0 && outputLinesArr.length < maxLines; i--) {
 		const line = lines[i];
-		const lineBytes = utf8ByteLength(line) + (outputLinesArr.length > 0 ? 1 : 0); // +1 for newline
+		const lineBytes = utf8ByteLength(line) + (outputLinesArr.length > 0 ? 1 : 0); // 为换行符增加 1 字节
 
 		if (outputBytesCount + lineBytes > maxBytes) {
 			truncatedBy = "bytes";
-			// Edge case: if we haven't added ANY lines yet and this line exceeds maxBytes,
-			// take the end of the line (partial)
+			// 边界情况：尚未添加任何行且当前行超过 maxBytes 时，
+			// 截取该行末尾的部分内容
 			if (outputLinesArr.length === 0) {
 				const truncatedLine = truncateStringToBytesFromEnd(line, maxBytes);
 				outputLinesArr.unshift(truncatedLine);
@@ -271,7 +271,7 @@ export function truncateTail(content: string, options: TruncationOptions = {}): 
 		outputBytesCount += lineBytes;
 	}
 
-	// If we exited due to line limit
+	// 如果因达到行数限制而退出
 	if (outputLinesArr.length >= maxLines && outputBytesCount <= maxBytes) {
 		truncatedBy = "lines";
 	}
@@ -295,8 +295,8 @@ export function truncateTail(content: string, options: TruncationOptions = {}): 
 }
 
 /**
- * Truncate a string to fit within a byte limit (from the end).
- * Handles multi-byte UTF-8 characters correctly.
+ * 从字符串末尾截取内容，使其符合字节数限制。
+ * 能够正确处理多字节 UTF-8 字符。
  */
 function truncateStringToBytesFromEnd(str: string, maxBytes: number): string {
 	if (maxBytes <= 0) return "";
@@ -336,8 +336,8 @@ function truncateStringToBytesFromEnd(str: string, maxBytes: number): string {
 }
 
 /**
- * Truncate a single line to max characters, adding [truncated] suffix.
- * Used for grep match lines.
+ * 将单行截断到最大字符数，并添加 [truncated] 后缀。
+ * 用于 grep 匹配行。
  */
 export function truncateLine(
 	line: string,

@@ -22,7 +22,7 @@ export class SliceNotImplemented extends Error {
 	}
 }
 
-/** Current process-local harness configuration. */
+/** 当前进程内的控制器配置。 */
 export interface Config<TContext extends object | undefined> {
 	readonly tools: AgentHarnessTool<TContext>[];
 	readonly resources: Resources;
@@ -38,7 +38,7 @@ export interface Config<TContext extends object | undefined> {
 	readonly entryProjectors: Readonly<NonNullable<AgentHarnessOptions<TContext>["entryProjectors"]>>;
 }
 
-/** The current durable state owned by one lane. */
+/** 一个分支通道拥有的当前持久状态。 */
 export interface LaneState {
 	readonly tipId: string | null;
 	readonly configuration: LaneConfiguration;
@@ -56,7 +56,7 @@ interface CommitDecision<TResult> {
 	events?(commit: CommitResult): HarnessEvent[];
 }
 
-/** One effect-free decision made on a lane's serialized mutation line. */
+/** 在分支通道的串行变更队列上作出的一次无副作用决策。 */
 export type LaneCommand<TResult> =
 	| (CommitDecision<TResult> & { next: LaneState })
 	| { kind: "return"; result: TResult }
@@ -64,7 +64,7 @@ export type LaneCommand<TResult> =
 
 export type ContinueOperationResult<TResult> = { kind: "cancel_requested" } | { kind: "result"; value: TResult };
 
-/** A durable operation transition. The Lane pairs the state write with projection publication. */
+/** 一次持久操作转换。分支通道会将状态写入与投影发布配对。 */
 type LanePatch = Partial<Pick<LaneState, "tipId" | "configuration" | "inbox">>;
 
 interface FinishDecision<TResult> {
@@ -81,7 +81,7 @@ export type OperationCommand<TResult> =
 	| FinishDecision<TResult>
 	| { kind: "return"; result: TResult };
 
-/** One installed process-local drive pass. */
+/** 一次已安装的进程内推进过程。 */
 export class Drive {
 	readonly operationId: string;
 	readonly completion: Promise<DriveOutcome>;

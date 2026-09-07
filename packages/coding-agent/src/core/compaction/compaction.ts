@@ -747,6 +747,16 @@ export interface CompactionPreparation {
 	settings: CompactionSettings;
 }
 
+/**
+ * Select the history that a compaction will summarize and the recent suffix it
+ * will retain.
+ *
+ * The latest compaction is the previous summary boundary. From that boundary,
+ * `findCutPoint()` walks backward to preserve approximately keepRecentTokens.
+ * If the cut lands inside a turn, the early part of that turn is separated into
+ * `turnPrefixMessages` so its request and early work are not lost. This phase is
+ * pure: it returns a plan and does not modify the session tree.
+ */
 export function prepareCompaction(
 	pathEntries: SessionEntry[],
 	settings: CompactionSettings,

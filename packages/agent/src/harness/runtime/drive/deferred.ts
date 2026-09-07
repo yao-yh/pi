@@ -20,7 +20,7 @@ import type { ContinueOperationResult, Drive, ProcedureResult } from "../types.t
 import { openAssistantResponse, publishConfigurationFailure, publishResponse } from "./response.ts";
 
 type DeferredLeaf = DeferredSuspendedOperation | DeferredEffectPendingOperation;
-/** Deferred effect payload without the run-wide scope fields. */
+/** 不含运行级作用域字段的延迟副作用载荷。 */
 type EffectPendingFields = Omit<DeferredEffectPendingOperation, keyof OperationScope>;
 
 type PreparedDeferredPoll = {
@@ -257,7 +257,7 @@ async function pollDeferred<TContext extends object | undefined>(
 	return publishResponse(lane, drive, intent.value, response, recovery ? { recovery: true } : {});
 }
 
-/** Poll one durably suspended deferred response when this pass carries a permit. */
+/** 当本次推进持有许可时，轮询一个处于持久暂停状态的延迟响应。 */
 export function runDeferredSuspended<TContext extends object | undefined>(
 	lane: Lane<TContext>,
 	drive: Drive,
@@ -266,7 +266,7 @@ export function runDeferredSuspended<TContext extends object | undefined>(
 	return pollDeferred(lane, drive, deferred, false);
 }
 
-/** Replace one orphaned unknown-outcome poll under fresh ids when this pass carries a permit. */
+/** 当本次推进持有许可时，使用新 ID 替换一个结果未知且失去所属关系的轮询。 */
 export function recoverDeferredPoll<TContext extends object | undefined>(
 	lane: Lane<TContext>,
 	drive: Drive,
@@ -275,7 +275,7 @@ export function recoverDeferredPoll<TContext extends object | undefined>(
 	return pollDeferred(lane, drive, deferred, true);
 }
 
-/** Advance or report the wait for one deferred run phase. */
+/** 推进一个延迟运行阶段，或报告其等待状态。 */
 export function runDeferred<TContext extends object | undefined>(
 	lane: Lane<TContext>,
 	drive: Drive,

@@ -9,11 +9,10 @@ export interface AdaptivePublisherOptions<TValue, TUpdate> {
 }
 
 /**
- * Publishes the latest state without queuing intermediate mutations.
+ * 发布最新状态，不为中间变更排队。
  *
- * The first dirty state after idle is immediate. Each publication then buys a
- * delay proportional to its encoded size, with a minimum interval that also
- * bounds event count. A single trailing timer guarantees eventual publication.
+ * 空闲后的第一个脏状态会立即发布。此后每次发布都会根据编码后的大小增加相应延迟，
+ * 同时使用最小间隔限制事件数量。单个尾随定时器保证状态最终一定会发布。
  */
 export class AdaptivePublisher<TValue, TUpdate> {
 	readonly #options: AdaptivePublisherOptions<TValue, TUpdate>;
@@ -62,8 +61,8 @@ export class AdaptivePublisher<TValue, TUpdate> {
 		this.#published = current;
 		this.#dirty = false;
 		this.#nextEmitAt = now + Math.max(this.#minIntervalMs, (encodedBytes * 1000) / this.#targetBytesPerSecond);
-		// Commit before delivery. A consumer may apply the update and then throw or
-		// reenter the producer; retaining the old baseline would duplicate that delta.
+		// 先提交基线再发送。调用方可能应用更新后抛出异常或重新进入发布方；
+		// 如果仍保留旧基线，会导致同一个增量重复发布。
 		this.#options.publish(update);
 	}
 

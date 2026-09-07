@@ -25,6 +25,10 @@ export interface TaggedErrorFactory<Tag extends string> {
 	is(value: unknown): value is TaggedErrorValue<Tag>;
 }
 
+/**
+ * 创建带稳定 `_tag`、JSON 序列化能力和类型守卫的错误类工厂。
+ * `tag` 同时用作错误名称和模式匹配键。
+ */
 export function TaggedError<Tag extends string>(tag: Tag): TaggedErrorFactory<Tag> {
 	class TaggedErrorClass extends Error {
 		readonly _tag = tag;
@@ -108,6 +112,7 @@ export type ErrorMatchers<TError extends TaggedErrorValue<string>, TValue> = {
 	[Tag in TError["_tag"]]: (error: Extract<TError, { _tag: Tag }>) => TValue;
 };
 
+/** 根据错误的稳定 `_tag` 调用对应处理函数，并返回其结果。 */
 export function matchError<TError extends TaggedErrorValue<string>, TValue>(
 	error: TError,
 	matchers: ErrorMatchers<TError, TValue>,

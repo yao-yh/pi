@@ -331,6 +331,14 @@ function buildEntryIndex(entries: SessionEntry[], byId?: Map<string, SessionEntr
 	return index;
 }
 
+/**
+ * Reconstruct one root-to-leaf branch from the append-only entry store.
+ *
+ * `leafId` selects an explicit branch, an omitted value selects the newest
+ * physical entry, and `null` selects the empty position before the first entry.
+ * Following parentId links means entries from sibling branches never enter the
+ * active context.
+ */
 function buildSessionPath(
 	entries: SessionEntry[],
 	leafId?: string | null,

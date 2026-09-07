@@ -28,11 +28,11 @@ import {
 	serializeConversation,
 } from "./utils.ts";
 
-/** File-operation details stored on generated compaction entries. */
+/** 存储在已生成压缩条目上的文件操作详情。 */
 export interface CompactionDetails extends Record<string, JsonValue> {
-	/** Files read in the compacted history. */
+	/** 压缩历史记录中读取的文件。 */
 	readFiles: string[];
-	/** Files modified in the compacted history. */
+	/** 压缩历史记录中修改的文件。 */
 	modifiedFiles: string[];
 }
 function safeJsonStringify(value: unknown): string {
@@ -94,17 +94,17 @@ function getMessageFromEntryForCompaction(entry: Entry): AgentMessage | undefine
 	return getMessageFromEntry(entry);
 }
 
-/** Generated compaction data ready to be persisted as a compaction entry. */
+/** 已生成、可持久化为压缩条目的数据。 */
 export interface CompactResult<T = JsonValue> {
-	/** Summary text that replaces compacted history in future context. */
+	/** 在后续上下文中替换已压缩历史记录的摘要文本。 */
 	summary: string;
-	/** Estimated context tokens before compaction. */
+	/** 压缩前估算的上下文令牌数。 */
 	tokensBefore: number;
-	/** Usage from the LLM call(s) that generated this summary, if available. */
+	/** 生成此摘要的 LLM 调用用量（如果可用）。 */
 	usage?: Usage;
-	/** Retained recent messages stored directly on the compaction entry. */
+	/** 直接存储在压缩条目上的近期保留消息。 */
 	retainedTail: AgentMessage[];
-	/** Optional implementation-specific details stored with the compaction entry. */
+	/** 随压缩条目存储的可选实现专用详情。 */
 	details?: T;
 }
 
@@ -114,6 +114,10 @@ export type SummaryRequest = (
 	context: Context,
 ) => Promise<AssistantMessage>;
 
+/**
+ * 构建独立摘要请求使用的选项。
+ * 摘要请求禁用缓存保留，并绑定当前中止信号、遥测上下文和独立会话 ID。
+ */
 export function createSummaryRequestOptions(options: SimpleStreamOptions, context: Context): SimpleStreamOptions {
 	return {
 		...options,
@@ -124,6 +128,10 @@ export function createSummaryRequestOptions(options: SimpleStreamOptions, contex
 	};
 }
 
+/**
+ * 通过模型集合执行可重试的独立摘要请求。
+ * 路由和缓存与主对话隔离，避免写入无法复用的提示缓存。
+ */
 export async function completeSimpleWithRetries(
 	models: Models,
 	model: Model<Api>,
@@ -133,7 +141,7 @@ export async function completeSimpleWithRetries(
 	callbacks: RetryCallbacks | undefined,
 	context: Context,
 ): Promise<AssistantMessage> {
-	// Summaries are standalone requests, so isolate routing and avoid cache writes that cannot be reused.
+	// 摘要属于独立请求，因此隔离路由，并避免写入无法复用的缓存。
 	const requestOptions = createSummaryRequestOptions(options, context);
 	return retryAssistantCall(
 		() => models.completeSimple(model, aiContext, requestOptions),
@@ -143,24 +151,24 @@ export async function completeSimpleWithRetries(
 	);
 }
 
-/** Compaction thresholds and retention settings. */
+/** 压缩阈值和保留设置。 */
 export interface CompactionSettings {
-	/** Enable automatic compaction decisions. */
+	/** 是否启用自动压缩决策。 */
 	enabled: boolean;
-	/** Tokens reserved for summary prompt and output. */
+	/** 为摘要提示和输出预留的令牌数。 */
 	reserveTokens: number;
-	/** Approximate recent-context tokens to keep after compaction. */
+	/** 压缩后要保留的近期上下文令牌估算数。 */
 	keepRecentTokens: number;
 }
 
-/** Default compaction settings used by the harness. */
+/** 代理框架使用的默认压缩设置。 */
 export const DEFAULT_COMPACTION_SETTINGS: CompactionSettings = {
 	enabled: true,
 	reserveTokens: 16384,
 	keepRecentTokens: 20000,
 };
 
-/** Calculate total context tokens from provider usage. */
+/** 根据提供方用量计算上下文令牌总数。 */
 export function calculateContextTokens(usage: Usage): number {
 	return usage.totalTokens || usage.input + usage.output + usage.cacheRead + usage.cacheWrite;
 }
@@ -179,7 +187,7 @@ function getAssistantUsage(msg: AgentMessage): Usage | undefined {
 	return undefined;
 }
 
-/** Return usage from the last valid assistant message in session entries. */
+/** 返回会话条目中最后一条有效助手消息的用量。 */
 export function getLastAssistantUsage(entries: Entry[]): Usage | undefined {
 	for (let i = entries.length - 1; i >= 0; i--) {
 		const entry = entries[i];
@@ -191,15 +199,15 @@ export function getLastAssistantUsage(entries: Entry[]): Usage | undefined {
 	return undefined;
 }
 
-/** Estimated context-token usage for a message list. */
+/** 消息列表的上下文令牌用量估算结果。 */
 export interface ContextUsageEstimate {
-	/** Estimated total context tokens. */
+	/** 估算的上下文令牌总数。 */
 	tokens: number;
-	/** Tokens reported by the most recent assistant usage block. */
+	/** 最近一个助手用量块报告的令牌数。 */
 	usageTokens: number;
-	/** Estimated tokens after the most recent assistant usage block. */
+	/** 最近一个助手用量块之后的估算令牌数。 */
 	trailingTokens: number;
-	/** Index of the message that provided usage, or null when none exists. */
+	/** 提供用量信息的消息索引；不存在时为 null。 */
 	lastUsageIndex: number | null;
 }
 
@@ -211,7 +219,7 @@ function getLastAssistantUsageInfo(messages: AgentMessage[]): { usage: Usage; in
 	return undefined;
 }
 
-/** Estimate context tokens for messages using provider usage when available. */
+/** 优先使用可用的提供方用量来估算消息的上下文令牌数。 */
 export function estimateContextTokens(messages: AgentMessage[]): ContextUsageEstimate {
 	const usageInfo = getLastAssistantUsageInfo(messages);
 
@@ -242,7 +250,7 @@ export function estimateContextTokens(messages: AgentMessage[]): ContextUsageEst
 	};
 }
 
-/** Return whether context usage exceeds the configured compaction threshold. */
+/** 返回上下文用量是否超过配置的压缩阈值。 */
 export function shouldCompact(contextTokens: number, contextWindow: number, settings: CompactionSettings): boolean {
 	if (!settings.enabled) return false;
 	return contextTokens > contextWindow - settings.reserveTokens;
@@ -266,7 +274,7 @@ function estimateTextAndImageContentChars(content: string | Array<{ type: string
 	return chars;
 }
 
-/** Estimate token count for one message using a conservative character heuristic. */
+/** 使用保守的字符启发式规则估算单条消息的令牌数。 */
 export function estimateTokens(message: AgentMessage): number {
 	let chars = 0;
 
@@ -339,7 +347,7 @@ function findValidCutPoints(entries: Entry[], startIndex: number, endIndex: numb
 	return cutPoints;
 }
 
-/** Find the user-visible message that starts the turn containing an entry. */
+/** 查找包含指定条目的轮次中第一条用户可见消息。 */
 export function findTurnStartIndex(entries: Entry[], entryIndex: number, startIndex: number): number {
 	for (let i = entryIndex; i >= startIndex; i--) {
 		const entry = entries[i];
@@ -356,17 +364,17 @@ export function findTurnStartIndex(entries: Entry[], entryIndex: number, startIn
 	return -1;
 }
 
-/** Cut point selected for compaction. */
+/** 为压缩选取的切分点。 */
 export interface CutPointResult {
-	/** Index of the first entry retained after compaction. */
+	/** 压缩后保留的第一个条目的索引。 */
 	firstKeptEntryIndex: number;
-	/** Index of the turn-start entry when the cut splits a turn, otherwise -1. */
+	/** 切分点拆开一个轮次时的轮次起始条目索引，否则为 -1。 */
 	turnStartIndex: number;
-	/** Whether the selected cut point splits an in-progress turn. */
+	/** 所选切分点是否拆开了正在进行的轮次。 */
 	isSplitTurn: boolean;
 }
 
-/** Find the compaction cut point that keeps approximately the requested recent-token budget. */
+/** 查找压缩切分点，使保留的近期内容大致符合指定令牌预算。 */
 export function findCutPoint(
 	entries: Entry[],
 	startIndex: number,
@@ -493,7 +501,7 @@ Use this EXACT format:
 
 Keep each section concise. Preserve exact file paths, function names, and error messages.`;
 
-/** Generate or update a conversation summary for compaction. */
+/** 为压缩生成或更新对话摘要。 */
 export async function generateSummary(
 	currentMessages: AgentMessage[],
 	models: Models,
@@ -521,7 +529,7 @@ export async function generateSummary(
 	return result.ok ? ok(result.value.text) : err(result.error);
 }
 
-/** Generate or update a conversation summary and return its provider usage. */
+/** 生成或更新对话摘要，并返回提供方用量。 */
 export function generateSummaryWithUsage(
 	currentMessages: AgentMessage[],
 	models: Models,
@@ -551,7 +559,7 @@ export interface SummaryGenerationOptions {
 	thinkingLevel?: ThinkingLevel;
 }
 
-/** Generate one summary through a caller-owned one-request boundary. */
+/** 通过调用方持有的单请求边界生成一次摘要。 */
 export async function generateSummaryWithRequest(
 	currentMessages: AgentMessage[],
 	options: SummaryGenerationOptions,
@@ -610,27 +618,27 @@ export async function generateSummaryWithRequest(
 	return ok({ text: textContent, usage: response.usage });
 }
 
-/** Prepared inputs for a compaction run. */
+/** 一次压缩运行已经准备好的输入。 */
 export interface CompactionPreparation {
-	/** Messages summarized into the history summary. */
+	/** 汇总到历史摘要中的消息。 */
 	messagesToSummarize: AgentMessage[];
-	/** Prefix messages summarized separately when compaction splits a turn. */
+	/** 压缩拆开一个轮次时单独生成摘要的前缀消息。 */
 	turnPrefixMessages: AgentMessage[];
-	/** Recent messages retained after compaction and stored on the compaction entry. */
+	/** 压缩后保留并存储到压缩条目上的近期消息。 */
 	retainedTail: AgentMessage[];
-	/** Whether compaction splits a turn. */
+	/** 压缩是否拆开一个轮次。 */
 	isSplitTurn: boolean;
-	/** Estimated context tokens before compaction. */
+	/** 压缩前估算的上下文令牌数。 */
 	tokensBefore: number;
-	/** Previous compaction summary used for iterative updates. */
+	/** 用于迭代更新的上一次压缩摘要。 */
 	previousSummary?: string;
-	/** File operations extracted from summarized history. */
+	/** 从待摘要历史记录中提取的文件操作。 */
 	fileOps: FileOperations;
-	/** Settings used to prepare compaction. */
+	/** 准备压缩时使用的设置。 */
 	settings: CompactionSettings;
 }
 
-/** Prepare session entries for compaction, or return undefined when compaction is not applicable. */
+/** 准备用于压缩的会话条目；不适用压缩时返回 undefined。 */
 export function prepareCompaction(
 	pathEntries: Entry[],
 	settings: CompactionSettings,
@@ -723,7 +731,7 @@ Be concise. Focus on what's needed to understand the kept suffix.`;
 
 export { serializeConversation } from "./utils.ts";
 
-/** Generate compaction summary data from prepared session history. */
+/** 根据准备好的会话历史记录生成压缩摘要数据。 */
 export function compact(
 	preparation: CompactionPreparation,
 	models: Models,
@@ -749,7 +757,7 @@ export interface CompactGenerationOptions {
 	thinkingLevel?: ThinkingLevel;
 }
 
-/** Generate compaction data through a caller-owned boundary for each provider request. */
+/** 对每次提供方请求通过调用方持有的边界生成压缩数据。 */
 export async function compactWithRequest(
 	preparation: CompactionPreparation,
 	options: CompactGenerationOptions,
@@ -814,6 +822,10 @@ export async function compactWithRequest(
 
 	return ok({ summary, tokensBefore, usage: summaryUsage, retainedTail, details });
 }
+/**
+ * 为被压缩切分的轮次前缀单独生成摘要。
+ * 返回摘要文本及提供方用量，使保留的轮次后缀仍具有足够上下文。
+ */
 async function generateTurnPrefixSummary(
 	messages: AgentMessage[],
 	model: Model<Api>,

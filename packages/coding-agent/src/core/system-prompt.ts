@@ -24,7 +24,14 @@ export interface BuildSystemPromptOptions {
 	skills?: Skill[];
 }
 
-/** Build the system prompt with tools, guidelines, and context */
+/**
+ * Build the system prompt from the currently active runtime resources.
+ *
+ * A custom prompt replaces only the built-in base text. Appended prompt text,
+ * project context files, readable skills, and the current working directory are
+ * still added afterward. Without a custom prompt, tool snippets determine the
+ * visible tool list and active tools contribute their prompt guidelines.
+ */
 export function buildSystemPrompt(options: BuildSystemPromptOptions): string {
 	const {
 		customPrompt,

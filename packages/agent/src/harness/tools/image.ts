@@ -1,5 +1,9 @@
 const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
 
+/**
+ * 根据文件签名检测内置读取工具支持的图像 MIME 类型。
+ * 不完整、无效、动画 PNG 和 JPEG XL 数据返回 undefined。
+ */
 export function detectSupportedImageMimeType(buffer: Uint8Array): string | undefined {
 	if (startsWith(buffer, [0xff, 0xd8, 0xff])) return buffer[3] === 0xf7 ? undefined : "image/jpeg";
 	if (startsWith(buffer, PNG_SIGNATURE)) return isPng(buffer) && !isAnimatedPng(buffer) ? "image/png" : undefined;
@@ -9,6 +13,7 @@ export function detectSupportedImageMimeType(buffer: Uint8Array): string | undef
 	return undefined;
 }
 
+/** 在不依赖 Node.js Buffer 的情况下，将字节数组编码为 Base64。 */
 export function encodeBase64(bytes: Uint8Array): string {
 	const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 	let output = "";

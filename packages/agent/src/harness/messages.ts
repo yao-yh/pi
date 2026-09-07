@@ -60,6 +60,7 @@ declare module "../types.ts" {
 	}
 }
 
+/** 将结构化 Bash 执行消息转换为发送给模型的文本表示。 */
 export function bashExecutionToText(msg: BashExecutionMessage): string {
 	let text = `Ran \`${msg.command}\`\n`;
 	if (msg.output) {
@@ -121,6 +122,10 @@ export function createCustomMessage(
 	};
 }
 
+/**
+ * 将代理框架的扩展消息转换为提供方可接受的 LLM 消息。
+ * 标记为排除上下文的 Bash 消息及未知自定义角色会被过滤掉。
+ */
 export function convertToLlm(messages: AgentMessage[]): Message[] {
 	return messages
 		.map((m): Message | undefined => {

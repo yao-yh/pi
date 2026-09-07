@@ -1,4 +1,4 @@
-/** Serializes complete read-modify-write jobs for one Session. */
+/** 串行执行单个会话上的完整“读取—修改—写入”任务。 */
 export class MutationLine {
 	private tail: Promise<void> = Promise.resolve();
 	private sealedError: Error | undefined;

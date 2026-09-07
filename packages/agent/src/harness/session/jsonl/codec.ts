@@ -50,6 +50,7 @@ export type JsonlParsedSessionHeader =
 	| { format: "v4"; header: JsonlStorageHeader }
 	| { format: "v3-legacy"; header: LegacyV3SessionHeader };
 
+/** 解析并校验 JSONL 会话头，区分当前 v4 格式与可导入的旧版 v3 格式。 */
 export function parseJsonlSessionHeader(line: string): Result<JsonlParsedSessionHeader, Error> {
 	let value: unknown;
 	try {

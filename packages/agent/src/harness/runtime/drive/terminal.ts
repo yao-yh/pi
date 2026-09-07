@@ -22,7 +22,7 @@ import {
 	pendingToolOutputPrefix,
 } from "../../session/values.ts";
 
-/** Build the mechanical operation-owned suffix used by an owning procedure's terminal transaction. */
+/** 构建归操作所有的固定清理写入，供所属过程的终止事务使用。 */
 export async function operationCleanupWrites(
 	reader: SessionReader,
 	operationId: string,
@@ -59,7 +59,7 @@ export async function operationCleanupWrites(
 	];
 }
 
-/** Construct the immutable observation record for one terminal decision. */
+/** 为一次终止决策构造不可变观测记录。 */
 export function operationResultRecord(
 	meta: OperationMeta,
 	status: TerminalStatus,

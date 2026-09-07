@@ -12,6 +12,10 @@ const writeSchema = Type.Object({
 
 export type WriteToolInput = Static<typeof writeSchema>;
 
+/**
+ * 创建整文件写入工具。
+ * 同一路径的写入和编辑通过共享变更队列串行执行，并由执行环境负责创建父目录。
+ */
 export function createWriteTool<TContext extends ExecutionToolContext = ExecutionToolContext>(): AgentHarnessTool<
 	TContext,
 	typeof writeSchema,

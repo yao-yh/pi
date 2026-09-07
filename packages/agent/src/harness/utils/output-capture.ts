@@ -16,12 +16,10 @@ interface OutputCaptureHandlers {
 }
 
 /**
- * Maintains and publishes one bounded shell-output view.
+ * 维护并发布一个有界的 Shell 输出视图。
  *
- * Writes received while publication is rate-limited collapse into the latest
- * view. Small changes remain responsive; complete window turnovers purchase a
- * proportionally longer delay. The first update after idle and an explicit
- * final flush are immediate.
+ * 发布受速率限制期间收到的写入会合并到最新视图。小幅变更仍能及时响应，
+ * 整个窗口内容替换则会按比例增加延迟。空闲后的首次更新和显式最终刷新都会立即执行。
  */
 export class OutputCapture {
 	readonly #maxBytes: number;
@@ -150,6 +148,10 @@ export class OutputCapture {
 	}
 }
 
+/**
+ * 将增量 Shell 输出更新应用到当前视图，并返回新的完整视图。
+ * 当前视图不存在时，各类增量会以空文本为基线。
+ */
 export function applyShellOutputUpdate(
 	current: ShellOutputView | undefined,
 	update: ShellOutputUpdate,
@@ -166,6 +168,7 @@ export function applyShellOutputUpdate(
 	}
 }
 
+/** 根据前后两个完整视图生成体积尽可能小的替换、追加、滑动或元数据更新。 */
 function updateFrom(previous: ShellOutputView | undefined, current: ShellOutputView): ShellOutputUpdate {
 	if (previous === undefined) return { kind: "replace", output: current };
 	const metadata: ShellOutputMetadata = {

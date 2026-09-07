@@ -25,7 +25,7 @@ function currentOperation<TContext extends object | undefined>(lane: Lane<TConte
 	return operation;
 }
 
-/** Drive one installed pass through direct durable procedures until settlement or a durable wait. */
+/** 通过直接执行持久化过程来推进一次已安装操作，直至其结束或进入持久等待。 */
 export async function driveOperation<TContext extends object | undefined>(
 	lane: Lane<TContext>,
 	drive: Drive,

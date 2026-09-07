@@ -652,7 +652,7 @@ async function runParallel<TContext extends object | undefined>(
 	return { kind: "continue" };
 }
 
-/** Execute, recover, stage, and source-order one complete durable tool batch. */
+/** 执行、恢复并暂存一个完整的持久工具批次，再按源顺序排列结果。 */
 export async function runTools<TContext extends object | undefined>(
 	lane: Lane<TContext>,
 	drive: Drive,

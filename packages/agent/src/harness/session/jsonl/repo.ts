@@ -46,7 +46,7 @@ function sessionFileName(createdAt: number, id: string): string {
 	return `${timestamp}_${encodeURIComponent(id)}.jsonl`;
 }
 
-/** File-backed format-4 session repository lifecycle. */
+/** 基于文件的 v4 格式会话仓库生命周期实现。 */
 export class JsonlSessionRepo
 	implements SessionRepo<JsonlSessionMetadata, JsonlSessionCreateOptions, JsonlSessionListOptions>
 {
@@ -199,7 +199,7 @@ export class JsonlSessionRepo
 	close(_context: Context): Promise<void> {
 		if (this.closePromise !== undefined) return this.closePromise;
 		this.closed = true;
-		// TODO: Define ownership semantics before deciding whether repository close should close session handles.
+		// TODO：先明确所有权语义，再决定关闭仓库时是否也应关闭会话句柄。
 		this.closePromise = Promise.resolve();
 		return this.closePromise;
 	}
@@ -236,7 +236,7 @@ export class JsonlSessionRepo
 		for (const file of files) {
 			const discovered = await this.readSessionMetadata(file, context);
 			if (discovered === undefined) continue;
-			// Directory encoding is lossy: /a/b and /a-b both map to --a-b--.
+			// 目录编码是有损的：/a/b 和 /a-b 都会映射为 --a-b--。
 			if (cwd === undefined || discovered.cwd === cwd) metadata.push(discovered);
 		}
 		return metadata;

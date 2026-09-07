@@ -64,7 +64,7 @@ function resolvePath(cwd: string, path: string): string {
 		try {
 			normalized = fileURLToPath(normalized);
 		} catch {
-			// Keep malformed URLs as ordinary paths so filesystem methods preserve their non-throwing contract.
+			// 将格式错误的 URL 保留为普通路径，使文件系统方法继续遵守不抛出异常的约定。
 		}
 	}
 	return isAbsolute(normalized) ? resolve(normalized) : resolve(cwd, normalized);
@@ -268,10 +268,10 @@ function killProcessTree(pid: number): void {
 					windowsHide: true,
 				},
 			);
-			// A failed spawn emits "error" asynchronously; consume it to avoid crashing Node.
+			// spawn 失败会异步发出 "error"，需要消费该事件以避免 Node 进程崩溃。
 			child.once("error", () => {});
 		} catch {
-			// Ignore errors.
+			// 忽略终止进程树时的错误。
 		}
 		return;
 	}
@@ -282,11 +282,17 @@ function killProcessTree(pid: number): void {
 		try {
 			process.kill(pid, "SIGKILL");
 		} catch {
-			// Process already dead.
+			// 进程已经结束。
 		}
 	}
 }
 
+/**
+ * 等待子进程及其标准输出、标准错误流完成。
+ *
+ * 进程退出后仍会给予输出流短暂的排空时间；存在溢出写入时继续等待，
+ * 最终返回退出码和终止信号，并统一移除监听器。
+ */
 function waitForChildProcess(
 	child: ChildProcess,
 	spillIsDraining: () => boolean,
@@ -368,6 +374,10 @@ function waitForChildProcess(
 	});
 }
 
+/**
+ * 基于 Node.js 的执行环境实现，提供 Shell 执行和文件系统操作。
+ * 所有可预期失败都会转换为 Result 中的 ExecutionError 或 FileError。
+ */
 export class NodeExecutionEnv implements ExecutionEnv {
 	cwd: string;
 	private shellPath?: string;
@@ -388,6 +398,12 @@ export class NodeExecutionEnv implements ExecutionEnv {
 		return ok(join(...parts));
 	}
 
+	/**
+	 * 在配置的 Shell 中执行命令，并以有界视图捕获输出。
+	 *
+	 * 支持超时和中止、输出速率限制、完整输出溢出到临时文件以及进程树清理；
+	 * 返回退出码和截断元数据，启动或捕获失败则返回 ExecutionError。
+	 */
 	async exec(
 		command: string,
 		options: ShellExecOptions | undefined,
@@ -611,9 +627,8 @@ export class NodeExecutionEnv implements ExecutionEnv {
 						return;
 					}
 					const output = capture.snapshot();
-					// A process killed by a signal (e.g. OOM killer) has no exit code; map it
-					// to the conventional 128 + signal number so callers do not mistake it
-					// for a successful exit.
+					// 被信号终止的进程（例如被 OOM killer 终止）没有退出码；将其映射为约定的
+					// 128 + 信号编号，避免调用方误判为成功退出。
 					const exitCode = code ?? (exitSignal ? 128 + (osConstants.signals[exitSignal] ?? 0) : 1);
 					settle(
 						ok({

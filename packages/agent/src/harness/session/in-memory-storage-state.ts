@@ -54,10 +54,10 @@ function compareKeys(left: string, right: string): number {
 }
 
 /**
- * Complete materialized session state for MemoryStorage and JsonlStorage.
+ * MemoryStorage 和 JsonlStorage 使用的完整实体化会话状态。
  *
- * This is intentionally unsuitable for database backends and long-running sessions that may not fit in memory.
- * Those backends should query indexed durable state and update durable aggregates within each commit transaction.
+ * 此实现有意不支持数据库后端，以及可能无法完整装入内存的长时间运行会话。
+ * 这些后端应查询已建立索引的持久状态，并在每次提交事务中更新持久聚合数据。
  */
 export class InMemoryStorageState {
 	private readonly entries: Map<string, Entry>;
@@ -91,7 +91,7 @@ export class InMemoryStorageState {
 		});
 	}
 
-	/** Apply writes already accepted by validateCommitted() and return the post-apply totals. */
+	/** 应用已经通过 validateCommitted() 检查的写入，并返回应用后的汇总数据。 */
 	applyValidated(writes: readonly CommittedWrite[]): SessionStats {
 		for (const write of writes) {
 			switch (write.kind) {

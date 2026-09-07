@@ -1,9 +1,9 @@
 /**
- * Proxy stream function for apps that route LLM calls through a server.
- * The server manages auth and proxies requests to LLM providers.
+ * 供通过服务器转发 LLM 调用的应用使用的代理流函数。
+ * 服务器负责身份验证，并将请求代理到 LLM 提供方。
  */
 
-// Internal import for JSON parsing utility
+// 内部导入 JSON 解析工具
 import {
 	type AssistantMessage,
 	type AssistantMessageEvent,
@@ -16,7 +16,7 @@ import {
 	type ToolCall,
 } from "@earendil-works/pi-ai";
 
-// Create stream class matching ProxyMessageEventStream
+// 创建符合 ProxyMessageEventStream 约定的流类
 class ProxyMessageEventStream extends EventStream<AssistantMessageEvent, AssistantMessage> {
 	constructor() {
 		super(
@@ -31,7 +31,7 @@ class ProxyMessageEventStream extends EventStream<AssistantMessageEvent, Assista
 }
 
 /**
- * Proxy event types - server sends these with partial field stripped to reduce bandwidth.
+ * 代理事件类型：服务器发送时会移除 partial 字段以减少带宽占用。
  */
 export type ProxyAssistantMessageEvent =
 	| { type: "start" }
@@ -74,20 +74,20 @@ type ProxySerializableStreamOptions = Pick<
 >;
 
 export interface ProxyStreamOptions extends ProxySerializableStreamOptions {
-	/** Local abort signal for the proxy request */
+	/** 代理请求的本地中止信号。 */
 	signal?: AbortSignal;
-	/** Auth token for the proxy server */
+	/** 代理服务器的身份验证令牌。 */
 	authToken: string;
-	/** Proxy server URL (e.g., "https://genai.example.com") */
+	/** 代理服务器 URL（例如 "https://genai.example.com"）。 */
 	proxyUrl: string;
 }
 
 /**
- * Stream function that proxies through a server instead of calling LLM providers directly.
- * The server strips the partial field from delta events to reduce bandwidth.
- * We reconstruct the partial message client-side.
+ * 通过服务器代理请求，而不是直接调用 LLM 提供方的流函数。
+ * 服务器会从增量事件中移除 partial 字段以减少带宽占用，
+ * 客户端随后重新构建部分消息。
  *
- * Use this as the `streamFn` option when creating an Agent that needs to go through a proxy.
+ * 创建需要经过代理的 Agent 时，将此函数用作 `streamFn` 选项。
  *
  * @example
  * ```typescript
@@ -121,7 +121,7 @@ export function streamProxy(model: Model<any>, context: Context, options: ProxyS
 	const stream = new ProxyMessageEventStream();
 
 	(async () => {
-		// Initialize the partial message that we'll build up from events
+		// 初始化部分消息，后续根据事件逐步构建其内容
 		const partial: AssistantMessage = {
 			role: "assistant",
 			stopReason: "pending",
@@ -175,7 +175,7 @@ export function streamProxy(model: Model<any>, context: Context, options: ProxyS
 						errorMessage = `Proxy error: ${errorData.error}`;
 					}
 				} catch {
-					// Couldn't parse error response
+					// 无法解析错误响应
 				}
 				throw new Error(errorMessage);
 			}
@@ -218,17 +218,16 @@ export function streamProxy(model: Model<any>, context: Context, options: ProxyS
 				throw new Error("Request aborted by user");
 			}
 
-			// The final event may not be newline-terminated; flush the decoder and
-			// process whatever is left in the buffer.
+			// 最后一个事件可能没有以换行符结尾，因此需要刷新解码器，
+			// 并处理缓冲区中的剩余内容。
 			buffer += decoder.decode();
 			if (buffer) {
 				processLine(buffer);
 			}
 
 			if (!sawTerminalEvent) {
-				// A clean EOF without a done/error event means the server dropped the
-				// response mid-stream. Surface it as an error instead of leaving
-				// consumers waiting on a result that never arrives.
+				// 未收到 done/error 事件便正常到达 EOF，表示服务器在流式响应中途断开。
+				// 应将其报告为错误，避免调用方一直等待永远不会到达的结果。
 				partial.stopReason = "error";
 				partial.errorMessage = "Connection closed by proxy server before the response completed";
 				stream.push({
@@ -261,7 +260,7 @@ export function streamProxy(model: Model<any>, context: Context, options: ProxyS
 }
 
 /**
- * Process a proxy event and update the partial message.
+ * 处理代理事件并更新部分消息。
  */
 function processProxyEvent(
 	proxyEvent: ProxyAssistantMessageEvent,
@@ -350,7 +349,7 @@ function processProxyEvent(
 			if (content?.type === "toolCall") {
 				(content as any).partialJson += proxyEvent.delta;
 				content.arguments = parseStreamingJson((content as any).partialJson) || {};
-				partial.content[proxyEvent.contentIndex] = { ...content }; // Trigger reactivity
+				partial.content[proxyEvent.contentIndex] = { ...content }; // 触发响应式更新
 				return {
 					type: "toolcall_delta",
 					contentIndex: proxyEvent.contentIndex,

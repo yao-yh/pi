@@ -33,7 +33,7 @@ async function cancelDeferredBestEffort<TContext extends object | undefined>(
 			headers: deferred.streamOptions.headers,
 		});
 	} catch {
-		// Remote cancellation is best-effort; durable local reconciliation must continue.
+		// 远程取消只保证尽力而为；持久化的本地协调必须继续。
 	}
 }
 
@@ -128,7 +128,7 @@ async function publishAbortedTerminal<TContext extends object | undefined>(
 	);
 }
 
-/** Advance one cancelled durable leaf without starting new ordinary work. */
+/** 推进一个已取消的持久状态叶节点，但不启动新的普通任务。 */
 export async function reconcileOperation<TContext extends object | undefined>(
 	lane: Lane<TContext>,
 	drive: Drive,

@@ -603,7 +603,7 @@ async function publishStructuralReady<TContext extends object | undefined>(
 	return published.kind === "cancel_requested" ? { kind: "continue" } : published.value;
 }
 
-/** Consume one durable structural preparation and decision hook. */
+/** 读取一次持久化结构准备并执行决策钩子。 */
 export async function runStructuralDecision<TContext extends object | undefined>(
 	lane: Lane<TContext>,
 	drive: Drive,
@@ -1005,7 +1005,7 @@ async function publishAttemptResult<TContext extends object | undefined>(
 	return publishStructuralOutcome(lane, drive, effect, { kind: "failed", error: result.error });
 }
 
-/** Execute one ready structural generation attempt. */
+/** 执行一次已就绪的结构生成尝试。 */
 export async function runStructuralGeneration<TContext extends object | undefined>(
 	lane: Lane<TContext>,
 	drive: Drive,
@@ -1027,7 +1027,7 @@ export async function runStructuralGeneration<TContext extends object | undefine
 	return publishAttemptResult(lane, drive, intent.value, result);
 }
 
-/** Consume one structural retry wait without starting a provider effect. */
+/** 处理一次结构重试等待，但不启动提供商副作用。 */
 export async function runStructuralRetryWait<TContext extends object | undefined>(
 	lane: Lane<TContext>,
 	drive: Drive,
@@ -1072,7 +1072,7 @@ export async function runStructuralRetryWait<TContext extends object | undefined
 	return published.kind === "cancel_requested" ? { kind: "continue" } : published.value;
 }
 
-/** Convert an orphaned structural attempt into a fresh numbered attempt or terminal failure. */
+/** 将失去所属关系的结构生成尝试转换为带新序号的尝试或最终失败。 */
 export async function recoverStructuralGeneration<TContext extends object | undefined>(
 	lane: Lane<TContext>,
 	drive: Drive,
@@ -1113,7 +1113,7 @@ export async function recoverStructuralGeneration<TContext extends object | unde
 	return published.kind === "cancel_requested" ? { kind: "continue" } : published.value;
 }
 
-/** Prepare threshold compaction only when no newer compaction already guards this trigger. */
+/** 仅当没有更新的压缩已覆盖该触发点时，准备阈值压缩。 */
 export async function prepareCompactionThreshold<TContext extends object | undefined>(
 	lane: Lane<TContext>,
 	drive: Drive,
@@ -1150,7 +1150,7 @@ export async function prepareCompactionThreshold<TContext extends object | undef
 	};
 }
 
-/** Prepare one overflow compaction before the response settlement transaction. */
+/** 在响应结算事务之前准备一次溢出压缩。 */
 export async function prepareOverflowCompaction<TContext extends object | undefined>(
 	lane: Lane<TContext>,
 	drive: Drive,
@@ -1168,7 +1168,7 @@ export async function prepareOverflowCompaction<TContext extends object | undefi
 	};
 }
 
-/** Atomically move an unsummarized navigation and finish its operation. */
+/** 以原子方式执行未摘要的导航并结束其操作。 */
 export function commitNavigation<TContext extends object | undefined>(
 	lane: Lane<TContext>,
 	drive: Drive,

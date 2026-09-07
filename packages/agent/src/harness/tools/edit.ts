@@ -87,6 +87,12 @@ function editAccessError(path: string, error: FileError): Error {
 	return new Error(`Could not edit file: ${path}. Error code: ${error.code}.`, { cause: error });
 }
 
+/**
+ * 创建基于精确文本替换的文件编辑工具。
+ *
+ * 同一调用内的编辑都基于原始文件匹配，并通过文件变更队列串行写入同一路径；
+ * 写入时保留 BOM 和原有换行符风格，结果包含展示差异和统一格式补丁。
+ */
 export function createEditTool<TContext extends ExecutionToolContext = ExecutionToolContext>(): AgentHarnessTool<
 	TContext,
 	typeof editSchema,

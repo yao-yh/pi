@@ -114,7 +114,7 @@ export class MemoryStorage implements Storage {
 		return Promise.resolve(this.storageState.getStats());
 	}
 
-	/** Capture the state needed to fork at one serialized boundary between commits. */
+	/** 在两次提交之间的一个串行化边界上，捕获派生所需的状态。 */
 	captureForkSource(_context: Context): Promise<ForkSourceSnapshot> {
 		if (this.state !== "open") return Promise.reject(new Error("MemoryStorage is closed"));
 		const result = this.commitQueue.then(() => this.storageState.snapshotEntriesAndValues());
@@ -383,8 +383,7 @@ export class MemorySessionRepo implements SessionRepo {
 	}
 
 	open(metadata: SessionMetadata, _context: Context): Promise<Session> {
-		// Memory sessions are always created at the current storage version, so
-		// persistent-backend version gating does not apply here.
+		// 内存会话始终使用当前存储版本创建，因此不适用持久化后端的版本限制。
 		this.assertOpen();
 		const record = this.sessions.get(metadata.id);
 		if (record === undefined) return Promise.reject(new Error(`Unknown session: ${metadata.id}`));

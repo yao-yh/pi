@@ -197,7 +197,7 @@ function importedCustomMessage(entry: LegacyV3CustomMessageEntry): AgentMessage 
 		display: entry.display,
 		timestamp: Date.parse(entry.timestamp),
 	};
-	// The coding-agent CustomAgentMessages declaration merge is not visible in this package.
+	// coding-agent 的 CustomAgentMessages 声明合并在此包中不可见。
 	return message as unknown as AgentMessage;
 }
 
@@ -212,14 +212,14 @@ function isRetainedEntry(entry: LegacyV3Entry): entry is RetainedLegacyV3Entry {
 }
 
 class RetainedIdResolver {
-	/** Caches the reminted ID of each discarded legacy node's nearest retained ancestor, or null. */
+	/** 缓存每个已丢弃旧节点最近保留祖先的重建 ID；没有时为 null。 */
 	private resolvedIds = new Map<string, string | null>();
 	private entriesById: Map<string, LegacyV3Entry>;
 	private remintedIds: Map<string, string>;
 
 	/**
-	 * @param entriesById Complete inventory of legacy physical nodes, including discarded nodes.
-	 * @param remintedIds Legacy-to-current ID map containing retained nodes only.
+	 * @param entriesById 旧版物理节点的完整清单，包括已丢弃节点。
+	 * @param remintedIds 只包含保留节点的旧版 ID 到当前 ID 映射。
 	 */
 	constructor(entriesById: Map<string, LegacyV3Entry>, remintedIds: Map<string, string>) {
 		this.entriesById = entriesById;
@@ -227,8 +227,8 @@ class RetainedIdResolver {
 	}
 
 	/**
-	 * Resolve a legacy node to its reminted ID, or to its nearest retained ancestor when discarded.
-	 * Returns null when the reference is null or no retained ancestor exists.
+	 * 将旧版节点解析为其重建 ID；节点已丢弃时，解析为最近保留祖先的重建 ID。
+	 * 引用本身为 null 或不存在保留祖先时返回 null。
 	 */
 	resolve(legacyId: string | null): string | null {
 		const traversedIds: string[] = [];
@@ -266,7 +266,7 @@ function requireRetainedId(resolver: RetainedIdResolver, legacyId: string): stri
 }
 
 function resolveBranchSummaryFromId(resolver: RetainedIdResolver, legacyFromId: string): string | null {
-	// Legacy branchWithSummary() encoded a root source as the "root" sentinel instead of null.
+	// 旧版 branchWithSummary() 使用 "root" 哨兵而不是 null 表示根来源。
 	return legacyFromId === "root" ? null : resolver.resolve(legacyFromId);
 }
 
@@ -448,9 +448,9 @@ function normalizeLegacyV3Values(
 	for (const entry of entries) {
 		if (entry.type !== "label") continue;
 		const targetId = resolver.resolve(entry.targetId);
-		// Labels have no current address when their target has no retained ancestor.
+		// 标签目标不存在保留祖先时，该标签没有当前地址。
 		if (targetId === null) continue;
-		// Legacy v3 treated both undefined and the empty string as clearing a label.
+		// 旧版 v3 将 undefined 和空字符串都视为清除标签。
 		if (entry.label) labels.set(targetId, entry.label);
 		else labels.delete(targetId);
 	}
@@ -515,7 +515,7 @@ function aggregateImportedUsage(entries: readonly LegacyV3Entry[]): Usage {
 	return aggregate;
 }
 
-/** Normalize the currently supported v3 records without touching their source file. */
+/** 在不修改源文件的前提下，规范化当前支持的 v3 记录。 */
 export function normalizeLegacyV3Records(recordLines: readonly string[]): NormalizedLegacyV3Records {
 	const entries = recordLines.map((line, index) => parseLegacyV3Entry(line, index + 2));
 	const entriesById = new Map<string, LegacyV3Entry>();

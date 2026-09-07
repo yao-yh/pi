@@ -15,13 +15,13 @@ import type { SettledAssistantMessage } from "../session/types.ts";
 import type { AgentHarnessStreamOptions } from "../types.ts";
 import { AbortRequested } from "./effect-gate.ts";
 
-/** HTTP response metadata captured before the provider response body is consumed. */
+/** 在使用提供方响应正文前捕获的 HTTP 响应元数据。 */
 export interface AssistantResponseMetadata {
 	status?: number;
 	headers?: Record<string, string>;
 }
 
-/** Process-local lifecycle observer for one assistant stream. */
+/** 单个助手流在当前进程内使用的生命周期观察器。 */
 export interface AssistantStreamObserver {
 	start(
 		message: AssistantMessage,
@@ -32,7 +32,7 @@ export interface AssistantStreamObserver {
 	end(message: SettledAssistantMessage, context: Context): void | Promise<void>;
 }
 
-/** Executable inputs for one already-approved assistant provider request. */
+/** 一次已经获准执行的助手提供方请求所需的输入。 */
 export interface HarnessAssistantStreamConfig {
 	model: Model<Api>;
 	systemPrompt: string;
@@ -62,6 +62,11 @@ export interface HarnessAssistantStreamConfig {
 	observer: AssistantStreamObserver;
 }
 
+/**
+ * 根据助手流配置构建提供方请求选项。
+ *
+ * 该方法会把当前中止信号和遥测上下文绑定到请求，并在响应正文被读取前捕获状态码和响应头。
+ */
 function createRequestOptions(
 	config: HarnessAssistantStreamConfig,
 	captureMetadata: (metadata: AssistantResponseMetadata) => void,
@@ -96,6 +101,11 @@ function isUpdateEvent(
 	return event.type !== "start" && event.type !== "done" && event.type !== "error";
 }
 
+/**
+ * 消费助手事件流，校验事件顺序，并返回完成后的助手消息。
+ *
+ * `afterResponse` 可以在观察器收到结束事件前替换最终消息；取消请求会等待其取消流程完成。
+ */
 export async function consumeAssistantStream(
 	stream: AssistantMessageEventStream,
 	observer: AssistantStreamObserver,
@@ -131,8 +141,7 @@ export async function consumeAssistantStream(
 	await observer.end(finalMessage, context);
 	return finalMessage;
 }
-
-/** Stream one assistant response without mutating the caller's message list. */
+/** 在不修改调用方消息列表的前提下，流式生成一次助手响应。 */
 export async function streamHarnessAssistant(
 	messages: AgentMessage[],
 	config: HarnessAssistantStreamConfig,

@@ -217,7 +217,7 @@ function capturedModel(operation: Operation): ModelIdentity | undefined {
 	}
 }
 
-/** Runtime implementation of one configured lane. */
+/** 单个已配置分支通道的运行时实现。 */
 export class Lane<TContext extends object | undefined> implements AgentLane {
 	readonly name: string;
 	readonly session: Session;
@@ -230,9 +230,9 @@ export class Lane<TContext extends object | undefined> implements AgentLane {
 	private stateChange: Promise<void>;
 	private resolveStateChange: () => void;
 	private idleOwner: Promise<void> | undefined;
-	/** Package-internal drive owner. Public only because deterministic procedure tests install exact owners directly. */
+	/** 包内的推进所有者。仅因确定性过程测试需要直接安装指定所有者而公开。 */
 	activeDrive: Drive | undefined;
-	/** Authoritative live control projection while this harness owns the Session. */
+	/** 此控制器拥有会话期间，作为权威来源的实时控制投影。 */
 	state: LaneState;
 	closedError: Error | undefined;
 
@@ -288,21 +288,20 @@ export class Lane<TContext extends object | undefined> implements AgentLane {
 	}
 
 	/**
-	 * Run one effect-free command on this lane's serialized mutation line. Owned `state` is authoritative; the
-	 * planner receives that state plus a read-only reader for bounded payload lookups. Committed values and owned
-	 * state are immutable snapshots: update them by replacement, never in place. State-independent input validation
-	 * belongs before `command()`, while every state-dependent decision belongs inside its planner.
+	 * 在此分支通道的串行变更队列上执行一条无副作用命令。自身持有的 `state` 是权威状态；
+	 * 规划器会收到该状态和一个只读读取器，用于有限范围的载荷查询。已提交值和自身持有的状态
+	 * 都是不可变快照：只能通过替换来更新，绝不能原地修改。与状态无关的输入校验应在 `command()`
+	 * 之前执行，所有依赖状态的决策则应放在其规划器内部。
 	 *
-	 * A planner may choose exactly one outcome:
-	 * - `commit` commits once, publishes `next`, then synchronously materializes the caller result from
-	 *   storage-assigned `CommitResult` metadata;
-	 * - `return` returns without a commit, boxed so a promise value is not awaited while holding the Session line;
-	 * - `reject` rejects outside the mutation/fault boundary as an expected caller error without a commit.
+	 * 规划器只能选择一种结果：
+	 * - `commit`：提交一次、发布 `next`，然后根据存储分配的 `CommitResult` 元数据同步生成调用方结果；
+	 * - `return`：不提交并直接返回；结果会被封装，以免持有会话队列期间等待 Promise 值；
+	 * - `reject`：不提交，并在变更或故障边界之外以预期的调用方错误拒绝请求。
 	 *
-	 * Planner, commit, and materialization errors fault the harness before releasing the Session line. Close/fault gates
-	 * are checked both before queueing and when the callback starts: close-first rejects, while a callback admitted
-	 * before close may finish its commit, publish memory, and resolve without another open check. Never invoke providers,
-	 * tools, hooks, timers, event handlers, or wait for task completion here; perform those after `command()` returns.
+	 * 规划、提交和生成结果期间的错误都会在释放会话队列前使控制器进入故障状态。关闭或故障门限会在
+	 * 入队前和回调启动时分别检查：若关闭先发生，请求会被拒绝；关闭前已准入的回调则可以完成提交、
+	 * 发布内存状态并直接返回，无需再次检查是否开启。切勿在此调用提供商、工具、钩子、定时器或事件处理器，
+	 * 也不要等待任务完成；这些操作应在 `command()` 返回后执行。
 	 */
 	private async readLane<TResult>(
 		read: (state: LaneState, reader: SessionReader) => TResult | Promise<TResult>,
@@ -381,9 +380,8 @@ export class Lane<TContext extends object | undefined> implements AgentLane {
 	}
 
 	/**
-	 * Run a command against the current operation even after cancellation is requested. Use this to settle admitted
-	 * effects, finish the operation, or update concurrent child state. The capability narrows the planner's state type;
-	 * the Drive continuation remains the sole top-level state writer.
+	 * 即使已经请求取消，也对当前操作执行命令。此方法用于结算已准入的副作用、结束操作或更新并发子状态。
+	 * 此能力会缩窄规划器的状态类型；推进过程的延续逻辑仍是唯一的顶层状态写入方。
 	 */
 	settleOperation<TState extends OperationState, TResult>(
 		_capability: TState,
@@ -445,8 +443,8 @@ export class Lane<TContext extends object | undefined> implements AgentLane {
 	}
 
 	/**
-	 * Run an ordinary operation command only while durable control is running. Use this before starting new hooks,
-	 * effects, or forward progress. Returns `cancel_requested` without invoking the planner once cancellation is requested.
+	 * 仅在持久控制状态为运行中时执行普通操作命令。启动新钩子、副作用或向前推进前应使用此方法。
+	 * 一旦请求取消，则不调用规划器并返回 `cancel_requested`。
 	 */
 	continueOperation<TState extends OperationState, TResult>(
 		capability: TState,
@@ -1002,7 +1000,7 @@ export class Lane<TContext extends object | undefined> implements AgentLane {
 		}
 	}
 
-	/** Package-private durable cancellation primitive. Public exposure remains guarded until M8. */
+	/** 包内的持久取消原语；在 M8 之前仍不对外公开。 */
 	async requestOperationAbort(operationId: string, context: Context): Promise<AbortRequestResult> {
 		if (this.closedError instanceof HarnessClosed) {
 			return Result.err(new Closed({ message: this.closedError.message }));
@@ -1089,8 +1087,8 @@ export class Lane<TContext extends object | undefined> implements AgentLane {
 					],
 				};
 			}, context);
-			// A fresh Drive may observe an already-durable marker; pull its gate on the repeat path too. A mismatch
-			// can leave only the stale Drive's admission gate in aborting state; its cancellation wait is still released.
+			// 新推进过程可能观察到已持久化的标记，因此重复路径也要触发其门限。
+			// 若不匹配，可能只有过期推进过程的准入门限处于取消中状态；仍需解除其取消等待。
 			settleGate(result.ok && result.value.newlyRequested === false);
 			return result;
 		} catch (error) {
