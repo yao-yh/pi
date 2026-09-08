@@ -1,9 +1,8 @@
 /**
- * Presentation for the read tool.
+ * read 工具的展示层。
  *
- * Renderers live apart from the implementation so a process that only displays tool output does not
- * load the execution path or its typebox parameter schema. `read.ts` spreads these into its
- * definition, so the tool's public shape is unchanged.
+ * 渲染器与实现分离，使仅显示工具输出的进程无需加载执行路径或其 typebox 参数 schema。
+ * `read.ts` 会将这些渲染器展开到自身定义中，因此工具的公共结构保持不变。
  */
 
 import { basename, dirname, isAbsolute, relative, resolve as resolvePath, sep } from "node:path";

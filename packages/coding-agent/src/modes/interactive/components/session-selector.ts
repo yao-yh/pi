@@ -87,7 +87,7 @@ class SessionSelectorHeader implements Component {
 
 	setLoading(loading: boolean): void {
 		this.loading = loading;
-		// Progress is scoped to the current load; clear whenever the loading state is set
+		// 进度仅属于当前加载过程；每次设置加载状态时都将其清除
 		this.loadProgress = null;
 	}
 
@@ -152,7 +152,7 @@ class SessionSelectorHeader implements Component {
 		const left = truncateToWidth(leftText, availableLeft, "");
 		const spacing = Math.max(0, width - visibleWidth(left) - visibleWidth(rightText));
 
-		// Build hint lines - changes based on state (all branches truncate to width)
+		// 根据状态构建提示行（所有分支都会截断到指定宽度）
 		let hintLine1: string;
 		let hintLine2: string;
 		if (this.confirmingDeletePath !== null) {
@@ -186,25 +186,25 @@ class SessionSelectorHeader implements Component {
 	}
 }
 
-/** A session tree node for hierarchical display */
+/** 用于层级显示的会话树节点 */
 interface SessionTreeNode {
 	session: SessionInfo;
 	children: SessionTreeNode[];
 	latestActivity: number;
 }
 
-/** Flattened node for display with tree structure info */
+/** 用于显示且包含树结构信息的扁平节点 */
 interface FlatSessionNode {
 	session: SessionInfo;
 	depth: number;
 	isLast: boolean;
-	/** For each ancestor level, whether there are more siblings after it */
+	/** 每一层祖先节点之后是否还有同级节点 */
 	ancestorContinues: boolean[];
 }
 
 /**
- * Build a tree structure from sessions based on parentSessionPath.
- * Returns root nodes sorted by modified date (descending).
+ * 根据 parentSessionPath 从会话构建树结构。
+ * 返回按修改日期降序排列的根节点。
  */
 function buildSessionTree(sessions: SessionInfo[]): SessionTreeNode[] {
 	const byPath = new Map<string, SessionTreeNode>();
@@ -241,7 +241,7 @@ function buildSessionTree(sessions: SessionInfo[]): SessionTreeNode[] {
 		updateLatestActivity(root);
 	}
 
-	// Sort children and roots by latest activity in each subtree (descending)
+	// 按各子树的最近活动时间对其子节点和根节点降序排序
 	const sortNodes = (nodes: SessionTreeNode[]): void => {
 		nodes.sort((a, b) => b.latestActivity - a.latestActivity);
 		for (const node of nodes) {
@@ -254,7 +254,7 @@ function buildSessionTree(sessions: SessionInfo[]): SessionTreeNode[] {
 }
 
 /**
- * Flatten tree into display list with tree structure metadata.
+ * 将树展平为带有树结构元数据的显示列表。
  */
 function flattenSessionTree(roots: SessionTreeNode[]): FlatSessionNode[] {
 	const result: FlatSessionNode[] = [];
@@ -264,7 +264,7 @@ function flattenSessionTree(roots: SessionTreeNode[]): FlatSessionNode[] {
 
 		for (let i = 0; i < node.children.length; i++) {
 			const childIsLast = i === node.children.length - 1;
-			// Only show continuation line for non-root ancestors
+			// 仅为非根祖先节点显示延续线
 			const continues = depth > 0 ? !isLast : false;
 			walk(node.children[i]!, depth + 1, [...ancestorContinues, continues], childIsLast);
 		}
@@ -278,7 +278,7 @@ function flattenSessionTree(roots: SessionTreeNode[]): FlatSessionNode[] {
 }
 
 /**
- * Custom session list component with multi-line items and search
+ * 支持多行项目和搜索的自定义会话列表组件。
  */
 class SessionList implements Component, Focusable {
 	public getSelectedSessionPath(): string | undefined {
@@ -307,9 +307,9 @@ class SessionList implements Component, Focusable {
 	public onDeleteSession?: (sessionPath: string) => Promise<void>;
 	public onRenameSession?: (sessionPath: string) => void;
 	public onError?: (message: string) => void;
-	private maxVisible: number = 10; // Max sessions visible (one line each)
+	private maxVisible: number = 10; // 最大可见会话数（每个会话一行）
 
-	// Focusable implementation - propagate to searchInput for IME cursor positioning
+	// Focusable 实现：将焦点状态传递给 searchInput，以便定位 IME 光标
 	private _focused = false;
 	get focused(): boolean {
 		return this._focused;
@@ -337,7 +337,7 @@ class SessionList implements Component, Focusable {
 		this.currentSessionCanonicalPath = canonicalizePath(currentSessionFilePath);
 		this.filterSessions("");
 
-		// Handle Enter in search input - select current item
+		// 处理搜索输入框中的 Enter：选择当前项
 		this.searchInput.onSubmit = () => {
 			if (this.filteredSessions[this.selectedIndex]) {
 				const selected = this.filteredSessions[this.selectedIndex];
@@ -370,11 +370,11 @@ class SessionList implements Component, Focusable {
 			this.nameFilter === "all" ? this.allSessions : this.allSessions.filter((session) => hasSessionName(session));
 
 		if (this.sortMode === "threaded" && !trimmed) {
-			// Threaded mode without search: show tree structure
+			// 无搜索条件的线程模式：显示树结构
 			const roots = buildSessionTree(nameFiltered);
 			this.filteredSessions = flattenSessionTree(roots);
 		} else {
-			// Other modes or with search: flat list
+			// 其他模式或存在搜索条件时：显示扁平列表
 			const filtered = filterAndSortSessions(nameFiltered, query, this.sortMode, "all");
 			this.filteredSessions = filtered.map((session) => ({
 				session,
@@ -395,7 +395,7 @@ class SessionList implements Component, Focusable {
 		const selected = this.filteredSessions[this.selectedIndex];
 		if (!selected) return;
 
-		// Prevent deleting current session
+		// 阻止删除当前会话
 		if (this.isCurrentSessionPath(selected.session.path)) {
 			this.onError?.("Cannot delete the currently active session");
 			return;
@@ -414,9 +414,9 @@ class SessionList implements Component, Focusable {
 	render(width: number): string[] {
 		const lines: string[] = [];
 
-		// Render search input
+		// 渲染搜索输入框
 		lines.push(...this.searchInput.render(width));
-		lines.push(""); // Blank line after search
+		lines.push(""); // 搜索框后的空行
 
 		if (this.filteredSessions.length === 0) {
 			let emptyMessage: string;
@@ -428,24 +428,24 @@ class SessionList implements Component, Focusable {
 					emptyMessage = `  No named sessions in current folder. Press ${toggleKey} to show all, or Tab to view all.`;
 				}
 			} else if (this.showCwd) {
-				// "All" scope - no sessions anywhere that match filter
+				// “全部”范围：任何位置都没有符合过滤条件的会话
 				emptyMessage = "  No sessions found";
 			} else {
-				// "Current folder" scope - hint to try "all"
+				// “当前文件夹”范围：提示尝试“全部”范围
 				emptyMessage = "  No sessions in current folder. Press Tab to view all.";
 			}
 			lines.push(theme.fg("muted", truncateToWidth(emptyMessage, width, "…")));
 			return lines;
 		}
 
-		// Calculate visible range with scrolling
+		// 计算包含滚动偏移的可见范围
 		const startIndex = Math.max(
 			0,
 			Math.min(this.selectedIndex - Math.floor(this.maxVisible / 2), this.filteredSessions.length - this.maxVisible),
 		);
 		const endIndex = Math.min(startIndex + this.maxVisible, this.filteredSessions.length);
 
-		// Render visible sessions (one line each with tree structure)
+		// 渲染可见会话（每个会话一行，并包含树结构）
 		for (let i = startIndex; i < endIndex; i++) {
 			const node = this.filteredSessions[i]!;
 			const session = node.session;
@@ -453,15 +453,15 @@ class SessionList implements Component, Focusable {
 			const isConfirmingDelete = session.path === this.confirmingDeletePath;
 			const isCurrent = this.isCurrentSessionPath(session.path);
 
-			// Build tree prefix
+			// 构建树前缀
 			const prefix = this.buildTreePrefix(node);
 
-			// Session display text (name or first message)
+			// 会话显示文本（名称或首条消息）
 			const hasName = !!session.name;
 			const displayText = session.name ?? session.firstMessage;
 			const normalizedMessage = displayText.replace(/[\x00-\x1f\x7f]/g, " ").trim();
 
-			// Right side: message count and age
+			// 右侧：消息数量和距今时间
 			const age = formatSessionDate(session.modified);
 			const msgCount = String(session.messageCount);
 			let rightPart = `${msgCount} ${age}`;
@@ -472,17 +472,17 @@ class SessionList implements Component, Focusable {
 				rightPart = `${shortenPath(session.path)} ${rightPart}`;
 			}
 
-			// Cursor
+			// 光标
 			const cursor = isSelected ? theme.fg("accent", "› ") : "  ";
 
-			// Calculate available width for message
+			// 计算消息的可用宽度
 			const prefixWidth = visibleWidth(prefix);
-			const rightWidth = visibleWidth(rightPart) + 2; // +2 for spacing
-			const availableForMsg = width - 2 - prefixWidth - rightWidth; // -2 for cursor
+			const rightWidth = visibleWidth(rightPart) + 2; // 加 2 作为间距
+			const availableForMsg = width - 2 - prefixWidth - rightWidth; // 减 2 为光标预留空间
 
 			const truncatedMsg = truncateToWidth(normalizedMessage, Math.max(10, availableForMsg), "…");
 
-			// Style message
+			// 设置消息样式
 			let messageColor: "error" | "warning" | "accent" | null = null;
 			if (isConfirmingDelete) {
 				messageColor = "error";
@@ -496,7 +496,7 @@ class SessionList implements Component, Focusable {
 				styledMsg = theme.bold(styledMsg);
 			}
 
-			// Build line
+			// 构建显示行
 			const leftPart = cursor + theme.fg("dim", prefix) + styledMsg;
 			const leftWidth = visibleWidth(leftPart);
 			const spacing = Math.max(1, width - leftWidth - visibleWidth(rightPart));
@@ -509,7 +509,7 @@ class SessionList implements Component, Focusable {
 			lines.push(truncateToWidth(line, width));
 		}
 
-		// Add scroll indicator if needed
+		// 必要时添加滚动指示器
 		if (startIndex > 0 || endIndex < this.filteredSessions.length) {
 			const scrollText = `  (${this.selectedIndex + 1}/${this.filteredSessions.length})`;
 			const scrollInfo = theme.fg("muted", truncateToWidth(scrollText, width, ""));
@@ -532,7 +532,7 @@ class SessionList implements Component, Focusable {
 	handleInput(keyData: string): void {
 		const kb = getKeybindings();
 
-		// Handle delete confirmation state first - intercept all keys
+		// 优先处理删除确认状态，拦截所有按键
 		if (this.confirmingDeletePath !== null) {
 			if (kb.matches(keyData, "tui.select.confirm")) {
 				const pathToDelete = this.confirmingDeletePath;
@@ -544,7 +544,7 @@ class SessionList implements Component, Focusable {
 				this.setConfirmingDeletePath(null);
 				return;
 			}
-			// Ignore all other keys while confirming
+			// 确认期间忽略其他所有按键
 			return;
 		}
 
@@ -565,20 +565,20 @@ class SessionList implements Component, Focusable {
 			return;
 		}
 
-		// Ctrl+P: toggle path display
+		// Ctrl+P：切换路径显示
 		if (kb.matches(keyData, "app.session.togglePath")) {
 			this.showPath = !this.showPath;
 			this.onTogglePath?.(this.showPath);
 			return;
 		}
 
-		// Ctrl+D: initiate delete confirmation (useful on terminals that don't distinguish Ctrl+Backspace from Backspace)
+		// Ctrl+D：发起删除确认（适用于无法区分 Ctrl+Backspace 与 Backspace 的终端）
 		if (kb.matches(keyData, "app.session.delete")) {
 			this.startDeleteConfirmationForSelectedSession();
 			return;
 		}
 
-		// Rename selected session
+		// 重命名选中的会话
 		if (kb.matches(keyData, "app.session.rename")) {
 			const selected = this.filteredSessions[this.selectedIndex];
 			if (selected) {
@@ -587,8 +587,8 @@ class SessionList implements Component, Focusable {
 			return;
 		}
 
-		// Ctrl+Backspace: non-invasive convenience alias for delete
-		// Only triggers deletion when the query is empty; otherwise it is forwarded to the input
+		// Ctrl+Backspace：不干扰输入的删除快捷别名
+		// 仅当查询为空时触发删除，否则将按键转发给输入框
 		if (kb.matches(keyData, "app.session.deleteNoninvasive")) {
 			if (this.searchInput.getValue().length > 0) {
 				this.searchInput.handleInput(keyData);
@@ -600,36 +600,36 @@ class SessionList implements Component, Focusable {
 			return;
 		}
 
-		// Up arrow
+		// 向上箭头
 		if (kb.matches(keyData, "tui.select.up")) {
 			this.selectedIndex = Math.max(0, this.selectedIndex - 1);
 		}
-		// Down arrow
+		// 向下箭头
 		else if (kb.matches(keyData, "tui.select.down")) {
 			this.selectedIndex = Math.min(this.filteredSessions.length - 1, this.selectedIndex + 1);
 		}
-		// Page up - jump up by maxVisible items
+		// Page Up：向上跳转 maxVisible 项
 		else if (kb.matches(keyData, "tui.select.pageUp")) {
 			this.selectedIndex = Math.max(0, this.selectedIndex - this.maxVisible);
 		}
-		// Page down - jump down by maxVisible items
+		// Page Down：向下跳转 maxVisible 项
 		else if (kb.matches(keyData, "tui.select.pageDown")) {
 			this.selectedIndex = Math.min(this.filteredSessions.length - 1, this.selectedIndex + this.maxVisible);
 		}
-		// Enter
+		// Enter：确认选择
 		else if (kb.matches(keyData, "tui.select.confirm")) {
 			const selected = this.filteredSessions[this.selectedIndex];
 			if (selected && this.onSelect) {
 				this.onSelect(selected.session.path);
 			}
 		}
-		// Escape - cancel
+		// Escape：取消
 		else if (kb.matches(keyData, "tui.select.cancel")) {
 			if (this.onCancel) {
 				this.onCancel();
 			}
 		}
-		// Pass everything else to search input
+		// 其他所有输入均传递给搜索输入框
 		else {
 			this.searchInput.handleInput(keyData);
 			this.filterSessions(this.searchInput.getValue());
@@ -640,12 +640,12 @@ class SessionList implements Component, Focusable {
 type SessionsLoader = (onProgress?: SessionListProgress) => Promise<SessionInfo[]>;
 
 /**
- * Delete a session file, trying the `trash` CLI first, then falling back to unlink
+ * 删除会话文件：先尝试 `trash` CLI，失败后回退到 unlink。
  */
 async function deleteSessionFile(
 	sessionPath: string,
 ): Promise<{ ok: boolean; method: "trash" | "unlink"; error?: string }> {
-	// Try `trash` first (if installed)
+	// 先尝试 `trash`（如果已安装）
 	const trashArgs = sessionPath.startsWith("-") ? ["--", sessionPath] : [sessionPath];
 	const trashResult = spawnSync("trash", trashArgs, { encoding: "utf-8" });
 
@@ -662,12 +662,12 @@ async function deleteSessionFile(
 		return `trash: ${parts.join(" · ").slice(0, 200)}`;
 	};
 
-	// If trash reports success, or the file is gone afterwards, treat it as successful
+	// 如果 trash 报告成功，或随后文件已不存在，则视为删除成功
 	if (trashResult.status === 0 || !existsSync(sessionPath)) {
 		return { ok: true, method: "trash" };
 	}
 
-	// Fallback to permanent deletion
+	// 回退到永久删除
 	try {
 		await unlink(sessionPath);
 		return { ok: true, method: "unlink" };
@@ -680,7 +680,7 @@ async function deleteSessionFile(
 }
 
 /**
- * Component that renders a session selector
+ * 渲染会话选择器的组件。
  */
 export class SessionSelectorComponent extends Container implements Focusable {
 	handleInput(data: string): void {
@@ -718,7 +718,7 @@ export class SessionSelectorComponent extends Container implements Focusable {
 	private renameInput = new Input();
 	private renameTargetPath: string | null = null;
 
-	// Focusable implementation - propagate to sessionList for IME cursor positioning
+	// Focusable 实现：将焦点状态传递给 sessionList，以便定位 IME 光标
 	private _focused = false;
 	get focused(): boolean {
 		return this._focused;
@@ -771,7 +771,7 @@ export class SessionSelectorComponent extends Container implements Focusable {
 		this.canRename = !!renameSession;
 		this.header.setShowRenameHint(options?.showRenameHint ?? this.canRename);
 
-		// Create session list (starts empty, will be populated after load)
+		// 创建会话列表（初始为空，加载后填充）
 		this.sessionList = new SessionList(
 			[],
 			false,
@@ -787,7 +787,7 @@ export class SessionSelectorComponent extends Container implements Focusable {
 			void this.confirmRename(value);
 		};
 
-		// Ensure header status timeouts are cleared when leaving the selector
+		// 确保离开选择器时清除标题状态的超时任务
 		const clearStatusMessage = () => this.header.setStatusMessage(null);
 		this.sessionList.onSelect = (sessionPath) => {
 			clearStatusMessage();
@@ -814,7 +814,7 @@ export class SessionSelectorComponent extends Container implements Focusable {
 			this.enterRenameMode(sessionPath, session?.name);
 		};
 
-		// Sync list events to header
+		// 将列表事件同步到标题
 		this.sessionList.onTogglePath = (showPath) => {
 			this.header.setShowPath(showPath);
 			this.requestRender();
@@ -828,7 +828,7 @@ export class SessionSelectorComponent extends Container implements Focusable {
 			this.requestRender();
 		};
 
-		// Handle session deletion
+		// 处理会话删除
 		this.sessionList.onDeleteSession = async (sessionPath: string) => {
 			const result = await deleteSessionFile(sessionPath);
 
@@ -855,7 +855,7 @@ export class SessionSelectorComponent extends Container implements Focusable {
 			this.requestRender();
 		};
 
-		// Start loading current sessions immediately
+		// 立即开始加载当前会话
 		this.loadCurrentSessions();
 	}
 
@@ -904,7 +904,7 @@ export class SessionSelectorComponent extends Container implements Focusable {
 			return;
 		}
 
-		// Find current name for callback
+		// 查找当前名称并传给回调
 		const renameSession = this.renameSession;
 		if (!renameSession) {
 			this.exitRenameMode();
@@ -922,7 +922,7 @@ export class SessionSelectorComponent extends Container implements Focusable {
 	private async loadScope(scope: SessionScope, reason: "initial" | "refresh" | "toggle"): Promise<void> {
 		const showCwd = scope === "all";
 
-		// Mark loading
+		// 标记为加载中
 		if (scope === "current") {
 			this.currentLoading = true;
 		} else {
@@ -982,7 +982,7 @@ export class SessionSelectorComponent extends Container implements Focusable {
 	}
 
 	private toggleSortMode(): void {
-		// Cycle: threaded -> recent -> relevance -> threaded
+		// 循环切换：threaded -> recent -> relevance -> threaded
 		this.sortMode = this.sortMode === "threaded" ? "recent" : this.sortMode === "recent" ? "relevance" : "threaded";
 		this.header.setSortMode(this.sortMode);
 		this.sessionList.setSortMode(this.sortMode);

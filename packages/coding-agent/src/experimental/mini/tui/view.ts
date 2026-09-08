@@ -1,8 +1,8 @@
 /**
- * The view. It holds no live objects: no harness, lane, session, or model runtime.
+ * 视图。它不持有任何活动对象：不含 harness、lane、会话或模型运行时。
  *
- * Everything it renders comes from a replicated `SessionView` snapshot, and everything it does is a
- * command that answers with data. Whether that view is in-process or a socket away is invisible here.
+ * 它渲染的所有内容都来自复制的 `SessionView` 快照，执行的所有操作都是以数据响应的命令。
+ * 该视图位于进程内还是套接字另一端，对此处完全透明。
  */
 
 import type { AgentMessage, Entry, LaneSnapshot } from "@earendil-works/pi-agent-core";
@@ -69,7 +69,7 @@ const SELECT_THEME: SelectListTheme = {
 	noMatch: (text) => theme.fg("warning", text),
 };
 
-/** Fuzzy-searchable list over plain data, used where interactive mode needs a live ModelRuntime. */
+/** 基于普通数据的可模糊搜索列表，用于交互模式需要活动 ModelRuntime 的位置。 */
 class ListSelector extends Container implements Focusable {
 	readonly #input = new Input();
 	readonly #listContainer = new Container();
@@ -129,14 +129,14 @@ class ListSelector extends Container implements Focusable {
 
 interface MiniTuiHandlers {
 	submit(text: string): void;
-	/** Queue the current editor text as a follow-up instead of steering the active run. */
+	/** 将当前编辑器文本排队为后续消息，而不是引导活动运行。 */
 	queueFollowUp(text: string): void;
 	interrupt(): void;
 	exit(): void;
 	selectModel(): void;
 }
 
-/** Alt-screen chat surface. Rendering is a function of the replicated snapshot. */
+/** 备用屏幕聊天界面。渲染结果由复制快照决定。 */
 class MiniTui {
 	readonly #ui: TuiAltScreen;
 	readonly #chat = new Container();
@@ -147,7 +147,7 @@ class MiniTui {
 	readonly #editor: CustomEditor;
 	readonly #cwd: string;
 	readonly #tools = new Map<string, ToolExecutionComponent>();
-	/** Entry ids already painted, in transcript order, so re-renders only append. */
+	/** 按对话记录顺序保存已绘制的条目 ID，使重新渲染时只需追加。 */
 	#renderedEntryIds: string[] = [];
 	#streaming: AssistantMessageComponent | undefined;
 	#indicator: StatusIndicator | undefined;
@@ -223,7 +223,7 @@ class MiniTui {
 		this.render();
 	}
 
-	/** Swap the editor slot for a selector or dialog. */
+	/** 将编辑器槽位替换为选择器或对话框。 */
 	mount(component: Component, focus: Component, dispose?: () => void): void {
 		this.#mountedDispose?.();
 		this.#mountedDispose = dispose;
@@ -243,8 +243,8 @@ class MiniTui {
 	}
 
 	/**
-	 * Paint one replicated snapshot. Settled entries are keyed by id and only appended, so a redraw
-	 * per streamed token costs one markdown rebuild, not a full transcript rebuild.
+	 * 绘制一个复制快照。已结算条目以 ID 为键且只追加，因此每个流式令牌触发的重绘
+	 * 只需重建一次 Markdown，而非重建完整对话记录。
 	 */
 	apply(snapshot: LaneSnapshot): void {
 		this.#syncTranscript(snapshot.transcript);
@@ -263,7 +263,7 @@ class MiniTui {
 		this.render();
 	}
 
-	/** One ordered tagged inbox: steered and queued input, plus writes waiting for a boundary. */
+	/** 一个有序的带标签收件箱：包括引导输入、排队输入以及等待边界的写入。 */
 	#syncQueues(queues: LaneSnapshot["queues"]): void {
 		this.#queue.clear();
 		for (const item of queues) {
@@ -276,7 +276,7 @@ class MiniTui {
 	#syncTranscript(transcript: readonly Entry[]): void {
 		const diverged = this.#renderedEntryIds.some((id, index) => transcript[index]?.id !== id);
 		if (diverged) {
-			// Compaction, navigation, or a fork rewrote the branch: repaint from scratch.
+			// 压缩、导航或派生重写了分支：从头重新绘制。
 			this.#chat.clear();
 			this.#tools.clear();
 			this.#renderedEntryIds = [];
@@ -290,7 +290,7 @@ class MiniTui {
 
 	#addEntry(entry: Entry): void {
 		if (entry.type === "compaction") {
-			// The compaction entry heads the branch, so it has to render its own retained messages.
+			// 压缩条目位于分支开头，因此必须自行渲染其保留消息。
 			this.addText(theme.fg("muted", `[compaction] compacted from ${entry.tokensBefore} tokens`));
 			for (const retained of entry.retainedTail) this.#addMessage(retained);
 			return;
@@ -312,7 +312,7 @@ class MiniTui {
 			this.#chat.addChild(new Spacer(1));
 			this.#chat.addChild(new UserMessageComponent(userMessageText(message)));
 		} else if (message.role === "assistant") {
-			// Adopt the streaming component so the settled message replaces it instead of duplicating it.
+			// 接管流式组件，使已结算消息替换它，而不是产生重复内容。
 			const component = this.#streaming ?? new AssistantMessageComponent();
 			if (!this.#streaming) this.#chat.addChild(component);
 			this.#streaming = undefined;
@@ -338,10 +338,10 @@ class MiniTui {
 		}
 	}
 
-	/** Built-in renderers, without the tool implementations or their schemas. */
+	/** 内置渲染器，不包含工具实现及其架构。 */
 	static readonly #renderers: Record<string, ToolRenderers> = createAllToolRenderers();
 
-	/** Get or create the component for a tool call; omit `args` to look up without overwriting them. */
+	/** 获取或创建工具调用组件；省略 `args` 时仅查找而不覆盖参数。 */
 	#tool(toolName: string, toolCallId: string, args?: unknown): ToolExecutionComponent {
 		const existing = this.#tools.get(toolCallId);
 		if (existing) {
@@ -384,7 +384,7 @@ function toAuthSelectorProviders(accounts: readonly ProviderAccount[]): AuthSele
 	}));
 }
 
-/** The client half of an interactive login, live only while its dialog is mounted. */
+/** 交互式登录的客户端一端，仅在其对话框挂载期间存活。 */
 interface LoginUi {
 	prompt(request: AuthPromptRequest): Promise<string | null>;
 	notify(notice: AuthEvent): void;
@@ -437,7 +437,7 @@ function runLogin(
 	});
 }
 
-/** Run the view against one attached session until the user exits. */
+/** 针对一个已附加会话运行视图，直至用户退出。 */
 export async function runView(client: AttachedSession): Promise<void> {
 	initTheme();
 	let exit = (): void => {};
@@ -500,7 +500,7 @@ export async function runView(client: AttachedSession): Promise<void> {
 				};
 				if (account) void runLogin(view, client, account, setLoginUi).then(report);
 			},
-			// Cancelling the provider list steps back to the auth method choice, as in interactive mode.
+			// 取消提供商列表时返回认证方式选择，与交互模式保持一致。
 			() => login(),
 		);
 		view.mount(selector, selector);
@@ -525,12 +525,12 @@ export async function runView(client: AttachedSession): Promise<void> {
 				void client.lane.compact().then(report);
 				return;
 			}
-			// A submission during an active run steers it; alt+enter queues a follow-up instead.
+			// 活动运行期间提交内容会对其进行引导；alt+enter 则将内容排队为后续消息。
 			const busy = client.state().lane.operation !== null;
 			void (busy ? client.lane.steer(trimmed) : client.lane.prompt(trimmed)).then(report);
 		},
 		queueFollowUp: (text) => void client.lane.followUp(text).then(report),
-		// The worker is authoritative. Never suppress abort from a potentially stale presentation snapshot.
+		// worker 是权威来源。切勿根据可能过期的演示快照抑制中止操作。
 		interrupt: () => void client.lane.abort().then(report),
 		exit,
 		selectModel: () => selectModel(),

@@ -24,12 +24,12 @@ export function formatAuthSelectorProviderType(authType: AuthSelectorProvider["a
 }
 
 /**
- * Component that renders an auth provider selector
+ * 渲染认证提供商选择器的组件。
  */
 export class OAuthSelectorComponent extends Container implements Focusable {
 	private searchInput: Input;
 
-	// Focusable implementation - propagate to search input for IME cursor positioning
+	// Focusable 实现：将状态传递给搜索输入框，以便定位 IME 光标
 	private _focused = false;
 	get focused(): boolean {
 		return this._focused;
@@ -64,11 +64,11 @@ export class OAuthSelectorComponent extends Container implements Focusable {
 		this.onSelectCallback = onSelect;
 		this.onCancelCallback = onCancel;
 
-		// Add top border
+		// 添加上边框
 		this.addChild(new DynamicBorder());
 		this.addChild(new Spacer(1));
 
-		// Add title
+		// 添加标题
 		const title = mode === "login" ? "Select provider to configure:" : "Select provider to logout:";
 		this.addChild(new TruncatedText(theme.fg("accent", theme.bold(title)), 1, 0));
 		this.addChild(new Spacer(1));
@@ -86,16 +86,16 @@ export class OAuthSelectorComponent extends Container implements Focusable {
 		this.addChild(this.searchInput);
 		this.addChild(new Spacer(1));
 
-		// Create list container
+		// 创建列表容器
 		this.listContainer = new Container();
 		this.addChild(this.listContainer);
 
 		this.addChild(new Spacer(1));
 
-		// Add bottom border
+		// 添加下边框
 		this.addChild(new DynamicBorder());
 
-		// Initial render
+		// 初始渲染
 		this.filterProviders(initialSearchInput ?? "");
 	}
 
@@ -149,7 +149,7 @@ export class OAuthSelectorComponent extends Container implements Focusable {
 			this.listContainer.addChild(new TruncatedText(scrollInfo, 1, 0));
 		}
 
-		// Show "no providers" if empty
+		// 为空时显示“无提供商”
 		if (this.filteredProviders.length === 0) {
 			const message =
 				this.allProviders.length === 0
@@ -182,30 +182,30 @@ export class OAuthSelectorComponent extends Container implements Focusable {
 
 	handleInput(keyData: string): void {
 		const kb = getKeybindings();
-		// Up arrow
+		// 上箭头
 		if (kb.matches(keyData, "tui.select.up")) {
 			if (this.filteredProviders.length === 0) return;
 			this.selectedIndex = Math.max(0, this.selectedIndex - 1);
 			this.updateList();
 		}
-		// Down arrow
+		// 下箭头
 		else if (kb.matches(keyData, "tui.select.down")) {
 			if (this.filteredProviders.length === 0) return;
 			this.selectedIndex = Math.min(this.filteredProviders.length - 1, this.selectedIndex + 1);
 			this.updateList();
 		}
-		// Enter
+		// Enter：确认选择
 		else if (kb.matches(keyData, "tui.select.confirm")) {
 			const selectedProvider = this.filteredProviders[this.selectedIndex];
 			if (selectedProvider) {
 				this.onSelectCallback(selectedProvider.id, selectedProvider.authType);
 			}
 		}
-		// Escape or Ctrl+C
+		// Escape 或 Ctrl+C
 		else if (kb.matches(keyData, "tui.select.cancel")) {
 			this.onCancelCallback();
 		}
-		// Pass everything else to search input
+		// 其他所有输入均传递给搜索输入框
 		else {
 			this.searchInput.handleInput(keyData);
 			this.filterProviders(this.searchInput.getValue());

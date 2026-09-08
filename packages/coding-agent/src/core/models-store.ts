@@ -20,7 +20,7 @@ type ModelsFileReadState = {
 	reload?: ModelsFileReload;
 };
 
-// Optimize the common path without retaining an unbounded set of custom paths.
+// 优化常用路径，同时避免保留无限增长的自定义路径集合。
 let sharedModelsFileReadState: { path: string; readState: ModelsFileReadState } | undefined;
 
 export class InMemoryCodingAgentModelsStore implements ModelsStore {
@@ -43,7 +43,7 @@ export class InMemoryCodingAgentModelsStore implements ModelsStore {
 	}
 }
 
-/** Locked JSON-backed storage for dynamically refreshed provider catalogs. */
+/** 带锁且以 JSON 为后端的动态刷新提供商目录存储。 */
 export class FileModelsStore implements ModelsStore {
 	private readonly storage: AuthStorageBackend;
 	private readonly path: string;

@@ -10,7 +10,7 @@ export interface ShellConfig {
 }
 
 /**
- * Find bash executable on PATH (cross-platform)
+ * 在 PATH 中查找 bash 可执行文件（跨平台）。
  */
 function isLegacyWslBashPath(path: string): boolean {
 	const normalized = path.replace(/\//g, "\\").toLowerCase();
@@ -23,7 +23,7 @@ function getBashShellConfig(shell: string): ShellConfig {
 
 function findExecutableOnPath(executable: string): string | null {
 	if (process.platform === "win32") {
-		// Windows: Use 'where' and verify file exists (where can return non-existent paths)
+		// Windows：使用 'where' 并验证文件存在（where 可能返回不存在的路径）
 		try {
 			const result = spawnSync("where", [executable], {
 				encoding: "utf-8",
@@ -37,12 +37,12 @@ function findExecutableOnPath(executable: string): string | null {
 				}
 			}
 		} catch {
-			// Ignore errors
+			// 忽略错误
 		}
 		return null;
 	}
 
-	// Unix: Use 'which' and trust its output (handles Termux and special filesystems)
+	// Unix：使用 'which' 并信任其输出（可处理 Termux 和特殊文件系统）
 	try {
 		const result = spawnSync("which", [executable], { encoding: "utf-8", timeout: 5000 });
 		if (result.status === 0 && result.stdout) {
@@ -52,20 +52,20 @@ function findExecutableOnPath(executable: string): string | null {
 			}
 		}
 	} catch {
-		// Ignore errors
+		// 忽略错误
 	}
 	return null;
 }
 
 /**
- * Resolve shell configuration based on platform and an optional explicit shell path.
- * Resolution order:
- * 1. User-specified shellPath
- * 2. On Windows: Git Bash in known locations, then bash on PATH
- * 3. On Unix: /bin/bash, then bash on PATH, then fallback to sh
+ * 根据平台和可选的显式 shell 路径解析 shell 配置。
+ * 解析顺序：
+ * 1. 用户指定的 shellPath
+ * 2. Windows：已知位置中的 Git Bash，然后是 PATH 中的 bash
+ * 3. Unix：/bin/bash，然后是 PATH 中的 bash，最后回退到 sh
  */
 export function getShellConfig(customShellPath?: string): ShellConfig {
-	// 1. Check user-specified shell path
+	// 1. 检查用户指定的 shell 路径
 	if (customShellPath) {
 		if (existsSync(customShellPath)) {
 			return getBashShellConfig(customShellPath);
@@ -74,7 +74,7 @@ export function getShellConfig(customShellPath?: string): ShellConfig {
 	}
 
 	if (process.platform === "win32") {
-		// 2. Try Git Bash in known locations
+		// 2. 尝试已知位置中的 Git Bash
 		const paths: string[] = [];
 		const programFiles = process.env.ProgramFiles;
 		if (programFiles) {
@@ -91,7 +91,7 @@ export function getShellConfig(customShellPath?: string): ShellConfig {
 			}
 		}
 
-		// 3. Fallback: search bash.exe on PATH (Cygwin, MSYS2, WSL, etc.)
+		// 3. 回退方案：在 PATH 中查找 bash.exe（Cygwin、MSYS2、WSL 等）
 		const bashOnPath = findExecutableOnPath("bash.exe");
 		if (bashOnPath) {
 			return getBashShellConfig(bashOnPath);
@@ -106,7 +106,7 @@ export function getShellConfig(customShellPath?: string): ShellConfig {
 		);
 	}
 
-	// Unix: try /bin/bash, then bash on PATH, then fallback to sh
+	// Unix：先尝试 /bin/bash，再尝试 PATH 中的 bash，最后回退到 sh
 	if (existsSync("/bin/bash")) {
 		return getBashShellConfig("/bin/bash");
 	}
@@ -121,7 +121,7 @@ export function getShellConfig(customShellPath?: string): ShellConfig {
 
 export const POWERSHELL_ARGS = ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command"] as const;
 
-/** Resolve PowerShell on Windows, preferring PowerShell 7 when available. */
+/** 在 Windows 上解析 PowerShell；PowerShell 7 可用时优先使用。 */
 export function getPowerShellConfig(): ShellConfig {
 	if (process.platform !== "win32") {
 		throw new Error("The powershell tool is only available on Windows.");
@@ -150,38 +150,36 @@ export function getShellEnv(): NodeJS.ProcessEnv {
 }
 
 /**
- * Sanitize binary output for display/storage.
- * Removes characters that crash string-width or cause display issues:
- * - Control characters (except tab, newline, carriage return)
- * - Lone surrogates
- * - Unicode Format characters (crash string-width due to a bug)
- * - Characters with undefined code points
+ * 清理用于显示或存储的二进制输出。
+ * 移除会导致 string-width 崩溃或引起显示问题的字符：
+ * - 控制字符（制表符、换行符和回车符除外）
+ * - 孤立代理项
+ * - Unicode 格式字符（会因缺陷导致 string-width 崩溃）
+ * - 码点未定义的字符
  */
 export function sanitizeBinaryOutput(str: string): string {
-	// Use Array.from to properly iterate over code points (not code units)
-	// This handles surrogate pairs correctly and catches edge cases where
-	// codePointAt() might return undefined
+	// 使用 Array.from 正确遍历码点（而非代码单元）。
+	// 这样既能正确处理代理对，也能捕获 codePointAt() 可能返回 undefined 的边界情况。
 	return Array.from(str)
 		.filter((char) => {
-			// Filter out characters that cause string-width to crash
-			// This includes:
-			// - Unicode format characters
-			// - Lone surrogates (already filtered by Array.from)
-			// - Control chars except \t \n \r
-			// - Characters with undefined code points
+			// 过滤会导致 string-width 崩溃的字符，包括：
+			// - Unicode 格式字符
+			// - 孤立代理项（已由 Array.from 过滤）
+			// - 除 \t、\n、\r 外的控制字符
+			// - 码点未定义的字符
 
 			const code = char.codePointAt(0);
 
-			// Skip if code point is undefined (edge case with invalid strings)
+			// 码点未定义时跳过（无效字符串的边界情况）
 			if (code === undefined) return false;
 
-			// Allow tab, newline, carriage return
+			// 允许制表符、换行符和回车符
 			if (code === 0x09 || code === 0x0a || code === 0x0d) return true;
 
-			// Filter out control characters (0x00-0x1F, except 0x09, 0x0a, 0x0x0d)
+			// 过滤控制字符（0x00-0x1F，但 0x09、0x0a、0x0d 除外）
 			if (code <= 0x1f) return false;
 
-			// Filter out Unicode format characters
+			// 过滤 Unicode 格式字符
 			if (code >= 0xfff9 && code <= 0xfffb) return false;
 
 			return true;
@@ -190,8 +188,7 @@ export function sanitizeBinaryOutput(str: string): string {
 }
 
 /**
- * Detached child processes must be tracked so they can be killed on parent
- * shutdown signals (SIGHUP/SIGTERM).
+ * 必须跟踪分离的子进程，以便在父进程收到关闭信号（SIGHUP/SIGTERM）时终止它们。
  */
 const trackedDetachedChildPids = new Set<number>();
 
@@ -211,11 +208,11 @@ export function killTrackedDetachedChildren(): void {
 }
 
 /**
- * Kill a process and all its children (cross-platform)
+ * 终止一个进程及其所有子进程（跨平台）。
  */
 export function killProcessTree(pid: number): void {
 	if (process.platform === "win32") {
-		// Use the trusted System32 executable so cleanup does not depend on PATH.
+		// 使用受信任的 System32 可执行文件，使清理过程不依赖 PATH。
 		try {
 			const child = spawn(
 				join(process.env.SystemRoot ?? "C:\\Windows", "System32", "taskkill.exe"),
@@ -226,21 +223,21 @@ export function killProcessTree(pid: number): void {
 					windowsHide: true,
 				},
 			);
-			// A failed spawn emits "error" asynchronously; consume it to avoid crashing Node.
+			// spawn 失败会异步触发 "error"；消费该事件以避免 Node 崩溃。
 			child.once("error", () => {});
 		} catch {
-			// Ignore errors if taskkill fails.
+			// taskkill 失败时忽略错误。
 		}
 	} else {
-		// Use SIGKILL on Unix/Linux/Mac
+		// 在 Unix/Linux/Mac 上使用 SIGKILL
 		try {
 			process.kill(-pid, "SIGKILL");
 		} catch {
-			// Fallback to killing just the child if process group kill fails
+			// 如果终止进程组失败，则回退为仅终止子进程
 			try {
 				process.kill(pid, "SIGKILL");
 			} catch {
-				// Process already dead
+				// 进程已经终止
 			}
 		}
 	}

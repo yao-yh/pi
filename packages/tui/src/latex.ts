@@ -1365,13 +1365,13 @@ class LatexParser {
 }
 
 export interface RenderLatexOptions {
-	/** Stack fractions and operator limits vertically for display math (default: false). */
+	/** 对显示数学公式垂直堆叠分数和运算符上下限（默认：false）。 */
 	display?: boolean;
 }
 
 /**
- * Render a basic LaTeX math expression as terminal-friendly Unicode text.
- * Returns undefined when the expression contains unsupported or malformed syntax.
+ * 将基础 LaTeX 数学表达式渲染为适合终端显示的 Unicode 文本。
+ * 表达式包含不支持或格式错误的语法时返回 undefined。
  */
 export function renderLatex(source: string, options: RenderLatexOptions = {}): string | undefined {
 	const layoutNodes: LayoutNode[] = [];

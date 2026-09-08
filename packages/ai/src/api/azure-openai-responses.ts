@@ -23,7 +23,7 @@ import { buildBaseOptions } from "./simple-options.ts";
 
 const DEFAULT_AZURE_API_VERSION = "v1";
 const AZURE_TOOL_CALL_PROVIDERS = new Set(["openai", "openai-codex", "opencode", "azure-openai-responses"]);
-// OpenAI Responses rejects max_output_tokens below 16: https://github.com/earendil-works/pi/issues/6265
+// OpenAI Responses 会拒绝低于 16 的 max_output_tokens：https://github.com/earendil-works/pi/issues/6265
 const OPENAI_RESPONSES_MIN_OUTPUT_TOKENS = 16;
 
 function parseDeploymentNameMap(value: string | undefined): Map<string, string> {
@@ -53,7 +53,7 @@ function formatAzureOpenAIError(error: unknown): string {
 	return formatProviderError(normalizeProviderError(error), "Azure OpenAI API error");
 }
 
-// Azure OpenAI Responses-specific options
+// Azure OpenAI Responses 专用选项
 export interface AzureOpenAIResponsesOptions extends StreamOptions {
 	reasoningEffort?: "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
 	toolChoice?: ResponseCreateParamsStreaming["tool_choice"];
@@ -65,7 +65,7 @@ export interface AzureOpenAIResponsesOptions extends StreamOptions {
 }
 
 /**
- * Generate function for Azure OpenAI Responses API
+ * Azure OpenAI Responses API 的生成函数
  */
 export const stream: StreamFunction<"azure-openai-responses", AzureOpenAIResponsesOptions> = (
 	model: Model<"azure-openai-responses">,
@@ -74,7 +74,7 @@ export const stream: StreamFunction<"azure-openai-responses", AzureOpenAIRespons
 ): AssistantMessageEventStream => {
 	const stream = new AssistantMessageEventStream();
 
-	// Start async processing
+	// 启动异步处理
 	(async () => {
 		const deploymentName = resolveDeploymentName(model, options);
 
@@ -97,7 +97,7 @@ export const stream: StreamFunction<"azure-openai-responses", AzureOpenAIRespons
 		};
 
 		try {
-			// Create Azure OpenAI client
+			// 创建 Azure OpenAI 客户端
 			const apiKey = options?.apiKey;
 			if (!apiKey) {
 				throw new Error(`No API key for provider: ${model.provider}`);
@@ -146,7 +146,7 @@ export const stream: StreamFunction<"azure-openai-responses", AzureOpenAIRespons
 		} catch (error) {
 			for (const block of output.content) {
 				delete (block as { index?: number }).index;
-				// Streaming scratch buffers are only used during parsing; never persist them.
+				// 流式暂存缓冲区仅在解析期间使用，绝不持久化。
 				delete (block as { partialJson?: string }).partialJson;
 				delete (block as { customInput?: unknown }).customInput;
 			}
@@ -198,8 +198,8 @@ function normalizeAzureBaseUrl(baseUrl: string): string {
 		url.hostname.endsWith(".ai.azure.com");
 	const normalizedPath = url.pathname.replace(/\/+$/, "");
 
-	// Ensure Azure hosts have /openai/v1 as base path so the AzureOpenAI SDK
-	// can append /deployments/<model>/... and ?api-version=v1 correctly.
+	// 确保 Azure 主机以 /openai/v1 为基础路径，使 AzureOpenAI SDK 能够正确追加
+	// /deployments/<model>/... 和 ?api-version=v1。
 	if (
 		isAzureHost &&
 		(normalizedPath === "" ||
@@ -329,7 +329,7 @@ function buildParams(
 		}
 	}
 
-	// Last so custom keys override the named request fields.
+	// 最后处理，使自定义键可以覆盖具名请求字段。
 	if (options?.samplingParams) {
 		Object.assign(params, options.samplingParams);
 	}

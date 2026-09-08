@@ -7,7 +7,7 @@ export const INTERNAL_PROCESS_ENV = "__PI_INTERNAL_SPAWN";
 
 export type InternalProcessRole = "coordinator" | "server" | "session-worker";
 
-/** Detect a directly executed source or unbundled internal-process module. */
+/** 检测直接执行的源码或未打包的内部进程模块。 */
 export function isDirectInternalProcessEntry(moduleUrl: string): boolean {
 	return (
 		!isBunBinary &&
@@ -17,7 +17,7 @@ export function isDirectInternalProcessEntry(moduleUrl: string): boolean {
 	);
 }
 
-/** Read and validate an internal process role without consuming it. */
+/** 读取并验证内部进程角色，但不消费它。 */
 export function getInternalProcessRole(): InternalProcessRole | undefined {
 	const role = process.env[INTERNAL_PROCESS_ENV];
 	if (role === undefined) return undefined;
@@ -25,7 +25,7 @@ export function getInternalProcessRole(): InternalProcessRole | undefined {
 	throw new Error(`Unsupported internal process role: ${role}`);
 }
 
-/** Read, validate, and remove the role so descendants do not inherit it. */
+/** 读取、验证并移除角色，防止后代进程继承它。 */
 export function consumeInternalProcessRole(): InternalProcessRole | undefined {
 	const role = getInternalProcessRole();
 	delete process.env[INTERNAL_PROCESS_ENV];
@@ -37,7 +37,7 @@ export interface InternalProcessSpawnOptions {
 	readonly env?: NodeJS.ProcessEnv;
 }
 
-/** Spawn a detached Pi-owned process consistently across Node and compiled Bun. */
+/** 在 Node 和编译后的 Bun 环境中，以一致方式生成由 Pi 持有的分离进程。 */
 export function spawnInternalProcess(
 	role: InternalProcessRole,
 	args: readonly string[],
@@ -69,7 +69,7 @@ export function spawnInternalProcess(
 	return child;
 }
 
-/** Force a spawned internal process to exit and wait until it can no longer take ownership. */
+/** 强制生成的内部进程退出，并等待其无法再取得所有权。 */
 export async function terminateInternalProcess(child: ChildProcess): Promise<void> {
 	if (child.pid === undefined || child.exitCode !== null || child.signalCode !== null) return;
 	const terminated = new Promise<void>((resolve) => {

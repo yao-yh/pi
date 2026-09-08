@@ -3,7 +3,7 @@ import type { Theme } from "../theme/theme.ts";
 import { DynamicBorder } from "./dynamic-border.ts";
 import { keyHint } from "./keybinding-hints.ts";
 
-/** Loader wrapped with borders for extension UI */
+/** 为扩展 UI 添加边框包装的加载器。 */
 export class BorderedLoader extends Container {
 	private loader: CancellableLoader | Loader;
 	private cancellable: boolean;

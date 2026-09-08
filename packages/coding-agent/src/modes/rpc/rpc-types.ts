@@ -1,8 +1,8 @@
 /**
- * RPC protocol types for headless operation.
+ * 无头运行的 RPC 协议类型。
  *
- * Commands are sent as JSON lines on stdin.
- * Responses and events are emitted as JSON lines on stdout.
+ * 命令以 JSON 行形式通过 stdin 发送。
+ * 响应和事件以 JSON 行形式通过 stdout 发出。
  */
 
 import type { AgentMessage, ThinkingLevel } from "@earendil-works/pi-agent-core";
@@ -14,11 +14,11 @@ import type { SessionEntry, SessionTreeNode } from "../../core/session-manager.t
 import type { SourceInfo } from "../../core/source-info.ts";
 
 // ============================================================================
-// RPC Commands (stdin)
+// RPC 命令（stdin）
 // ============================================================================
 
 export type RpcCommand =
-	// Prompting
+	// 提示词
 	| { id?: string; type: "prompt"; message: string; images?: ImageContent[]; streamingBehavior?: "steer" | "followUp" }
 	| { id?: string; type: "steer"; message: string; images?: ImageContent[] }
 	| { id?: string; type: "follow_up"; message: string; images?: ImageContent[] }
@@ -26,36 +26,36 @@ export type RpcCommand =
 	| { id?: string; type: "clear_queue" }
 	| { id?: string; type: "new_session"; parentSession?: string }
 
-	// State
+	// 状态
 	| { id?: string; type: "get_state" }
 
-	// Model
+	// 模型
 	| { id?: string; type: "set_model"; provider: string; modelId: string }
 	| { id?: string; type: "cycle_model" }
 	| { id?: string; type: "get_available_models" }
 
-	// Thinking
+	// 思考
 	| { id?: string; type: "set_thinking_level"; level: ThinkingLevel }
 	| { id?: string; type: "cycle_thinking_level" }
 	| { id?: string; type: "get_available_thinking_levels" }
 
-	// Queue modes
+	// 队列模式
 	| { id?: string; type: "set_steering_mode"; mode: "all" | "one-at-a-time" }
 	| { id?: string; type: "set_follow_up_mode"; mode: "all" | "one-at-a-time" }
 
-	// Compaction
+	// 压缩
 	| { id?: string; type: "compact"; customInstructions?: string }
 	| { id?: string; type: "set_auto_compaction"; enabled: boolean }
 
-	// Retry
+	// 重试
 	| { id?: string; type: "set_auto_retry"; enabled: boolean }
 	| { id?: string; type: "abort_retry" }
 
-	// Bash
+	// Bash 命令
 	| { id?: string; type: "bash"; command: string; excludeFromContext?: boolean }
 	| { id?: string; type: "abort_bash" }
 
-	// Session
+	// 会话
 	| { id?: string; type: "get_session_stats" }
 	| { id?: string; type: "export_html"; outputPath?: string }
 	| { id?: string; type: "switch_session"; sessionPath: string }
@@ -67,30 +67,30 @@ export type RpcCommand =
 	| { id?: string; type: "get_last_assistant_text" }
 	| { id?: string; type: "set_session_name"; name: string }
 
-	// Messages
+	// 消息
 	| { id?: string; type: "get_messages" }
 
-	// Commands (available for invocation via prompt)
+	// 命令（可通过提示词调用）
 	| { id?: string; type: "get_commands" };
 
 // ============================================================================
-// RPC Slash Command (for get_commands response)
+// RPC 斜杠命令（用于 get_commands 响应）
 // ============================================================================
 
-/** A command available for invocation via prompt */
+/** 可通过提示词调用的命令 */
 export interface RpcSlashCommand {
-	/** Command name (without leading slash) */
+	/** 命令名称（不含开头的斜杠） */
 	name: string;
-	/** Human-readable description */
+	/** 易读描述 */
 	description?: string;
-	/** What kind of command this is */
+	/** 命令类型 */
 	source: "extension" | "prompt" | "skill";
-	/** Source metadata for the owning resource */
+	/** 所属资源的来源元数据 */
 	sourceInfo: SourceInfo;
 }
 
 // ============================================================================
-// RPC State
+// RPC 状态
 // ============================================================================
 
 export interface RpcSessionState {
@@ -109,12 +109,12 @@ export interface RpcSessionState {
 }
 
 // ============================================================================
-// RPC Responses (stdout)
+// RPC 响应（stdout）
 // ============================================================================
 
-// Success responses with data
+// 带数据的成功响应
 export type RpcResponse =
-	// Prompting (async - events follow)
+	// 提示词（异步，随后发送事件）
 	| { id?: string; type: "response"; command: "prompt"; success: true }
 	| { id?: string; type: "response"; command: "steer"; success: true }
 	| { id?: string; type: "response"; command: "follow_up"; success: true }
@@ -128,10 +128,10 @@ export type RpcResponse =
 	  }
 	| { id?: string; type: "response"; command: "new_session"; success: true; data: { cancelled: boolean } }
 
-	// State
+	// 状态
 	| { id?: string; type: "response"; command: "get_state"; success: true; data: RpcSessionState }
 
-	// Model
+	// 模型
 	| {
 			id?: string;
 			type: "response";
@@ -154,7 +154,7 @@ export type RpcResponse =
 			data: { models: Model<any>[] };
 	  }
 
-	// Thinking
+	// 思考
 	| { id?: string; type: "response"; command: "set_thinking_level"; success: true }
 	| {
 			id?: string;
@@ -171,23 +171,23 @@ export type RpcResponse =
 			data: { levels: ThinkingLevel[] };
 	  }
 
-	// Queue modes
+	// 队列模式
 	| { id?: string; type: "response"; command: "set_steering_mode"; success: true }
 	| { id?: string; type: "response"; command: "set_follow_up_mode"; success: true }
 
-	// Compaction
+	// 压缩
 	| { id?: string; type: "response"; command: "compact"; success: true; data: CompactionResult }
 	| { id?: string; type: "response"; command: "set_auto_compaction"; success: true }
 
-	// Retry
+	// 重试
 	| { id?: string; type: "response"; command: "set_auto_retry"; success: true }
 	| { id?: string; type: "response"; command: "abort_retry"; success: true }
 
-	// Bash
+	// Bash 命令
 	| { id?: string; type: "response"; command: "bash"; success: true; data: BashResult }
 	| { id?: string; type: "response"; command: "abort_bash"; success: true }
 
-	// Session
+	// 会话
 	| { id?: string; type: "response"; command: "get_session_stats"; success: true; data: SessionStats }
 	| { id?: string; type: "response"; command: "export_html"; success: true; data: { path: string } }
 	| { id?: string; type: "response"; command: "switch_session"; success: true; data: { cancelled: boolean } }
@@ -223,10 +223,10 @@ export type RpcResponse =
 	  }
 	| { id?: string; type: "response"; command: "set_session_name"; success: true }
 
-	// Messages
+	// 消息
 	| { id?: string; type: "response"; command: "get_messages"; success: true; data: { messages: AgentMessage[] } }
 
-	// Commands
+	// 命令
 	| {
 			id?: string;
 			type: "response";
@@ -235,14 +235,14 @@ export type RpcResponse =
 			data: { commands: RpcSlashCommand[] };
 	  }
 
-	// Error response (any command can fail)
+	// 错误响应（任何命令都可能失败）
 	| { id?: string; type: "response"; command: string; success: false; error: string };
 
 // ============================================================================
-// Extension UI Events (stdout)
+// 扩展 UI 事件（stdout）
 // ============================================================================
 
-/** Emitted when an extension needs user input */
+/** 扩展需要用户输入时发出 */
 export type RpcExtensionUIRequest =
 	| { type: "extension_ui_request"; id: string; method: "select"; title: string; options: string[]; timeout?: number }
 	| { type: "extension_ui_request"; id: string; method: "confirm"; title: string; message: string; timeout?: number }
@@ -281,17 +281,17 @@ export type RpcExtensionUIRequest =
 	| { type: "extension_ui_request"; id: string; method: "set_editor_text"; text: string };
 
 // ============================================================================
-// Extension UI Commands (stdin)
+// 扩展 UI 命令（stdin）
 // ============================================================================
 
-/** Response to an extension UI request */
+/** 对扩展 UI 请求的响应 */
 export type RpcExtensionUIResponse =
 	| { type: "extension_ui_response"; id: string; value: string }
 	| { type: "extension_ui_response"; id: string; confirmed: boolean }
 	| { type: "extension_ui_response"; id: string; cancelled: true };
 
 // ============================================================================
-// Helper type for extracting command types
+// 用于提取命令类型的辅助类型
 // ============================================================================
 
 export type RpcCommandType = RpcCommand["type"];

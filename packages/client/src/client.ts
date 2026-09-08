@@ -151,7 +151,7 @@ export class Client {
 		return () => this.#attachmentListeners.delete(listener);
 	}
 
-	/** Invoke one low-level protocol call against an explicit routed target. */
+	/** 针对显式路由目标发起一次底层协议调用。 */
 	request(target: RpcTarget, call: ServiceCall, signal?: AbortSignal): Promise<ServiceResult> {
 		return this.#request(target, call, signal);
 	}
@@ -439,12 +439,12 @@ export class Client {
 		try {
 			this.#options.onListenerError(toError(error));
 		} catch {
-			// Diagnostics cannot affect protocol or transport state.
+			// 诊断处理不得影响协议或传输状态。
 		}
 	}
 }
 
-/** Adapts a lazily resolved routed client target to a Chord service transport. */
+/** 将延迟解析的客户端路由目标适配为 Chord 服务传输。 */
 export function createClientServiceTransport(
 	client: Client,
 	getTarget: () => RpcTarget | undefined,

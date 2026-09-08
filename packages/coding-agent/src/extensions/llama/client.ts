@@ -247,7 +247,7 @@ export class LlamaClient {
 						const event = JSON.parse(data) as LlamaModelEvent;
 						if (event && typeof event.model === "string" && typeof event.event === "string") onEvent(event);
 					} catch {
-						// Ignore malformed events; catalog polling remains authoritative.
+						// 忽略格式错误的事件；模型目录轮询仍是权威来源。
 					}
 				}
 				boundary = buffer.indexOf("\n\n");

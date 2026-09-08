@@ -56,7 +56,7 @@ export class MutableReplicatedStateImpl<T extends object> implements MutableRepl
 	}
 }
 
-/** A cold read-only state used by service consumers until a complete snapshot arrives. */
+/** 服务消费方在完整快照到达前使用的冷态只读状态。 */
 export class ReplicatedStateReplica<T extends JsonValue = JsonValue> implements ReplicatedState<T> {
 	readonly #listeners = new Set<(value: T, context: Context, delivery: ReplicatedStateDelivery) => void>();
 	readonly #reportError: (error: Error) => void;
@@ -128,9 +128,9 @@ export class ReplicatedStateReplica<T extends JsonValue = JsonValue> implements 
 	}
 }
 
-/** @internal Context for synthetic service deliveries without a caller. */
+/** @internal 无调用方的合成服务投递所使用的上下文。 */
 export function serviceDeliveryContext(): Context {
-	// TODO: Add delivery-scoped cancellation or metadata if deliveries gain an owned lifecycle.
+	// TODO：如果投递过程获得独立生命周期，则添加投递作用域的取消机制或元数据。
 	return BACKGROUND_CONTEXT;
 }
 

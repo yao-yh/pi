@@ -2,7 +2,7 @@
       'use strict';
 
       // ============================================================
-      // DATA LOADING
+      // 数据加载
       // ============================================================
 
       const base64 = document.getElementById('session-data').textContent;
@@ -15,30 +15,30 @@
       const { header, entries, leafId: defaultLeafId, systemPrompt, tools, renderedTools } = data;
 
       // ============================================================
-      // URL PARAMETER HANDLING
+      // URL 参数处理
       // ============================================================
 
-      // Parse URL parameters for deep linking: leafId and targetId
-      // Check for injected params (when loaded in iframe via srcdoc) or use window.location
+      // 解析用于深层链接的 URL 参数：leafId 和 targetId
+      // 检查注入参数（通过 srcdoc 加载到 iframe 时），否则使用 window.location
       const injectedParams = document.querySelector('meta[name="pi-url-params"]');
       const searchString = injectedParams ? injectedParams.content : window.location.search.substring(1);
       const urlParams = new URLSearchParams(searchString);
       const urlLeafId = urlParams.get('leafId');
       const urlTargetId = urlParams.get('targetId');
-      // Use URL leafId if provided, otherwise fall back to session default
+      // 如果提供 URL leafId 则使用它，否则回退到会话默认值
       const leafId = urlLeafId || defaultLeafId;
 
       // ============================================================
-      // DATA STRUCTURES
+      // 数据结构
       // ============================================================
 
-      // Entry lookup by ID
+      // 按 ID 查找条目
       const byId = new Map();
       for (const entry of entries) {
         byId.set(entry.id, entry);
       }
 
-      // Tool call lookup (toolCallId -> {name, arguments})
+      // 工具调用查找（toolCallId -> {name, arguments}）
       const toolCallMap = new Map();
       for (const entry of entries) {
         if (entry.type === 'message' && entry.message.role === 'assistant') {
@@ -53,8 +53,8 @@
         }
       }
 
-      // Label lookup (entryId -> label string)
-      // Labels are stored in 'label' entries that reference their target via targetId
+      // 标签查找（entryId -> 标签字符串）
+      // 标签存储在 'label' 条目中，并通过 targetId 引用目标
       const labelMap = new Map();
       for (const entry of entries) {
         if (entry.type === 'label' && entry.targetId && entry.label) {
@@ -63,18 +63,18 @@
       }
 
       // ============================================================
-      // TREE DATA PREPARATION (no DOM, pure data)
+      // 树数据准备（无 DOM，纯数据）
       // ============================================================
 
       /**
-       * Build tree structure from flat entries.
-       * Returns array of root nodes, each with { entry, children, label }.
+       * 根据扁平条目构建树结构。
+       * 返回根节点数组，每个节点包含 { entry, children, label }。
        */
       function buildTree() {
         const nodeMap = new Map();
         const roots = [];
 
-        // Create nodes
+        // 创建节点
         for (const entry of entries) {
           nodeMap.set(entry.id, {
             entry,
@@ -83,7 +83,7 @@
           });
         }
 
-        // Build parent-child relationships
+        // 构建父子关系
         for (const entry of entries) {
           const node = nodeMap.get(entry.id);
           if (entry.parentId === null || entry.parentId === undefined || entry.parentId === entry.id) {
@@ -98,7 +98,7 @@
           }
         }
 
-        // Sort children by timestamp
+        // 按时间戳对子节点排序
         function sortChildren(node) {
           node.children.sort((a, b) =>
             new Date(a.entry.timestamp).getTime() - new Date(b.entry.timestamp).getTime()
@@ -111,14 +111,14 @@
       }
 
       /**
-       * Build set of entry IDs on path from root to target.
+       * 构建根节点到目标路径上的条目 ID 集合。
        */
       function buildActivePathIds(targetId) {
         const ids = new Set();
         let current = byId.get(targetId);
         while (current) {
           ids.add(current.id);
-          // Stop if no parent or self-referencing (root)
+          // 没有父节点或指向自身（根节点）时停止
           if (!current.parentId || current.parentId === current.id) {
             break;
           }
@@ -128,14 +128,14 @@
       }
 
       /**
-       * Get array of entries from root to target (the conversation path).
+       * 获取根节点到目标的条目数组（对话路径）。
        */
       function getPath(targetId) {
         const path = [];
         let current = byId.get(targetId);
         while (current) {
           path.unshift(current);
-          // Stop if no parent or self-referencing (root)
+          // 没有父节点或指向自身（根节点）时停止
           if (!current.parentId || current.parentId === current.id) {
             break;
           }
@@ -144,16 +144,16 @@
         return path;
       }
 
-      // Tree node lookup for finding leaves
+      // 用于查找叶节点的树节点映射
       let treeNodeMap = null;
 
       /**
-       * Find the newest leaf node reachable from a given node.
-       * This allows clicking any node in a branch to show the full branch.
-       * Children are sorted by timestamp, so the newest is always last.
+       * 查找从给定节点可达的最新叶节点。
+       * 这样可以通过单击分支中的任意节点显示完整分支。
+       * 子节点按时间戳排序，因此最新节点始终位于最后。
        */
       function findNewestLeaf(nodeId) {
-        // Build tree node map lazily
+        // 惰性构建树节点映射
         if (!treeNodeMap) {
           treeNodeMap = new Map();
           const tree = buildTree();
@@ -167,7 +167,7 @@
         const node = treeNodeMap.get(nodeId);
         if (!node) return nodeId;
 
-        // Follow the newest (last) child at each level
+        // 在每一层沿最新（最后一个）子节点向下查找
         let current = node;
         while (current.children.length > 0) {
           current = current.children[current.children.length - 1];
@@ -176,15 +176,15 @@
       }
 
       /**
-       * Flatten tree into list with indentation and connector info.
-       * Returns array of { node, indent, showConnector, isLast, gutters, isVirtualRootChild, multipleRoots }.
-       * Matches tree-selector.ts logic exactly.
+       * 将树展平为包含缩进和连接线信息的列表。
+       * 返回 { node, indent, showConnector, isLast, gutters, isVirtualRootChild, multipleRoots } 数组。
+       * 与 tree-selector.ts 的逻辑完全一致。
        */
       function flattenTree(roots, activePathIds) {
         const result = [];
         const multipleRoots = roots.length > 1;
 
-        // Mark which subtrees contain the active leaf
+        // 标记包含活动叶节点的子树
         const containsActive = new Map();
         function markActive(node) {
           let has = activePathIds.has(node.entry.id);
@@ -196,10 +196,10 @@
         }
         roots.forEach(markActive);
 
-        // Stack: [node, indent, justBranched, showConnector, isLast, gutters, isVirtualRootChild]
+        // 栈：[node, indent, justBranched, showConnector, isLast, gutters, isVirtualRootChild]
         const stack = [];
 
-        // Add roots (prioritize branch containing active leaf)
+        // 添加根节点（优先处理包含活动叶节点的分支）
         const orderedRoots = [...roots].sort((a, b) =>
           Number(containsActive.get(b)) - Number(containsActive.get(a))
         );
@@ -216,25 +216,25 @@
           const children = node.children;
           const multipleChildren = children.length > 1;
 
-          // Order children (active branch first)
+          // 对子节点排序（活动分支优先）
           const orderedChildren = [...children].sort((a, b) =>
             Number(containsActive.get(b)) - Number(containsActive.get(a))
           );
 
-          // Calculate child indent (matches tree-selector.ts)
+          // 计算子节点缩进（与 tree-selector.ts 一致）
           let childIndent;
           if (multipleChildren) {
-            // Parent branches: children get +1
+            // 父节点有分支：子节点缩进加 1
             childIndent = indent + 1;
           } else if (justBranched && indent > 0) {
-            // First generation after a branch: +1 for visual grouping
+            // 分支后的第一代：缩进加 1 以便进行视觉分组
             childIndent = indent + 1;
           } else {
-            // Single-child chain: stay flat
+            // 单子节点链：保持平级
             childIndent = indent;
           }
 
-          // Build gutters for children
+          // 构建子节点的竖向连接线
           const connectorDisplayed = showConnector && !isVirtualRootChild;
           const currentDisplayIndent = multipleRoots ? Math.max(0, indent - 1) : indent;
           const connectorPosition = Math.max(0, currentDisplayIndent - 1);
@@ -242,7 +242,7 @@
             ? [...gutters, { position: connectorPosition, show: !isLast }]
             : gutters;
 
-          // Add children in reverse order for stack
+          // 以反向顺序将子节点加入栈
           for (let i = orderedChildren.length - 1; i >= 0; i--) {
             const childIsLast = i === orderedChildren.length - 1;
             stack.push([orderedChildren[i], childIndent, multipleChildren, multipleChildren, childIsLast, childGutters, false]);
@@ -253,7 +253,7 @@
       }
 
       /**
-       * Build ASCII prefix string for tree node.
+       * 构建树节点的 ASCII 前缀字符串。
        */
       function buildTreePrefix(flatNode) {
         const { indent, showConnector, isLast, gutters, isVirtualRootChild, multipleRoots } = flatNode;
@@ -286,7 +286,7 @@
       }
 
       // ============================================================
-      // FILTERING (pure data)
+      // 筛选（纯数据）
       // ============================================================
 
       let filterMode = 'default';
@@ -314,9 +314,9 @@
       }
 
       /**
-       * Parse a skill block from message text.
-       * Returns null if the text doesn't contain a skill block.
-       * Matches the format: <skill name="..." location="...">\n...\n</skill>\n\nuser message
+       * 从消息文本中解析 skill 块。
+       * 文本不包含 skill 块时返回 null。
+       * 匹配格式：<skill name="..." location="...">\n...\n</skill>\n\n用户消息
        */
       function parseSkillBlock(text) {
         const match = text.match(/^<skill name="([^"]+)" location="([^"]+)">\n([\s\S]*?)\n<\/skill>(?:\n\n([\s\S]+))?$/);
@@ -363,7 +363,7 @@
       }
 
       /**
-       * Filter flat nodes based on current filterMode and searchQuery.
+       * 根据当前 filterMode 和 searchQuery 筛选扁平节点。
        */
       function filterNodes(flatNodes, currentLeafId) {
         const searchTokens = searchQuery.toLowerCase().split(/\s+/).filter(Boolean);
@@ -373,10 +373,10 @@
           const label = flatNode.node.label;
           const isCurrentLeaf = entry.id === currentLeafId;
 
-          // Always show current leaf
+          // 始终显示当前叶节点
           if (isCurrentLeaf) return true;
 
-          // Hide assistant messages with only tool calls (no text) unless error/aborted
+          // 隐藏仅包含工具调用（无文本）的助手消息，错误/中止消息除外
           if (entry.type === 'message' && entry.message.role === 'assistant') {
             const msg = entry.message;
             const hasText = hasTextContent(msg.content);
@@ -384,7 +384,7 @@
             if (!hasText && !isErrorOrAborted) return false;
           }
 
-          // Apply filter mode
+          // 应用筛选模式
           const isSettingsEntry = ['label', 'custom', 'model_change', 'thinking_level_change'].includes(entry.type);
           let passesFilter = true;
 
@@ -401,14 +401,14 @@
             case 'all':
               passesFilter = true;
               break;
-            default: // 'default'
+            default: // 默认值：'default'
               passesFilter = !isSettingsEntry;
               break;
           }
 
           if (!passesFilter) return false;
 
-          // Apply search filter
+          // 应用搜索筛选器
           if (searchTokens.length > 0) {
             const nodeText = getSearchableText(entry, label);
             if (!searchTokens.every(t => nodeText.includes(t))) return false;
@@ -417,30 +417,30 @@
           return true;
         });
 
-        // Recalculate visual structure based on visible tree
+        // 根据可见树重新计算视觉结构
         recalculateVisualStructure(filtered, flatNodes);
 
         return filtered;
       }
 
       /**
-       * Recompute indentation/connectors for the filtered view
+       * 为筛选后的视图重新计算缩进/连接线
        *
-       * Filtering can hide intermediate entries; descendants attach to the nearest visible ancestor.
-       * Keep indentation semantics aligned with flattenTree() so single-child chains don't drift right.
+       * 筛选可能隐藏中间条目；后代节点会附加到最近的可见祖先节点。
+       * 保持缩进语义与 flattenTree() 一致，避免单子节点链向右偏移。
        */
       function recalculateVisualStructure(filteredNodes, allFlatNodes) {
         if (filteredNodes.length === 0) return;
 
         const visibleIds = new Set(filteredNodes.map(n => n.node.entry.id));
 
-        // Build entry map for parent lookup (using full tree)
+        // 构建用于查找父节点的条目映射（使用完整树）
         const entryMap = new Map();
         for (const flatNode of allFlatNodes) {
           entryMap.set(flatNode.node.entry.id, flatNode);
         }
 
-        // Find nearest visible ancestor for a node
+        // 查找节点最近的可见祖先
         function findVisibleAncestor(nodeId) {
           let currentId = entryMap.get(nodeId)?.node.entry.parentId;
           while (currentId != null) {
@@ -452,10 +452,10 @@
           return null;
         }
 
-        // Build visible tree structure
+        // 构建可见树结构
         const visibleParent = new Map();
         const visibleChildren = new Map();
-        visibleChildren.set(null, []); // root-level nodes
+        visibleChildren.set(null, []); // 根级节点
 
         for (const flatNode of filteredNodes) {
           const nodeId = flatNode.node.entry.id;
@@ -468,21 +468,21 @@
           visibleChildren.get(ancestorId).push(nodeId);
         }
 
-        // Update multipleRoots based on visible roots
+        // 根据可见根节点更新 multipleRoots
         const visibleRootIds = visibleChildren.get(null);
         const multipleRoots = visibleRootIds.length > 1;
 
-        // Build a map for quick lookup: nodeId → FlatNode
+        // 构建用于快速查找的映射：nodeId → FlatNode
         const filteredNodeMap = new Map();
         for (const flatNode of filteredNodes) {
           filteredNodeMap.set(flatNode.node.entry.id, flatNode);
         }
 
-        // DFS traversal of visible tree, applying same indentation rules as flattenTree()
-        // Stack items: [nodeId, indent, justBranched, showConnector, isLast, gutters, isVirtualRootChild]
+        // 对可见树进行 DFS 遍历，应用与 flattenTree() 相同的缩进规则
+        // 栈条目：[nodeId, indent, justBranched, showConnector, isLast, gutters, isVirtualRootChild]
         const stack = [];
 
-        // Add visible roots in reverse order (to process in forward order via stack)
+        // 以反向顺序添加可见根节点（通过栈以正向顺序处理）
         for (let i = visibleRootIds.length - 1; i >= 0; i--) {
           const isLast = i === visibleRootIds.length - 1;
           stack.push([
@@ -502,7 +502,7 @@
           const flatNode = filteredNodeMap.get(nodeId);
           if (!flatNode) continue;
 
-          // Update this node's visual properties
+          // 更新此节点的视觉属性
           flatNode.indent = indent;
           flatNode.showConnector = showConnector;
           flatNode.isLast = isLast;
@@ -510,14 +510,14 @@
           flatNode.isVirtualRootChild = isVirtualRootChild;
           flatNode.multipleRoots = multipleRoots;
 
-          // Get visible children of this node
+          // 获取此节点的可见子节点
           const children = visibleChildren.get(nodeId) || [];
           const multipleChildren = children.length > 1;
 
-          // Calculate child indent using same rules as flattenTree():
-          // - Parent branches (multiple children): children get +1
-          // - Just branched and indent > 0: children get +1 for visual grouping
-          // - Single-child chain: stay flat
+          // 使用与 flattenTree() 相同的规则计算子节点缩进：
+          // - 父节点有分支（多个子节点）：子节点缩进加 1
+          // - 刚发生分支且 indent > 0：子节点缩进加 1，以便进行视觉分组
+          // - 单子节点链：保持平级
           let childIndent;
           if (multipleChildren) {
             childIndent = indent + 1;
@@ -527,7 +527,7 @@
             childIndent = indent;
           }
 
-          // Build gutters for children (same logic as flattenTree)
+          // 构建子节点的竖向连接线（与 flattenTree 逻辑相同）
           const connectorDisplayed = showConnector && !isVirtualRootChild;
           const currentDisplayIndent = multipleRoots ? Math.max(0, indent - 1) : indent;
           const connectorPosition = Math.max(0, currentDisplayIndent - 1);
@@ -535,7 +535,7 @@
             ? [...gutters, { position: connectorPosition, show: !isLast }]
             : gutters;
 
-          // Add children in reverse order (to process in forward order via stack)
+          // 以反向顺序添加子节点（通过栈以正向顺序处理）
           for (let i = children.length - 1; i >= 0; i--) {
             const childIsLast = i === children.length - 1;
             stack.push([
@@ -552,7 +552,7 @@
       }
 
       // ============================================================
-      // TREE DISPLAY TEXT (pure data -> string)
+      // 树显示文本（纯数据 -> 字符串）
       // ============================================================
 
       function shortenPath(p) {
@@ -626,7 +626,7 @@
       }
 
       /**
-       * Truncate string to maxLen chars, append "..." if truncated.
+       * 将字符串截断为 maxLen 个字符，发生截断时附加 "..."。
        */
       function truncate(s, maxLen = 100) {
         if (s.length <= maxLen) return s;
@@ -634,7 +634,7 @@
       }
 
       /**
-       * Get display text for tree node (returns HTML string).
+       * 获取树节点的显示文本（返回 HTML 字符串）。
        */
       function getTreeNodeDisplayHtml(entry, label) {
         const normalize = s => s.replace(/[\n\t]/g, ' ').trim();
@@ -702,7 +702,7 @@
       }
 
       // ============================================================
-      // TREE RENDERING (DOM manipulation)
+      // 树渲染（DOM 操作）
       // ============================================================
 
       let currentLeafId = leafId;
@@ -716,7 +716,7 @@
         const filtered = filterNodes(flatNodes, currentLeafId);
         const container = document.getElementById('tree-container');
 
-        // Full render only on first call or when filter/search changes
+        // 仅在首次调用或筛选器/搜索内容更改时完整渲染
         if (!treeRendered) {
           container.innerHTML = '';
 
@@ -747,7 +747,7 @@
             div.appendChild(prefixSpan);
             div.appendChild(marker);
             div.appendChild(content);
-            // Navigate to the newest leaf through this node, but scroll to the clicked node
+            // 通过此节点导航到最新叶节点，但滚动到被单击的节点
             div.addEventListener('click', () => {
               if (window.getSelection().toString()) return;
               const leafId = findNewestLeaf(entry.id);
@@ -759,7 +759,7 @@
 
           treeRendered = true;
         } else {
-          // Just update markers and classes
+          // 仅更新标记和类
           const nodes = container.querySelectorAll('.tree-node');
           for (const node of nodes) {
             const id = node.dataset.id;
@@ -778,7 +778,7 @@
 
         document.getElementById('tree-status').textContent = `${filtered.length} / ${flatNodes.length} entries`;
 
-        // Scroll active node into view after layout
+        // 布局完成后将活动节点滚动到可见区域
         setTimeout(() => {
           const activeNode = container.querySelector('.tree-node.active');
           if (activeNode) {
@@ -793,7 +793,7 @@
       }
 
       // ============================================================
-      // MESSAGE RENDERING
+      // 消息渲染
       // ============================================================
 
       function formatTokens(count) {
@@ -813,7 +813,7 @@
         return text.replace(/\t/g, '   ');
       }
 
-      /** Safely coerce value to string for display. Returns null if invalid type. */
+      /** 安全地将值强制转换为字符串以便显示。类型无效时返回 null。 */
       function str(value) {
         if (typeof value === 'string') return value;
         if (value == null) return '';
@@ -877,7 +877,7 @@
           return `<div class="tool-output"><pre><code class="hljs">${highlighted}</code></pre></div>`;
         }
 
-        // Plain text output
+        // 纯文本输出
         if (remaining > 0) {
           let out = '<div class="tool-output expandable" onclick="if(window.getSelection().toString())return;this.classList.toggle(\'expanded\')">';
           out += '<div class="output-preview">';
@@ -1022,10 +1022,10 @@
             break;
           }
           default: {
-            // Check for pre-rendered custom tool HTML
+            // 检查预渲染的自定义工具 HTML
             const rendered = renderedTools?.[call.id];
             if (rendered?.callHtml || rendered?.resultHtmlCollapsed || rendered?.resultHtmlExpanded) {
-              // Custom tool with pre-rendered HTML from TUI renderer
+              // 带有 TUI 渲染器预渲染 HTML 的自定义工具
               if (rendered.callHtml) {
                 html += `<div class="tool-header ansi-rendered">${rendered.callHtml}</div>`;
               } else {
@@ -1033,21 +1033,21 @@
               }
 
               if (rendered.resultHtmlCollapsed && rendered.resultHtmlExpanded && rendered.resultHtmlCollapsed !== rendered.resultHtmlExpanded) {
-                // Both collapsed and expanded differ - render expandable section
+                // 折叠和展开内容不同——渲染可展开部分
                 html += `<div class="tool-output expandable ansi-rendered" onclick="if(window.getSelection().toString())return;this.classList.toggle('expanded')">
                   <div class="output-preview">${rendered.resultHtmlCollapsed}</div>
                   <div class="output-full">${rendered.resultHtmlExpanded}</div>
                 </div>`;
               } else if (rendered.resultHtmlExpanded) {
-                // Only expanded exists (or collapsed is identical) - show directly
+                // 仅存在展开内容（或折叠内容相同）——直接显示
                 html += `<div class="tool-output ansi-rendered">${rendered.resultHtmlExpanded}</div>`;
               } else if (result) {
-                // No pre-rendered result HTML - fallback to JSON
+                // 没有预渲染的结果 HTML——回退到 JSON
                 const output = getResultText();
                 if (output) html += formatExpandableOutput(output, 10);
               }
             } else {
-              // Fallback to JSON display (existing behavior)
+              // 回退到 JSON 显示（现有行为）
               html += `<div class="tool-header"><span class="tool-name">${escapeHtml(name)}</span></div>`;
               html += `<div class="tool-output"><pre>${escapeHtml(JSON.stringify(args, null, 2))}</pre></div>`;
               if (result) {
@@ -1063,11 +1063,11 @@
       }
 
       /**
-       * Download the session data as a JSONL file.
-       * Reconstructs the original format: header line + entry lines.
+       * 将会话数据下载为 JSONL 文件。
+       * 重建原始格式：头部行 + 条目行。
        */
       window.downloadSessionJson = function() {
-        // Build JSONL content: header first, then all entries
+        // 构建 JSONL 内容：先写头部，再写所有条目
         const lines = [];
         if (header) {
           lines.push(JSON.stringify({ type: 'header', ...header }));
@@ -1077,7 +1077,7 @@
         }
         const jsonlContent = lines.join('\n');
 
-        // Create download
+        // 创建下载
         const blob = new Blob([jsonlContent], { type: 'application/x-ndjson' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -1090,36 +1090,36 @@
       }
 
       /**
-       * Build a shareable URL for a specific message.
-       * URL format: base?gistId&leafId=<leafId>&targetId=<entryId>
+       * 为指定消息构建可共享 URL。
+       * URL 格式：base?gistId&leafId=<leafId>&targetId=<entryId>
        */
       function buildShareUrl(entryId) {
-        // Check for injected base URL (used when loaded in iframe via srcdoc)
+        // 检查注入的基础 URL（通过 srcdoc 加载到 iframe 时使用）
         const baseUrlMeta = document.querySelector('meta[name="pi-share-base-url"]');
         const baseUrl = baseUrlMeta ? baseUrlMeta.content : window.location.href.split('?')[0];
 
         const url = new URL(window.location.href);
-        // Find the gist ID (first query param without value, e.g., ?abc123)
+        // 查找 gist ID（第一个没有值的查询参数，例如 ?abc123）
         const gistId = Array.from(url.searchParams.keys()).find(k => !url.searchParams.get(k));
 
-        // Build the share URL
+        // 构建共享 URL
         const params = new URLSearchParams();
         params.set('leafId', currentLeafId);
         params.set('targetId', entryId);
 
-        // If we have an injected base URL (iframe context), use it directly
+        // 如果有注入的基础 URL（iframe 上下文），则直接使用
         if (baseUrlMeta) {
           return `${baseUrl}&${params.toString()}`;
         }
 
-        // Otherwise build from current location (direct file access)
+        // 否则根据当前位置构建（直接访问文件）
         url.search = gistId ? `?${gistId}&${params.toString()}` : `?${params.toString()}`;
         return url.toString();
       }
 
       /**
-       * Copy text to clipboard with visual feedback.
-       * Uses navigator.clipboard with fallback to execCommand for HTTP contexts.
+       * 将文本复制到剪贴板并提供视觉反馈。
+       * 使用 navigator.clipboard；在 HTTP 上下文中回退到 execCommand。
        */
       async function copyToClipboard(text, button) {
         let success = false;
@@ -1129,10 +1129,10 @@
             success = true;
           }
         } catch (err) {
-          // Clipboard API failed, try fallback
+          // Clipboard API 失败，尝试回退方案
         }
 
-        // Fallback for HTTP or when Clipboard API is unavailable
+        // 在 HTTP 环境或 Clipboard API 不可用时采用回退方案
         if (!success) {
           try {
             const textarea = document.createElement('textarea');
@@ -1160,7 +1160,7 @@
       }
 
       /**
-       * Render the copy-link button HTML for a message.
+       * 渲染消息的复制链接按钮 HTML。
        */
       function renderCopyLinkButton(entryId) {
         return `<button class="copy-link-btn" data-entry-id="${escapeHtml(entryId)}" title="Copy link to this message">
@@ -1187,19 +1187,19 @@
             const skillBlock = parseSkillBlock(text);
 
             if (skillBlock) {
-              // Collect images from content array
+              // 从内容数组中收集图像
               const images = Array.isArray(content) ? content.filter(c => c.type === 'image') : [];
               const hasUserContent = skillBlock.userMessage || images.length > 0;
               let html = `<div class="skill-user-entry" id="${entryDomId}">${copyBtnHtml}${tsHtml}`;
 
-              // Skill invocation (collapsed by default, click to expand)
+              // Skill 调用（默认折叠，单击可展开）
               html += `<div class="skill-invocation" onclick="if(window.getSelection().toString())return;this.classList.toggle('expanded')">
                 <div class="skill-invocation-label">[skill] ${escapeHtml(skillBlock.name)}</div>
                 <div class="skill-invocation-collapsed">${escapeHtml(skillBlock.name)} (click to expand)</div>
                 <div class="skill-invocation-content markdown-content">${safeMarkedParse(skillBlock.content)}</div>
               </div>`;
 
-              // User message (separate block if present)
+              // 用户消息（存在时使用单独区块）
               if (hasUserContent) {
                 html += '<div class="user-message">';
                 if (images.length > 0) {
@@ -1219,7 +1219,7 @@
               return html;
             }
 
-            // No skill block - normal user message
+            // 没有 skill 块——普通用户消息
             let html = `<div class="user-message" id="${entryDomId}">${copyBtnHtml}${tsHtml}`;
 
             if (Array.isArray(content)) {
@@ -1317,7 +1317,7 @@
       }
 
       // ============================================================
-      // HEADER / STATS
+      // 头部/统计信息
       // ============================================================
 
       function computeStats(entryList) {
@@ -1401,7 +1401,7 @@
             </div>
           </div>`;
 
-        // Render system prompt (user's base prompt, applies to all providers)
+        // 渲染系统提示词（用户的基础提示词，适用于所有提供商）
         if (systemPrompt) {
           const lines = systemPrompt.split('\n');
           const previewLines = 10;
@@ -1455,29 +1455,29 @@
       }
 
       // ============================================================
-      // NAVIGATION
+      // 导航
       // ============================================================
 
-      // Cache for rendered entry DOM nodes
+      // 已渲染条目 DOM 节点的缓存
       const entryCache = new Map();
 
       function getScrollTargetElementId(entryId) {
         const entry = byId.get(entryId);
         if (entry?.type === 'message' && entry.message.role === 'toolResult' && entry.message.toolCallId) {
-          // getElementById() matches the parsed DOM id attribute, whose HTML entities
-          // were already resolved from the escaped id rendered by renderToolCall().
+          // getElementById() 匹配已解析的 DOM id 属性，其中的 HTML 实体已从
+          // renderToolCall() 渲染的转义 ID 中解析。
           return `tool-call-${entry.message.toolCallId}`;
         }
         return `entry-${entryId}`;
       }
 
       function renderEntryToNode(entry) {
-        // Check cache first
+        // 首先检查缓存
         if (entryCache.has(entry.id)) {
           return entryCache.get(entry.id).cloneNode(true);
         }
 
-        // Render to HTML string, then parse to node
+        // 渲染为 HTML 字符串，再解析为节点
         const html = renderEntry(entry);
         if (!html) return null;
 
@@ -1485,7 +1485,7 @@
         template.innerHTML = html;
         const node = template.content.firstElementChild;
 
-        // Cache the node
+        // 缓存节点
         if (node) {
           entryCache.set(entry.id, node.cloneNode(true));
         }
@@ -1502,7 +1502,7 @@
         document.getElementById('header-container').innerHTML = renderHeader();
         attachHeaderHandlers();
 
-        // Build messages using cached DOM nodes
+        // 使用缓存的 DOM 节点构建消息
         const messagesEl = document.getElementById('messages');
         const fragment = document.createDocumentFragment();
 
@@ -1516,7 +1516,7 @@
         messagesEl.innerHTML = '';
         messagesEl.appendChild(fragment);
 
-        // Attach click handlers for copy-link buttons
+        // 为复制链接按钮绑定单击处理器
         messagesEl.querySelectorAll('.copy-link-btn').forEach(btn => {
           btn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -1526,21 +1526,21 @@
           });
         });
 
-        // Use setTimeout(0) to ensure DOM is fully laid out before scrolling
+        // 使用 setTimeout(0) 确保滚动前 DOM 已完成布局
         setTimeout(() => {
           const content = document.getElementById('content');
           if (scrollMode === 'bottom') {
             content.scrollTop = content.scrollHeight;
           } else if (scrollMode === 'target') {
-            // If scrollToEntryId is provided, scroll to that specific entry.
-            // Tool result entries are rendered inside their assistant tool-call block,
-            // so route them to the visible tool-call element instead.
+            // 如果提供 scrollToEntryId，则滚动到该指定条目。
+            // 工具结果条目渲染在助手工具调用区块内，
+            // 因此改为将其定位到可见的工具调用元素。
             const scrollTargetId = scrollToEntryId || targetId;
             const targetEl = document.getElementById(getScrollTargetElementId(scrollTargetId)) ||
               document.getElementById(`entry-${scrollTargetId}`);
             if (targetEl) {
               targetEl.scrollIntoView({ block: 'center' });
-              // Briefly highlight the target message
+              // 短暂高亮目标消息
               if (scrollToEntryId) {
                 targetEl.classList.add('highlight');
                 setTimeout(() => targetEl.classList.remove('highlight'), 2000);
@@ -1551,18 +1551,18 @@
       }
 
       // ============================================================
-      // INITIALIZATION
+      // 初始化
       // ============================================================
 
-      // Configure marked with syntax highlighting and TUI-compatible HTML handling
+      // 为 marked 配置语法高亮和兼容 TUI 的 HTML 处理
       const strictStrikethroughRegex = /^(~~)(?=[^\s~])((?:\\.|[^\\])*?(?:\\.|[^\s~\\]))\1(?=[^~]|$)/;
 
       marked.use({
         breaks: true,
         gfm: true,
         tokenizer: {
-          // Treat HTML-like input as plain text so tags are shown verbatim,
-          // matching the TUI markdown renderer.
+          // 将类似 HTML 的输入视为纯文本，使标签原样显示，
+          // 以匹配 TUI Markdown 渲染器。
           html() {
             return undefined;
           },
@@ -1581,8 +1581,8 @@
           }
         },
         renderer: {
-          // Sanitize link URLs with a scheme allow-list. Browsers strip C0
-          // controls from schemes, so strip them before checking and emitting.
+          // 使用协议允许列表清理链接 URL。浏览器会从协议中移除 C0 控制字符，
+          // 因此在检查和输出前先将其移除。
           link(token) {
             const href = sanitizeMarkdownUrl(token.href);
             if (href === null) {
@@ -1595,7 +1595,7 @@
             out += '>' + this.parser.parseInline(token.tokens) + '</a>';
             return out;
           },
-          // Sanitize image src URLs with the same scheme allow-list.
+          // 使用相同的协议允许列表清理图像 src URL。
           image(token) {
             const href = sanitizeMarkdownUrl(token.href);
             if (href === null) {
@@ -1608,7 +1608,7 @@
             out += '>';
             return out;
           },
-          // Code blocks: syntax highlight, no HTML escaping
+          // 代码块：进行语法高亮，不转义 HTML
           code(token) {
             const code = token.text;
             const lang = token.lang;
@@ -1620,7 +1620,7 @@
                 highlighted = escapeHtml(code);
               }
             } else {
-              // Auto-detect language if not specified
+              // 未指定语言时自动检测
               try {
                 highlighted = hljs.highlightAuto(code).value;
               } catch {
@@ -1629,26 +1629,26 @@
             }
             return `<pre><code class="hljs">${highlighted}</code></pre>`;
           },
-          // Inline code: escape HTML
+          // 内联代码：转义 HTML
           codespan(token) {
             return `<code>${escapeHtml(token.text)}</code>`;
           }
         }
       });
 
-      // Simple marked parse (escaping handled in renderers)
+      // 简单的 marked 解析（由渲染器处理转义）
       function safeMarkedParse(text) {
         return marked.parse(text);
       }
 
-      // Search input
+      // 搜索输入
       const searchInput = document.getElementById('tree-search');
       searchInput.addEventListener('input', (e) => {
         searchQuery = e.target.value;
         forceTreeRerender();
       });
 
-      // Filter buttons
+      // 筛选按钮
       document.querySelectorAll('.filter-btn').forEach(btn => {
         btn.addEventListener('click', () => {
           document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -1658,7 +1658,7 @@
         });
       });
 
-      // Sidebar toggle
+      // 侧边栏切换
       const sidebar = document.getElementById('sidebar');
       const overlay = document.getElementById('sidebar-overlay');
       const hamburger = document.getElementById('hamburger');
@@ -1705,7 +1705,7 @@
         try {
           localStorage.setItem(SIDEBAR_WIDTH_STORAGE_KEY, String(Math.round(clampSidebarWidth(width))));
         } catch {
-          // Ignore storage failures (e.g. private browsing restrictions)
+          // 忽略存储失败（例如隐私浏览限制）
         }
       }
 
@@ -1785,7 +1785,7 @@
       overlay.addEventListener('click', closeSidebar);
       document.getElementById('sidebar-close').addEventListener('click', closeSidebar);
 
-      // Toggle states
+      // 切换状态
       let thinkingExpanded = true;
       let toolOutputsExpanded = false;
 
@@ -1826,7 +1826,7 @@
         return element.isContentEditable || Boolean(element.closest?.('[contenteditable="true"]'));
       };
 
-      // Keyboard shortcuts
+      // 键盘快捷键
       document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
           searchInput.value = '';
@@ -1848,17 +1848,17 @@
         }
       });
 
-      // Initial render
-      // If URL has targetId, scroll to that specific message; otherwise stay at top
+      // 初始渲染
+      // 如果 URL 包含 targetId，则滚动到指定消息；否则停留在顶部
       if (leafId) {
         if (urlTargetId && byId.has(urlTargetId)) {
-          // Deep link: navigate to leaf and scroll to target message
+          // 深层链接：导航到叶节点并滚动到目标消息
           navigateTo(leafId, 'target', urlTargetId);
         } else {
           navigateTo(leafId, 'none');
         }
       } else if (entries.length > 0) {
-        // Fallback: use last entry if no leafId
+        // 回退方案：没有 leafId 时使用最后一个条目
         navigateTo(entries[entries.length - 1].id, 'none');
       }
     })();

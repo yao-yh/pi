@@ -11,8 +11,8 @@ export function getModelSearchText(item: ModelSearchItem): string {
 }
 
 /**
- * The /model selector search should rank exact provider-prefixed queries before proxy-provider IDs
- * like openrouter/openai/gpt-5, so keep the bare model ID out of the leading position.
+ * /model 选择器搜索应将精确的提供方前缀查询排在 openrouter/openai/gpt-5 等代理提供方 ID 前面，
+ * 因此不要把裸模型 ID 放在开头位置。
  */
 export function getModelSelectorSearchText(item: ModelSearchItem): string {
 	const { id, provider } = item;

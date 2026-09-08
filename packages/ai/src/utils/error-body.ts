@@ -1,28 +1,25 @@
-// Shared normalization for provider HTTP error objects.
+// 提供商 HTTP 错误对象的共享规范化。
 //
-// Endpoints behind a proxy / gateway may return a non-2xx response whose body
-// the provider SDK cannot fold into `error.message`. The SDK error object still
-// carries the HTTP status and the raw/parsed body, but under SDK-specific field
-// names. Provider catch blocks that read only `error.message` therefore drop
-// the body and surface opaque messages like `"403 status code (no body)"` or
-// collapse to `"Unknown: UnknownError"`.
+// 代理/网关后的端点可能返回非 2xx 响应，其正文无法由提供商 SDK 合并到
+// `error.message`。SDK 错误对象仍携带 HTTP 状态和原始/解析后正文，但使用
+// SDK 专用字段名。因此只读取 `error.message` 的提供商 catch 块会丢弃正文，
+// 显示 `"403 status code (no body)"` 等不透明消息，或折叠为 `"Unknown: UnknownError"`。
 //
-// `normalizeProviderError` probes the known SDK field shapes (Mistral,
-// `openai`, `@google/genai`, AWS Bedrock) and returns a struct each provider
-// composes into its display string. The `messageCarriesBody` flag captures the
-// Anthropic / `@google/genai` happy path where the SDK already folded the body
-// into the message, so providers can preserve it without double-printing.
+// `normalizeProviderError` 探测已知 SDK 字段结构（Mistral、`openai`、
+// `@google/genai`、AWS Bedrock），并返回供各提供商组合为显示字符串的结构。
+// `messageCarriesBody` 标志表示 Anthropic / `@google/genai` 的正常路径：SDK 已将
+// 正文合并到消息，因此提供商可以保留它而不重复输出。
 
 export const MAX_PROVIDER_ERROR_BODY_CHARS = 4000;
 
 export interface NormalizedProviderError {
-	/** HTTP status code, when one could be extracted from the SDK error object. */
+	/** 可以从 SDK 错误对象提取时的 HTTP 状态码。 */
 	status?: number;
-	/** Raw HTTP body reason, already trimmed and truncated to the cap. */
+	/** 原始 HTTP 正文原因，已经去除首尾空白并截断到上限。 */
 	body?: string;
-	/** `error.message`, or `safeJsonStringify(error)` for a non-`Error` throw. */
+	/** `error.message`；抛出值不是 `Error` 时为 `safeJsonStringify(error)`。 */
 	message: string;
-	/** True when `message` already contains the body (no separate body to add). */
+	/** `message` 已包含正文时为 true（无需另行添加正文）。 */
 	messageCarriesBody: boolean;
 }
 
@@ -54,7 +51,7 @@ export function normalizeProviderError(error: unknown): NormalizedProviderError 
 }
 
 /**
- * Probe the HTTP status, first numeric hit wins, in SDK-field order:
+ * 按 SDK 字段顺序探测 HTTP 状态，使用第一个数字值：
  * `statusCode` (Mistral) → `status` (`openai`, `@google/genai`) →
  * `$metadata.httpStatusCode` (Bedrock) → `$response.statusCode` (Bedrock).
  */
@@ -67,11 +64,10 @@ function extractStatus(error: SdkErrorShape): number | undefined {
 }
 
 /**
- * Probe the raw body reason, first usable hit wins, in SDK-field order:
- * `body` string (Mistral) → `error` parsed JSON body object (`openai` SDK's
- * `this.error`) → `$response.body` (Bedrock). Empty objects and unread response
- * streams are treated as no body so they do not surface as `"{}"` or serialized
- * stream internals. The chosen body is truncated to the cap.
+ * 按 SDK 字段顺序探测原始正文原因，使用第一个可用值：`body` 字符串（Mistral）→
+ * `error` 解析后的 JSON 正文对象（`openai` SDK 的 `this.error`）→
+ * `$response.body`（Bedrock）。空对象和未读取响应流视为没有正文，避免显示为
+ * `"{}"` 或序列化的流内部结构。选中的正文会截断到上限。
  */
 function extractBody(error: SdkErrorShape): string | undefined {
 	const bodyText = pickBodyText(error);
@@ -96,18 +92,14 @@ function isReadableStreamLike(value: unknown): boolean {
 }
 
 /**
- * Only a PLAIN object counts as an HTTP body. SDK error fields can hold class
- * instances instead of parsed bodies — AWS SDK v3's `$response.body` is an
- * HTTP stream/response wrapper object, and stringifying one produced garbage
- * like `{"_events":...}` as the "body", which then REPLACED `error.message`
- * in the composed display string. `error.message` is where the SDK puts the
- * real deserialized exception text ("Input is too long...", schema validation
- * details, ...), so the one useful string was discarded for noise. A class
- * instance yields no body, `messageCarriesBody` stays true, and the real
- * message survives. Complements the `pipe` sniffing above: web
- * ReadableStreams (pipeTo/pipeThrough, no `pipe`) and non-stream SDK wrapper
- * classes fail the prototype check, while parsed JSON bodies (plain objects
- * by construction) still pass.
+ * 只有普通对象才算作 HTTP 正文。SDK 错误字段可能保存类实例而非解析后的正文——
+ * AWS SDK v3 的 `$response.body` 是 HTTP 流/响应包装对象，将其字符串化会产生
+ * `{"_events":...}` 等无效“正文”，进而在组合显示字符串中替换 `error.message`。
+ * SDK 会把真实反序列化异常文本（"Input is too long..."、Schema 验证详情等）放在
+ * `error.message` 中，结果唯一有用的字符串被噪声丢弃。类实例不产生正文，
+ * `messageCarriesBody` 保持 true，真实消息得以保留。此检查补充上面的 `pipe` 探测：
+ * Web ReadableStream（有 pipeTo/pipeThrough、没有 `pipe`）和非流 SDK 包装类无法通过
+ * 原型检查，而解析后的 JSON 正文（构造上是普通对象）仍可通过。
  */
 function isPlainNonEmptyObject(value: unknown): boolean {
 	if (typeof value !== "object" || value === null) return false;
@@ -117,13 +109,12 @@ function isPlainNonEmptyObject(value: unknown): boolean {
 }
 
 /**
- * Compose a display string from a normalized error. When the message already
- * carries the body (Anthropic / `@google/genai` happy path) or no body/status
- * was extracted, the message is returned unchanged. Otherwise the status and
- * body are surfaced, with an optional provider prefix.
+ * 根据规范化错误组合显示字符串。当消息已携带正文（Anthropic / `@google/genai`
+ * 正常路径），或未提取到正文/状态时，原样返回消息。否则显示状态和正文，
+ * 并可添加提供商前缀。
  *
- * - no prefix: `"<status>: <body>"`
- * - prefix:    `"<prefix> (<status>): <body>"`
+ * - 无前缀：`"<status>: <body>"`
+ * - 有前缀：`"<prefix> (<status>): <body>"`
  */
 export function formatProviderError(norm: NormalizedProviderError, prefix?: string): string {
 	if (norm.messageCarriesBody || norm.status === undefined || norm.body === undefined) {

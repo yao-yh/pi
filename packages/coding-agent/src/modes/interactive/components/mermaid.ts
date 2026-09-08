@@ -16,16 +16,13 @@ function isMermaid(token: Token): token is Token & { type: "code"; text: string;
 }
 
 function codeSpan(line: string): string {
-	// Encode each diagram row as inline code (` ... `) so Markdown preserves its spacing and
-	// box-drawing characters. Use a non-breaking space for blank rows because an
-	// empty code span has no visible height.
+	// 将图表的每一行编码为行内代码（` ... `），使 Markdown 保留其间距和制表字符。
+	// 空行使用不换行空格，因为空代码跨度没有可见高度。
 	const content = line || "\u00a0";
-	// CommonMark code spans use matching backtick delimiters, so choose one
-	// longer than any backtick run in the content (``hel`lo`` -> <code>hel`lo</code>).
-	// If the content starts or ends with a backtick, separating it from the
-	// delimiter with a space keeps that backtick as content; CommonMark removes
-	// the padding when rendering (`` `edge` `` -> <code>`edge`</code>).
-	// Mermaid labels can preserve backticks, for example:
+	// CommonMark 代码跨度使用成对的反引号分隔符，因此选择比内容中任意连续反引号都长的分隔符
+	// （``hel`lo`` -> <code>hel`lo</code>）。如果内容以反引号开头或结尾，
+	// 使用空格将其与分隔符隔开，可将该反引号保留为内容；CommonMark 渲染时会移除该填充
+	// （`` `edge` `` -> <code>`edge`</code>）。Mermaid 标签可以保留反引号，例如：
 	//   `┌──────────────┐    ┌──────────────┐`
 	// ```│ plain ` tick ├───▶│ two `` ticks │```
 	//   `└──────────────┘    └──────────────┘`
@@ -56,7 +53,7 @@ function themedLines(art: MermaidArt, theme: Theme): string[] {
 	return art.styled.map((row) => row.map((span) => styleSpan(span, theme)).join(""));
 }
 
-/** Create a transformer that replaces top-level Mermaid code blocks with Unicode terminal diagrams. */
+/** 创建转换器，将顶层 Mermaid 代码块替换为 Unicode 终端图表。 */
 export function createMermaidMarkdownTransformer(options: MermaidTransformerOptions): MarkdownTransformer {
 	return (markdown, context) => {
 		const mode = options.getMode();
@@ -81,7 +78,7 @@ export function createMermaidMarkdownTransformer(options: MermaidTransformerOpti
 					return `${token.raw}\n${codeSpan(styledWarning)}  \n`;
 				}
 				const lines = options.theme ? themedLines(art, options.theme) : art.plain;
-				// Markdown hard breaks keep every diagram row on its own line.
+				// Markdown 强制换行使图表的每一行保持独立。
 				return `${lines.map(codeSpan).join("  \n")}\n`;
 			})
 			.join("");

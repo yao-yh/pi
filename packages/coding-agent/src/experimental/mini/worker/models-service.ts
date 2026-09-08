@@ -1,8 +1,8 @@
 /**
- * Worker-side implementation of the `Models` service.
+ * `Models` 服务的 worker 端实现。
  *
- * `ModelRuntime`, `Model`, and provider objects stay here. What leaves is a serializable catalog and
- * account list, plus login prompts and notices as data.
+ * `ModelRuntime`、`Model` 和提供商对象均保留在此处。对外仅传递可序列化的目录、
+ * 账户列表，以及作为数据的登录提示和通知。
  */
 
 import { randomUUID } from "node:crypto";
@@ -22,7 +22,7 @@ const CATALOG_REFRESH_TIMEOUT_MS = 15_000;
 export class ModelsService implements ModelsServiceApi {
 	readonly #runtime: ModelRuntime;
 	readonly #publish: (event: ModelsEvent) => void;
-	/** Prompts issued to the presentation, awaiting `authReply`. */
+	/** 已发送给演示端、正在等待 `authReply` 的提示。 */
 	readonly #pendingAuth = new Map<string, (answer: string | null) => void>();
 	#state: ModelsState;
 
@@ -53,7 +53,7 @@ export class ModelsService implements ModelsServiceApi {
 		}
 	}
 
-	/** Prompts and notices travel to the presentation as events; answers come back via `authReply`. */
+	/** 提示和通知以事件形式发送到演示端，回答则通过 `authReply` 返回。 */
 	async login(providerId: string, authType: ProviderAccount["authType"]): Promise<CommandResult> {
 		try {
 			await this.#runtime.login(providerId, authType, {
@@ -77,7 +77,7 @@ export class ModelsService implements ModelsServiceApi {
 		waiter?.(answer);
 	}
 
-	/** Ask the presentation one question, honouring a provider-supplied deadline. */
+	/** 向演示端提出一个问题，并遵守提供商给出的截止时间。 */
 	#ask(request: AuthPromptRequest, signal: AbortSignal | undefined): Promise<string> {
 		if (signal?.aborted) return Promise.reject(new Error("Login cancelled"));
 		return new Promise<string>((resolve, reject) => {

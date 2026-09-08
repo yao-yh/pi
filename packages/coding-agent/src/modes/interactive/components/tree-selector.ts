@@ -17,24 +17,24 @@ import { theme } from "../theme/theme.ts";
 import { DynamicBorder } from "./dynamic-border.ts";
 import { formatKeyText, keyHint } from "./keybinding-hints.ts";
 
-/** Gutter info: position (displayIndent where connector was) and whether to show │ */
+/** 装订线信息：位置（连接符所在的 displayIndent）以及是否显示 │ */
 interface GutterInfo {
-	position: number; // displayIndent level where the connector was shown
-	show: boolean; // true = show │, false = show spaces
+	position: number; // 显示连接符的 displayIndent 层级
+	show: boolean; // true 表示显示 │，false 表示显示空格
 }
 
-/** Flattened tree node for navigation */
+/** 用于导航的扁平树节点 */
 interface FlatNode {
 	node: SessionTreeNode;
-	/** Indentation level (each level = 3 chars) */
+	/** 缩进层级（每层 3 个字符） */
 	indent: number;
-	/** Whether to show connector (├─ or └─) - true if parent has multiple children */
+	/** 是否显示连接符（├─ 或 └─）；父节点有多个子节点时为 true */
 	showConnector: boolean;
-	/** If showConnector, true = last sibling (└─), false = not last (├─) */
+	/** 当 showConnector 为 true 时，true 表示最后一个同级节点（└─），false 表示不是最后一个（├─） */
 	isLast: boolean;
-	/** Gutter info for each ancestor branch point */
+	/** 每个祖先分支点的装订线信息 */
 	gutters: GutterInfo[];
-	/** True if this node is a root under a virtual branching root (multiple roots) */
+	/** 此节点是虚拟分支根节点下的根节点（存在多个根节点）时为 true */
 	isVirtualRootChild: boolean;
 }
 
@@ -53,11 +53,10 @@ const MIN_ANCHOR_CONTEXT_WIDTH = 2;
 const MAX_ANCHOR_CONTEXT_WIDTH = 12;
 
 /**
- * Render tree rows into a horizontally clipped viewport.
+ * 将树行渲染到水平裁剪的视口中。
  *
- * The tree gutter is always kept visible. The row bodies are shifted left only
- * when the selected row's anchor (the start of its entry text after tree
- * indentation/markers) would otherwise be too far right to see useful content.
+ * 树装订线始终保持可见。仅当选中行的锚点（树缩进和标记之后的条目文本起点）
+ * 过于靠右而无法看到有效内容时，才将行主体左移。
  */
 function renderHorizontalViewport(rows: HorizontalViewportRow[], width: number): string[] {
 	const viewportWidth = Math.max(0, width - TREE_GUTTER_WIDTH);
@@ -65,7 +64,7 @@ function renderHorizontalViewport(rows: HorizontalViewportRow[], width: number):
 	const maxHorizontalScroll = Math.max(0, maxBodyWidth - viewportWidth);
 	const selectedRow = rows.find((row) => row.isSelected);
 
-	// Only pan horizontally when needed to keep enough selected-row content visible after its anchor.
+	// 仅在需要保证选中行锚点之后有足够内容可见时进行水平平移。
 	let horizontalScroll = 0;
 	if (selectedRow && maxHorizontalScroll > 0) {
 		const minVisibleAnchorContentWidth = Math.min(
@@ -81,7 +80,7 @@ function renderHorizontalViewport(rows: HorizontalViewportRow[], width: number):
 		}
 	}
 
-	// Clip only the body; the fixed-width gutter remains visible as navigation context.
+	// 仅裁剪主体；固定宽度的装订线继续作为导航上下文显示。
 	return rows.map((row) => {
 		const line =
 			horizontalScroll > 0
@@ -91,13 +90,13 @@ function renderHorizontalViewport(rows: HorizontalViewportRow[], width: number):
 	});
 }
 
-/** Filter mode for tree display */
+/** 树显示的过滤模式 */
 export type FilterMode = "default" | "no-tools" | "user-only" | "labeled-only" | "all";
 
 /**
- * Tree list component with selection and ASCII art visualization
+ * 支持选择和 ASCII 图形可视化的树列表组件。
  */
-/** Tool call info for lookup */
+/** 供查找使用的工具调用信息 */
 interface ToolCallInfo {
 	name: string;
 	arguments: Record<string, unknown>;
@@ -140,29 +139,29 @@ class TreeList implements Component {
 		this.buildActivePath();
 		this.applyFilter();
 
-		// Start with initialSelectedId if provided, otherwise current leaf
+		// 如果提供 initialSelectedId，则从该节点开始，否则从当前叶节点开始
 		const targetId = initialSelectedId ?? currentLeafId;
 		this.selectedIndex = this.findNearestVisibleIndex(targetId);
 		this.lastSelectedId = this.filteredNodes[this.selectedIndex]?.node.entry.id ?? null;
 	}
 
 	/**
-	 * Find the index of the nearest visible entry, walking up the parent chain if needed.
-	 * Returns the index in filteredNodes, or the last index as fallback.
+	 * 查找最近可见条目的索引，必要时沿父节点链向上查找。
+	 * 返回 filteredNodes 中的索引，或回退为最后一个索引。
 	 */
 	private findNearestVisibleIndex(entryId: string | null): number {
 		if (this.filteredNodes.length === 0) return 0;
 
-		// Build a map for parent lookup
+		// 构建用于查找父节点的映射
 		const entryMap = new Map<string, FlatNode>();
 		for (const flatNode of this.flatNodes) {
 			entryMap.set(flatNode.node.entry.id, flatNode);
 		}
 
-		// Build a map of visible entry IDs to their indices in filteredNodes
+		// 构建可见条目 ID 到其 filteredNodes 索引的映射
 		const visibleIdToIndex = new Map<string, number>(this.filteredNodes.map((node, i) => [node.node.entry.id, i]));
 
-		// Walk from entryId up to root, looking for a visible entry
+		// 从 entryId 向根节点遍历，查找可见条目
 		let currentId = entryId;
 		while (currentId !== null) {
 			const index = visibleIdToIndex.get(currentId);
@@ -172,22 +171,22 @@ class TreeList implements Component {
 			currentId = node.node.entry.parentId ?? null;
 		}
 
-		// Fallback: last visible entry
+		// 回退：最后一个可见条目
 		return this.filteredNodes.length - 1;
 	}
 
-	/** Build the set of entry IDs on the path from root to current leaf */
+	/** 构建从根节点到当前叶节点路径上的条目 ID 集合 */
 	private buildActivePath(): void {
 		this.activePathIds.clear();
 		if (!this.currentLeafId) return;
 
-		// Build a map of id -> entry for parent lookup
+		// 构建 id -> 条目的映射，用于查找父节点
 		const entryMap = new Map<string, FlatNode>();
 		for (const flatNode of this.flatNodes) {
 			entryMap.set(flatNode.node.entry.id, flatNode);
 		}
 
-		// Walk from leaf to root
+		// 从叶节点遍历到根节点
 		let currentId: string | null = this.currentLeafId;
 		while (currentId) {
 			this.activePathIds.add(currentId);
@@ -201,32 +200,32 @@ class TreeList implements Component {
 		const result: FlatNode[] = [];
 		this.toolCallMap.clear();
 
-		// Indentation rules:
-		// - At indent 0: stay at 0 unless parent has >1 children (then +1)
-		// - At indent 1: children always go to indent 2 (visual grouping of subtree)
-		// - At indent 2+: stay flat for single-child chains, +1 only if parent branches
+		// 缩进规则：
+		// - indent 为 0 时：保持为 0，除非父节点有多个子节点（此时加 1）
+		// - indent 为 1 时：子节点始终使用 indent 2（对子树进行视觉分组）
+		// - indent 大于等于 2 时：单子节点链保持同级，仅在父节点分支时加 1
 
-		// Stack items: [node, indent, justBranched, showConnector, isLast, gutters, isVirtualRootChild]
+		// 栈元素：[node, indent, justBranched, showConnector, isLast, gutters, isVirtualRootChild]
 		type StackItem = [SessionTreeNode, number, boolean, boolean, boolean, GutterInfo[], boolean];
 		const stack: StackItem[] = [];
 
-		// Determine which subtrees contain the active leaf (to sort current branch first)
-		// Use iterative post-order traversal to avoid stack overflow
+		// 确定哪些子树包含活动叶节点，以便优先排列当前分支
+		// 使用迭代式后序遍历以避免栈溢出
 		const containsActive = new Map<SessionTreeNode, boolean>();
 		const leafId = this.currentLeafId;
 		{
-			// Build list in pre-order, then process in reverse for post-order effect
+			// 按前序构建列表，再反向处理以达到后序遍历效果
 			const allNodes: SessionTreeNode[] = [];
 			const preOrderStack: SessionTreeNode[] = [...roots];
 			while (preOrderStack.length > 0) {
 				const node = preOrderStack.pop()!;
 				allNodes.push(node);
-				// Push children in reverse so they're processed left-to-right
+				// 反向压入子节点，使其按从左到右的顺序处理
 				for (let i = node.children.length - 1; i >= 0; i--) {
 					preOrderStack.push(node.children[i]);
 				}
 			}
-			// Process in reverse (post-order): children before parents
+			// 反向处理（后序）：先处理子节点，再处理父节点
 			for (let i = allNodes.length - 1; i >= 0; i--) {
 				const node = allNodes[i];
 				let has = leafId !== null && node.entry.id === leafId;
@@ -239,8 +238,8 @@ class TreeList implements Component {
 			}
 		}
 
-		// Add roots in reverse order, prioritizing the one containing the active leaf
-		// If multiple roots, treat them as children of a virtual root that branches
+		// 反向添加根节点，并优先处理包含活动叶节点的根节点
+		// 如果存在多个根节点，将它们视为虚拟分支根节点的子节点
 		const multipleRoots = roots.length > 1;
 		const orderedRoots = [...roots].sort((a, b) => Number(containsActive.get(b)) - Number(containsActive.get(a)));
 		for (let i = orderedRoots.length - 1; i >= 0; i--) {
@@ -251,7 +250,7 @@ class TreeList implements Component {
 		while (stack.length > 0) {
 			const [node, indent, justBranched, showConnector, isLast, gutters, isVirtualRootChild] = stack.pop()!;
 
-			// Extract tool calls from assistant messages for later lookup
+			// 从助手消息中提取工具调用，供后续查找
 			const entry = node.entry;
 			if (entry.type === "message" && entry.message.role === "assistant") {
 				const content = (entry.message as { content?: unknown }).content;
@@ -270,7 +269,7 @@ class TreeList implements Component {
 			const children = node.children;
 			const multipleChildren = children.length > 1;
 
-			// Order children so the branch containing the active leaf comes first
+			// 对子节点排序，使包含活动叶节点的分支优先
 			const orderedChildren = (() => {
 				const prioritized: SessionTreeNode[] = [];
 				const rest: SessionTreeNode[] = [];
@@ -284,32 +283,32 @@ class TreeList implements Component {
 				return [...prioritized, ...rest];
 			})();
 
-			// Calculate child indent
+			// 计算子节点缩进
 			let childIndent: number;
 			if (multipleChildren) {
-				// Parent branches: children get +1
+				// 父节点发生分支：子节点缩进加 1
 				childIndent = indent + 1;
 			} else if (justBranched && indent > 0) {
-				// First generation after a branch: +1 for visual grouping
+				// 分支后的第一代节点：缩进加 1 以便视觉分组
 				childIndent = indent + 1;
 			} else {
-				// Single-child chain: stay flat
+				// 单子节点链：保持同级
 				childIndent = indent;
 			}
 
-			// Build gutters for children
-			// If this node showed a connector, add a gutter entry for descendants
-			// Only add gutter if connector is actually displayed (not suppressed for virtual root children)
+			// 为子节点构建装订线
+			// 如果此节点显示了连接符，则为后代节点添加装订线条目
+			// 仅在连接符实际显示时添加装订线（虚拟根节点的子节点不会添加）
 			const connectorDisplayed = showConnector && !isVirtualRootChild;
-			// When connector is displayed, add a gutter entry at the connector's position
-			// Connector is at position (displayIndent - 1), so gutter should be there too
+			// 显示连接符时，在其位置添加装订线条目
+			// 连接符位于 displayIndent - 1，因此装订线也应位于该处
 			const currentDisplayIndent = this.multipleRoots ? Math.max(0, indent - 1) : indent;
 			const connectorPosition = Math.max(0, currentDisplayIndent - 1);
 			const childGutters: GutterInfo[] = connectorDisplayed
 				? [...gutters, { position: connectorPosition, show: !isLast }]
 				: gutters;
 
-			// Add children in reverse order
+			// 反向添加子节点
 			for (let i = orderedChildren.length - 1; i >= 0; i--) {
 				const childIsLast = i === orderedChildren.length - 1;
 				stack.push([
@@ -328,8 +327,8 @@ class TreeList implements Component {
 	}
 
 	private applyFilter(): void {
-		// Update lastSelectedId only when we have a valid selection (non-empty list)
-		// This preserves the selection when switching through empty filter results
+		// 仅在存在有效选项（列表非空）时更新 lastSelectedId
+		// 这样在切换到空过滤结果再切回时仍能保留选项
 		if (this.filteredNodes.length > 0) {
 			this.lastSelectedId = this.filteredNodes[this.selectedIndex]?.node.entry.id ?? this.lastSelectedId;
 		}
@@ -340,21 +339,21 @@ class TreeList implements Component {
 			const entry = flatNode.node.entry;
 			const isCurrentLeaf = entry.id === this.currentLeafId;
 
-			// Skip assistant messages with only tool calls (no text) unless error/aborted
-			// Always show current leaf so active position is visible
+			// 跳过仅包含工具调用而无文本的助手消息，错误或已中止的消息除外
+			// 始终显示当前叶节点，确保活动位置可见
 			if (entry.type === "message" && entry.message.role === "assistant" && !isCurrentLeaf) {
 				const msg = entry.message as { stopReason?: string; content?: unknown };
 				const hasText = this.hasTextContent(msg.content);
 				const isErrorOrAborted = msg.stopReason && msg.stopReason !== "stop" && msg.stopReason !== "toolUse";
-				// Only hide if no text AND not an error/aborted message
+				// 仅当没有文本且并非错误或已中止消息时隐藏
 				if (!hasText && !isErrorOrAborted) {
 					return false;
 				}
 			}
 
-			// Apply filter mode
+			// 应用过滤模式
 			let passesFilter = true;
-			// Entry types hidden in default view (settings/bookkeeping)
+			// 默认视图中隐藏的条目类型（设置和记录类条目）
 			const isSettingsEntry =
 				entry.type === "label" ||
 				entry.type === "custom" ||
@@ -364,30 +363,30 @@ class TreeList implements Component {
 
 			switch (this.filterMode) {
 				case "user-only":
-					// Just user messages
+					// 仅显示用户消息
 					passesFilter = entry.type === "message" && entry.message.role === "user";
 					break;
 				case "no-tools":
-					// Default minus tool results
+					// 默认内容中排除工具结果
 					passesFilter = !isSettingsEntry && !(entry.type === "message" && entry.message.role === "toolResult");
 					break;
 				case "labeled-only":
-					// Just labeled entries
+					// 仅显示带标签的条目
 					passesFilter = flatNode.node.label !== undefined;
 					break;
 				case "all":
-					// Show everything
+					// 显示所有内容
 					passesFilter = true;
 					break;
 				default:
-					// Default mode: hide settings/bookkeeping entries
+					// 默认模式：隐藏设置和记录类条目
 					passesFilter = !isSettingsEntry;
 					break;
 			}
 
 			if (!passesFilter) return false;
 
-			// Apply search filter
+			// 应用搜索过滤条件
 			if (searchTokens.length > 0) {
 				const nodeText = this.getSearchableText(flatNode.node).toLowerCase();
 				return searchTokens.every((token) => nodeText.includes(token));
@@ -396,7 +395,7 @@ class TreeList implements Component {
 			return true;
 		});
 
-		// Filter out descendants of folded nodes.
+		// 过滤掉已折叠节点的后代节点。
 		if (this.foldedNodes.size > 0) {
 			const skipSet = new Set<string>();
 			for (const flatNode of this.flatNodes) {
@@ -408,41 +407,41 @@ class TreeList implements Component {
 			this.filteredNodes = this.filteredNodes.filter((flatNode) => !skipSet.has(flatNode.node.entry.id));
 		}
 
-		// Recalculate visual structure (indent, connectors, gutters) based on visible tree
+		// 根据可见树重新计算视觉结构（缩进、连接符和装订线）
 		this.recalculateVisualStructure();
 
-		// Try to preserve cursor on the same node, or find nearest visible ancestor
+		// 尝试将光标保留在同一节点，否则查找最近的可见祖先节点
 		if (this.lastSelectedId) {
 			this.selectedIndex = this.findNearestVisibleIndex(this.lastSelectedId);
 		} else if (this.selectedIndex >= this.filteredNodes.length) {
-			// Clamp index if out of bounds
+			// 索引越界时将其限制在有效范围内
 			this.selectedIndex = Math.max(0, this.filteredNodes.length - 1);
 		}
 
-		// Update lastSelectedId to the actual selection (may have changed due to parent walk)
+		// 将 lastSelectedId 更新为实际选项（沿父节点查找后可能已发生变化）
 		if (this.filteredNodes.length > 0) {
 			this.lastSelectedId = this.filteredNodes[this.selectedIndex]?.node.entry.id ?? this.lastSelectedId;
 		}
 	}
 
 	/**
-	 * Recompute indentation/connectors for the filtered view
+	 * 为过滤后的视图重新计算缩进和连接符。
 	 *
-	 * Filtering can hide intermediate entries; descendants attach to the nearest visible ancestor.
-	 * Keep indentation semantics aligned with flattenTree() so single-child chains don't drift right.
+	 * 过滤可能隐藏中间条目；后代节点会附加到最近的可见祖先节点。
+	 * 缩进语义与 flattenTree() 保持一致，避免单子节点链向右偏移。
 	 */
 	private recalculateVisualStructure(): void {
 		if (this.filteredNodes.length === 0) return;
 
 		const visibleIds = new Set(this.filteredNodes.map((n) => n.node.entry.id));
 
-		// Build entry map for efficient parent lookup (using full tree)
+		// 使用完整树构建条目映射，以便高效查找父节点
 		const entryMap = new Map<string, FlatNode>();
 		for (const flatNode of this.flatNodes) {
 			entryMap.set(flatNode.node.entry.id, flatNode);
 		}
 
-		// Find nearest visible ancestor for a node
+		// 查找节点最近的可见祖先节点
 		const findVisibleAncestor = (nodeId: string): string | null => {
 			let currentId = entryMap.get(nodeId)?.node.entry.parentId ?? null;
 			while (currentId !== null) {
@@ -454,12 +453,12 @@ class TreeList implements Component {
 			return null;
 		};
 
-		// Build visible tree structure:
-		// - visibleParent: nodeId → nearest visible ancestor (or null for roots)
-		// - visibleChildren: parentId → list of visible children (in filteredNodes order)
+		// 构建可见树结构：
+		// - visibleParent：nodeId → 最近的可见祖先节点（根节点为 null）
+		// - visibleChildren：parentId → 可见子节点列表（按 filteredNodes 顺序）
 		const visibleParent = new Map<string, string | null>();
 		const visibleChildren = new Map<string | null, string[]>();
-		visibleChildren.set(null, []); // root-level nodes
+		visibleChildren.set(null, []); // 根层级节点
 
 		for (const flatNode of this.filteredNodes) {
 			const nodeId = flatNode.node.entry.id;
@@ -472,22 +471,22 @@ class TreeList implements Component {
 			visibleChildren.get(ancestorId)!.push(nodeId);
 		}
 
-		// Update multipleRoots based on visible roots
+		// 根据可见根节点更新 multipleRoots
 		const visibleRootIds = visibleChildren.get(null)!;
 		this.multipleRoots = visibleRootIds.length > 1;
 
-		// Build a map for quick lookup: nodeId → FlatNode
+		// 构建用于快速查找的映射：nodeId → FlatNode
 		const filteredNodeMap = new Map<string, FlatNode>();
 		for (const flatNode of this.filteredNodes) {
 			filteredNodeMap.set(flatNode.node.entry.id, flatNode);
 		}
 
-		// DFS over the visible tree using flattenTree() indentation semantics
-		// Stack items: [nodeId, indent, justBranched, showConnector, isLast, gutters, isVirtualRootChild]
+		// 使用 flattenTree() 的缩进语义对可见树执行深度优先遍历
+		// 栈元素：[nodeId, indent, justBranched, showConnector, isLast, gutters, isVirtualRootChild]
 		type StackItem = [string, number, boolean, boolean, boolean, GutterInfo[], boolean];
 		const stack: StackItem[] = [];
 
-		// Add visible roots in reverse order (to process in forward order via stack)
+		// 反向添加可见根节点，以便通过栈按正向顺序处理
 		for (let i = visibleRootIds.length - 1; i >= 0; i--) {
 			const isLast = i === visibleRootIds.length - 1;
 			stack.push([
@@ -507,18 +506,18 @@ class TreeList implements Component {
 			const flatNode = filteredNodeMap.get(nodeId);
 			if (!flatNode) continue;
 
-			// Update this node's visual properties
+			// 更新此节点的视觉属性
 			flatNode.indent = indent;
 			flatNode.showConnector = showConnector;
 			flatNode.isLast = isLast;
 			flatNode.gutters = gutters;
 			flatNode.isVirtualRootChild = isVirtualRootChild;
 
-			// Get visible children of this node
+			// 获取此节点的可见子节点
 			const children = visibleChildren.get(nodeId) || [];
 			const multipleChildren = children.length > 1;
 
-			// Child indent follows flattenTree(): branch points (and first generation after a branch) shift +1
+			// 子节点缩进遵循 flattenTree()：分支点及分支后的第一代节点向右移动一级
 			let childIndent: number;
 			if (multipleChildren) {
 				childIndent = indent + 1;
@@ -528,7 +527,7 @@ class TreeList implements Component {
 				childIndent = indent;
 			}
 
-			// Child gutters follow flattenTree() connector/gutter rules
+			// 子节点装订线遵循 flattenTree() 的连接符和装订线规则
 			const connectorDisplayed = showConnector && !isVirtualRootChild;
 			const currentDisplayIndent = this.multipleRoots ? Math.max(0, indent - 1) : indent;
 			const connectorPosition = Math.max(0, currentDisplayIndent - 1);
@@ -536,7 +535,7 @@ class TreeList implements Component {
 				? [...gutters, { position: connectorPosition, show: !isLast }]
 				: gutters;
 
-			// Add children in reverse order (to process in forward order via stack)
+			// 反向添加子节点，以便通过栈按正向顺序处理
 			for (let i = children.length - 1; i >= 0; i--) {
 				const childIsLast = i === children.length - 1;
 				stack.push([
@@ -551,12 +550,12 @@ class TreeList implements Component {
 			}
 		}
 
-		// Store visible tree maps for ancestor/descendant lookups in navigation
+		// 保存可见树映射，供导航时查找祖先和后代节点
 		this.visibleParentMap = visibleParent;
 		this.visibleChildrenMap = visibleChildren;
 	}
 
-	/** Get searchable text content from a node */
+	/** 获取节点中可供搜索的文本内容 */
 	private getSearchableText(node: SessionTreeNode): string {
 		const entry = node.entry;
 		const parts: string[] = [];
@@ -685,19 +684,19 @@ class TreeList implements Component {
 			const entry = flatNode.node.entry;
 			const isSelected = i === this.selectedIndex;
 
-			// Build line: cursor + prefix + path marker + label + content
+			// 构建显示行：光标 + 前缀 + 路径标记 + 标签 + 内容
 			const cursor = isSelected ? theme.fg("accent", "› ") : "  ";
 
-			// If multiple roots, shift display (roots at 0, not 1)
+			// 存在多个根节点时调整显示位置（根节点位于 0 而非 1）
 			const displayIndent = this.multipleRoots ? Math.max(0, flatNode.indent - 1) : flatNode.indent;
 
-			// Build prefix with gutters at their correct positions
-			// Each gutter has a position (displayIndent where its connector was shown)
+			// 在正确位置使用装订线构建前缀
+			// 每条装订线都有一个位置，即其连接符显示时的 displayIndent
 			const connector =
 				flatNode.showConnector && !flatNode.isVirtualRootChild ? (flatNode.isLast ? "└─ " : "├─ ") : "";
 			const connectorPosition = connector ? displayIndent - 1 : -1;
 
-			// Build prefix char by char, placing gutters and connector at their positions
+			// 逐字符构建前缀，并将装订线和连接符放到各自位置
 			const totalChars = displayIndent * 3;
 			const prefixChars: string[] = [];
 			const isFolded = this.foldedNodes.has(entry.id);
@@ -705,7 +704,7 @@ class TreeList implements Component {
 				const level = Math.floor(i / 3);
 				const posInLevel = i % 3;
 
-				// Check if there's a gutter at this level
+				// 检查此层级是否存在装订线
 				const gutter = flatNode.gutters.find((g) => g.position === level);
 				if (gutter) {
 					if (posInLevel === 0) {
@@ -714,7 +713,7 @@ class TreeList implements Component {
 						prefixChars.push(" ");
 					}
 				} else if (connector && level === connectorPosition) {
-					// Connector at this level, with fold indicator
+					// 此层级的连接符，并带有折叠指示器
 					if (posInLevel === 0) {
 						prefixChars.push(flatNode.isLast ? "└" : "├");
 					} else if (posInLevel === 1) {
@@ -729,11 +728,11 @@ class TreeList implements Component {
 			}
 			const prefix = prefixChars.join("");
 
-			// Fold marker for nodes without connectors (roots)
+			// 无连接符节点（根节点）的折叠标记
 			const showsFoldInConnector = flatNode.showConnector && !flatNode.isVirtualRootChild;
 			const foldMarker = isFolded && !showsFoldInConnector ? theme.fg("accent", "⊞ ") : "";
 
-			// Active path marker - shown right before the entry text
+			// 活动路径标记：显示在条目文本正前方
 			const isOnActivePath = this.activePathIds.has(entry.id);
 			const pathMarker = isOnActivePath ? theme.fg("accent", "• ") : "";
 
@@ -986,7 +985,7 @@ class TreeList implements Component {
 				return `[ls: ${path}]`;
 			}
 			default: {
-				// Custom tool - show name and truncated JSON args
+				// 自定义工具：显示名称和截断后的 JSON 参数
 				const argsStr = JSON.stringify(args).slice(0, 40);
 				return `[${name}: ${argsStr}${JSON.stringify(args).length > 40 ? "..." : ""}]`;
 			}
@@ -1016,10 +1015,10 @@ class TreeList implements Component {
 				this.selectedIndex = this.findBranchSegmentStart("down");
 			}
 		} else if (kb.matches(keyData, "tui.editor.cursorLeft") || kb.matches(keyData, "tui.select.pageUp")) {
-			// Page up
+			// 向上翻页
 			this.selectedIndex = Math.max(0, this.selectedIndex - this.maxVisibleLines);
 		} else if (kb.matches(keyData, "tui.editor.cursorRight") || kb.matches(keyData, "tui.select.pageDown")) {
-			// Page down
+			// 向下翻页
 			this.selectedIndex = Math.min(this.filteredNodes.length - 1, this.selectedIndex + this.maxVisibleLines);
 		} else if (kb.matches(keyData, "tui.select.confirm")) {
 			const selected = this.filteredNodes[this.selectedIndex];
@@ -1037,39 +1036,39 @@ class TreeList implements Component {
 				this.onCancel?.();
 			}
 		} else if (kb.matches(keyData, "app.tree.filter.default")) {
-			// Direct filter: default
+			// 直接切换到默认过滤模式
 			this.filterMode = "default";
 			this.foldedNodes.clear();
 			this.applyFilter();
 		} else if (kb.matches(keyData, "app.tree.filter.noTools")) {
-			// Toggle filter: no-tools ↔ default
+			// 切换过滤模式：no-tools ↔ default
 			this.filterMode = this.filterMode === "no-tools" ? "default" : "no-tools";
 			this.foldedNodes.clear();
 			this.applyFilter();
 		} else if (kb.matches(keyData, "app.tree.filter.userOnly")) {
-			// Toggle filter: user-only ↔ default
+			// 切换过滤模式：user-only ↔ default
 			this.filterMode = this.filterMode === "user-only" ? "default" : "user-only";
 			this.foldedNodes.clear();
 			this.applyFilter();
 		} else if (kb.matches(keyData, "app.tree.filter.labeledOnly")) {
-			// Toggle filter: labeled-only ↔ default
+			// 切换过滤模式：labeled-only ↔ default
 			this.filterMode = this.filterMode === "labeled-only" ? "default" : "labeled-only";
 			this.foldedNodes.clear();
 			this.applyFilter();
 		} else if (kb.matches(keyData, "app.tree.filter.all")) {
-			// Toggle filter: all ↔ default
+			// 切换过滤模式：all ↔ default
 			this.filterMode = this.filterMode === "all" ? "default" : "all";
 			this.foldedNodes.clear();
 			this.applyFilter();
 		} else if (kb.matches(keyData, "app.tree.filter.cycleBackward")) {
-			// Cycle filter backwards
+			// 反向循环切换过滤模式
 			const modes: FilterMode[] = ["default", "no-tools", "user-only", "labeled-only", "all"];
 			const currentIndex = modes.indexOf(this.filterMode);
 			this.filterMode = modes[(currentIndex - 1 + modes.length) % modes.length];
 			this.foldedNodes.clear();
 			this.applyFilter();
 		} else if (kb.matches(keyData, "app.tree.filter.cycleForward")) {
-			// Cycle filter forwards: default → no-tools → user-only → labeled-only → all → default
+			// 正向循环切换过滤模式：default → no-tools → user-only → labeled-only → all → default
 			const modes: FilterMode[] = ["default", "no-tools", "user-only", "labeled-only", "all"];
 			const currentIndex = modes.indexOf(this.filterMode);
 			this.filterMode = modes[(currentIndex + 1) % modes.length];
@@ -1102,9 +1101,8 @@ class TreeList implements Component {
 	}
 
 	/**
-	 * Whether a node can be folded. A node is foldable if it has visible children
-	 * and is either a root (no visible parent) or a segment start (visible parent
-	 * has multiple visible children).
+	 * 判断节点能否折叠。如果节点有可见子节点，并且自身是根节点（无可见父节点）
+	 * 或分段起点（可见父节点有多个可见子节点），则该节点可以折叠。
 	 */
 	private isFoldable(entryId: string): boolean {
 		const children = this.visibleChildrenMap.get(entryId);
@@ -1116,11 +1114,11 @@ class TreeList implements Component {
 	}
 
 	/**
-	 * Find the index of the next branch segment start in the given direction.
-	 * A segment start is the first child of a branch point.
+	 * 沿给定方向查找下一个分支分段起点的索引。
+	 * 分段起点是分支点的第一个子节点。
 	 *
-	 * "up" walks the visible parent chain; "down" walks visible children
-	 * (always following the first child).
+	 * "up" 沿可见父节点链遍历；"down" 沿可见子节点遍历，
+	 * 并始终跟随第一个子节点。
 	 */
 	private findBranchSegmentStart(direction: "up" | "down"): number {
 		const selectedId = this.filteredNodes[this.selectedIndex]?.node.entry.id;
@@ -1137,7 +1135,7 @@ class TreeList implements Component {
 			}
 		}
 
-		// direction === "up"
+		// direction === "up" 时向上查找
 		while (true) {
 			const parentId: string | null = this.visibleParentMap.get(currentId) ?? null;
 			if (parentId === null) return indexByEntryId.get(currentId)!;
@@ -1153,7 +1151,7 @@ class TreeList implements Component {
 	}
 }
 
-/** Component that displays the current search query */
+/** 显示当前搜索查询的组件 */
 class SearchLine implements Component {
 	private treeList: TreeList;
 
@@ -1174,7 +1172,7 @@ class SearchLine implements Component {
 	handleInput(_keyData: string): void {}
 }
 
-/** Component that renders tree help as semantic rows with chunk-aware wrapping */
+/** 将树帮助信息渲染为支持按块换行的语义行组件 */
 class TreeHelp implements Component {
 	invalidate(): void {}
 
@@ -1267,14 +1265,14 @@ function compactRawKeys(keys: string[]): string {
 		: keys.join("/");
 }
 
-/** Label input component shown when editing a label */
+/** 编辑标签时显示的标签输入组件 */
 class LabelInput implements Component, Focusable {
 	private input: Input;
 	private entryId: string;
 	public onSubmit?: (entryId: string, label: string | undefined) => void;
 	public onCancel?: () => void;
 
-	// Focusable implementation - propagate to input for IME cursor positioning
+	// Focusable 实现：将焦点状态传递给 input，以便定位 IME 光标
 	private _focused = false;
 	get focused(): boolean {
 		return this._focused;
@@ -1323,7 +1321,7 @@ class LabelInput implements Component, Focusable {
 }
 
 /**
- * Component that renders a session tree selector for navigation
+ * 渲染会话树导航选择器的组件。
  */
 export class TreeSelectorComponent extends Container implements Focusable {
 	private treeList: TreeList;
@@ -1333,14 +1331,14 @@ export class TreeSelectorComponent extends Container implements Focusable {
 	private onLabelChangeCallback?: (entryId: string, label: string | undefined) => void;
 	public onCopy?: (text: string | undefined) => void;
 
-	// Focusable implementation - propagate to labelInput when active for IME cursor positioning
+	// Focusable 实现：labelInput 激活时向其传递焦点状态，以便定位 IME 光标
 	private _focused = false;
 	get focused(): boolean {
 		return this._focused;
 	}
 	set focused(value: boolean) {
 		this._focused = value;
-		// Propagate to labelInput when it's active
+		// labelInput 激活时向其传递焦点状态
 		if (this.labelInput) {
 			this.labelInput.focused = value;
 		}
@@ -1398,7 +1396,7 @@ export class TreeSelectorComponent extends Container implements Focusable {
 		};
 		this.labelInput.onCancel = () => this.hideLabelInput();
 
-		// Propagate current focused state to the new labelInput
+		// 将当前焦点状态传递给新的 labelInput
 		this.labelInput.focused = this._focused;
 
 		this.treeContainer.clear();

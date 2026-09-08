@@ -57,7 +57,7 @@ export function loadAllHighlightLanguages(): Promise<void> {
 				void import("highlight.js/lib/index.js").then(
 					() => resolve(),
 					() => {
-						// Eager languages and plaintext fallback remain available.
+						// 预加载的语言和纯文本回退仍然可用。
 						resolve();
 					},
 				);

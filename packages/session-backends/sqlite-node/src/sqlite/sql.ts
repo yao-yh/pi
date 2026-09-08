@@ -2,7 +2,7 @@ import type { SqliteDatabase, SqliteRunResult } from "./types.ts";
 
 type SqlTemplateValue = unknown | SqlQuery;
 
-/** A parameterized SQLite query produced by {@link sql}. */
+/** 由 {@link sql} 生成的参数化 SQLite 查询。 */
 export class SqlQuery {
 	readonly queryText: string;
 	readonly params: readonly unknown[];
@@ -34,7 +34,7 @@ export class SqlQuery {
 	}
 }
 
-/** Builds a parameterized query. Nested queries are inlined; other interpolations become `?` parameters. */
+/** 构建参数化查询。嵌套查询会内联，其他插值则转换为 `?` 参数。 */
 export function sql(strings: TemplateStringsArray, ...values: SqlTemplateValue[]): SqlQuery {
 	let queryText = strings[0] ?? "";
 	const params: unknown[] = [];
@@ -52,7 +52,7 @@ export function sql(strings: TemplateStringsArray, ...values: SqlTemplateValue[]
 	return new SqlQuery(queryText, params);
 }
 
-/** Joins trusted query fragments while preserving their parameter order. */
+/** 连接可信查询片段，同时保持其参数顺序。 */
 export function joinSqlFragments(fragments: readonly SqlQuery[], separator: string): SqlQuery {
 	let queryText = "";
 	const params: unknown[] = [];

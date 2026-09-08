@@ -4,14 +4,14 @@ import type { RemoteServiceProvider } from "./services/provider.ts";
 export type { RemoteServiceError } from "./services/errors.ts";
 export type { RemoteServiceProvider } from "./services/provider.ts";
 
-/** Typed identity for one value carried by a {@link Context}. */
+/** {@link Context} 所携带某个值的类型化标识。 */
 export interface ContextKey<T> {
 	readonly token: symbol;
-	/** Type-only marker that prevents keys with different value types from being interchangeable. */
+	/** 仅用于类型检查的标记，防止不同值类型的键相互替换。 */
 	readonly valueType?: (value: T) => T;
 }
 
-/** Immutable invocation-scoped values passed explicitly through operations. */
+/** 在操作间显式传递、作用域限定于调用且不可变的值。 */
 export interface Context {
 	readonly abortSignal: AbortSignal | undefined;
 	value<T>(key: ContextKey<T>): T | undefined;
@@ -22,7 +22,7 @@ export type JsonValue = null | boolean | number | string | JsonValue[] | { [key:
 
 type IsAny<T> = 0 extends 1 & T ? true : false;
 
-/** Strict-JSON representation of an application data type. Unknown payloads become JsonValue. */
+/** 应用数据类型的严格 JSON 表示；未知载荷会转换为 JsonValue。 */
 export type JsonRepresentation<T> = IsAny<T> extends true
 	? JsonValue
 	: unknown extends T
@@ -41,17 +41,17 @@ export interface ReplicatedStateDelivery {
 }
 
 export interface ReplicatedState<T> {
-	/** Immutable value, or undefined until hydration. Later updates do not mutate previously returned values. */
+	/** 不可变值；水合完成前为 undefined。后续更新不会改变此前返回的值。 */
 	readonly value: T | undefined;
-	/** Listener values are immutable and may structurally share unchanged data with other revisions. */
+	/** 监听器收到的值不可变，并且可与其他修订版本共享未变化的数据结构。 */
 	subscribe(listener: (value: T, context: Context, delivery: ReplicatedStateDelivery) => void): () => void;
 }
 
 export interface MutableReplicatedState<T extends object> extends ReplicatedState<T> {
 	readonly value: T;
-	/** Mutable tracked state. All writes must go through this proxy. */
+	/** 受跟踪的可变状态。所有写入都必须经过此代理。 */
 	readonly state: T;
-	/** Publish the changes made through {@link state} since the previous publication. */
+	/** 发布自上次发布以来通过 {@link state} 完成的变更。 */
 	publish(context: Context): void;
 }
 
@@ -59,10 +59,10 @@ declare const SERVICE_TYPE: unique symbol;
 
 export type ServiceMode = "singleton" | "keyed";
 
-/** Stable identity for one shared TypeScript service contract. */
+/** 共享 TypeScript 服务契约的稳定标识。 */
 export interface Service<T> {
 	readonly id: string;
-	/** Process-local services accept unrestricted object contracts and are never published remotely. */
+	/** 进程本地服务接受不受限制的对象契约，且绝不会发布到远端。 */
 	readonly local: boolean;
 	readonly [SERVICE_TYPE]?: (value: T) => T;
 }
@@ -116,7 +116,7 @@ export interface ServiceSpawner<T> {
 export interface RemoteServices {
 	use<T>(service: Service<T>): T;
 	observe<T>(service: Service<T>, handler: (service: T, context: Context) => void | Promise<void>): () => void;
-	/** Wait until every currently acquired service has installed its initial snapshot. */
+	/** 等待当前已获取的所有服务完成初始快照安装。 */
 	ready(context: Context): Promise<void>;
 	dispose(context: Context): Promise<void>;
 }
@@ -163,7 +163,7 @@ export type ServiceCall = {
 	readonly serviceId: string;
 	readonly instance?: ServiceInstanceAddress;
 	readonly member: string;
-	/** Borrowed immutable values. Chord validates but does not clone them. */
+	/** 借用的不可变值。Chord 会验证这些值，但不会克隆。 */
 	readonly args: readonly JsonValue[];
 };
 
@@ -174,11 +174,10 @@ export interface ServiceSubscription {
 }
 
 /**
- * Pluggable wire boundary consumed by a remote service binding.
+ * 供远程服务绑定使用的可插拔线路边界。
  *
- * Implementations choose transport, framing, routing, and envelope encoding. Values crossing this
- * boundary must remain strict JSON. Chord does not clone values or require a particular application wire protocol;
- * adapters own serialization and any isolation copies they require.
+ * 实现方负责选择传输、分帧、路由和信封编码。跨越此边界的值必须保持为严格 JSON。
+ * Chord 不克隆值，也不要求特定的应用线路协议；适配器负责序列化及自身所需的隔离副本。
  *
  */
 export interface RemoteServiceTransport {
@@ -204,21 +203,21 @@ export interface RemoteServiceBinding extends RemoteServices {
 }
 
 export interface FacetEnvironment {
-	/** Declare a hard dependency on one singleton service and return its stable handle. */
+	/** 声明对某个单例服务的强依赖，并返回其稳定句柄。 */
 	use<T>(service: Service<T>): T;
-	/** Declare a hard dependency on a keyed service and observe each live instance. */
+	/** 声明对某个键控服务的强依赖，并观察每个活动实例。 */
 	observe<T>(service: Service<T>, handler: (service: T, context: Context) => void | Promise<void>): void;
-	/** Declare and install this facet's singleton implementation of a service. */
+	/** 声明并安装当前切面对某个服务的单例实现。 */
 	provide<T>(service: Service<T>, implementation: NoInfer<T>): void;
-	/** Declare ownership of a multi-instance service and return its deferred spawning capability. */
+	/** 声明对多实例服务的所有权，并返回其延迟创建能力。 */
 	provideMany<T>(service: Service<T>): ServiceSpawner<T>;
-	/** Create initialized mutable state suitable for exposing through a service implementation. */
+	/** 创建已初始化的可变状态，以便通过服务实现对外公开。 */
 	replicatedState<T extends object>(initial: T): MutableReplicatedState<T>;
-	/** Give the facet ownership of a resource cleanup function. */
+	/** 将资源清理函数的所有权交给当前切面。 */
 	own(disposal: () => void | Promise<void>): void;
-	/** Register asynchronous initialization after dependencies are bound and ready. */
+	/** 注册在依赖已绑定并就绪后执行的异步初始化。 */
 	onActivate(callback: () => void | Promise<void>): void;
-	/** Register final facet teardown. */
+	/** 注册切面的最终拆除逻辑。 */
 	onDeactivate(callback: () => void | Promise<void>): void;
 }
 
@@ -228,7 +227,7 @@ export interface Facet {
 }
 
 export interface RemoteServiceSource {
-	/** Whether this currently unavailable source may provisionally own absent requirements. */
+	/** 当前不可用的来源是否可以暂时承接缺失的依赖要求。 */
 	readonly acceptsUnavailableServices: boolean;
 	catalogue(context: Context): Promise<readonly ServiceCatalogueEntry[]>;
 	open(options: {
@@ -246,7 +245,7 @@ export interface FacetOptions {
 
 export interface FacetHost {
 	readonly services: RemoteServiceProvider;
-	/** Activate and replace facets with matching IDs without disconnecting consumer service handles. */
+	/** 激活并替换 ID 匹配的切面，同时不切断消费方的服务句柄。 */
 	reload(facets: readonly Facet[]): Promise<void>;
 	dispose(): Promise<void>;
 }

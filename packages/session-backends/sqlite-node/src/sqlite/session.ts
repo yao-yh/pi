@@ -20,7 +20,7 @@ export interface SqliteOpenSessionOptions {
 	onClose: () => void;
 }
 
-/** SQLite-specific open-session lifecycle wrapper. */
+/** SQLite 专用的已打开会话生命周期包装器。 */
 export class SqliteOpenSession implements Session<SqliteSessionMetadata> {
 	readonly metadata: SqliteSessionMetadata;
 	readonly idGenerator: Session<SqliteSessionMetadata>["idGenerator"];

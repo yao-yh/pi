@@ -11,7 +11,7 @@ export interface LatestPiRelease {
 	note?: string;
 }
 
-/** Include useful errno details hidden behind Node's generic "fetch failed" error. */
+/** 补充 Node 通用“fetch failed”错误背后隐藏的有用 errno 详情。 */
 export function formatVersionCheckError(error: unknown): string {
 	const rootMessage = error instanceof Error && error.message ? error.message : String(error);
 	const cause = error instanceof Error ? error.cause : undefined;

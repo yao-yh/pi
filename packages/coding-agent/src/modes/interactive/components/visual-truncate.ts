@@ -1,28 +1,28 @@
 /**
- * Shared utility for truncating text to visual lines (accounting for line wrapping).
- * Used by both tool-execution.ts and bash-execution.ts for consistent behavior.
+ * 将文本截断为可视行的共享工具函数（考虑自动换行）。
+ * tool-execution.ts 和 bash-execution.ts 均使用此函数，以保持行为一致。
  */
 
 import { Text } from "@earendil-works/pi-tui";
 
 export interface VisualTruncateResult {
-	/** The visual lines to display */
+	/** 要显示的可视行 */
 	visualLines: string[];
-	/** Number of visual lines that were skipped (hidden) */
+	/** 已跳过（隐藏）的可视行数 */
 	skippedCount: number;
 }
 
 /**
- * Truncate text to a maximum number of visual lines (from the end).
- * This accounts for line wrapping based on terminal width.
+ * 从末尾截断文本，使其不超过最大可视行数。
+ * 此过程会考虑基于终端宽度的自动换行。
  *
- * @param text - The text content (may contain newlines)
- * @param maxVisualLines - Maximum number of visual lines to show
- * @param width - Terminal/render width
- * @param paddingX - Horizontal padding for Text component (default 0).
- *                   Use 0 when result will be placed in a Box (Box adds its own padding).
- *                   Use 1 when result will be placed in a plain Container.
- * @returns The truncated visual lines and count of skipped lines
+ * @param text - 文本内容（可包含换行符）
+ * @param maxVisualLines - 要显示的最大可视行数
+ * @param width - 终端或渲染宽度
+ * @param paddingX - Text 组件的水平内边距（默认为 0）。
+ *                   结果将放入 Box 时使用 0（Box 会添加自己的内边距）。
+ *                   结果将放入普通 Container 时使用 1。
+ * @returns 截断后的可视行及跳过的行数
  */
 export function truncateToVisualLines(
 	text: string,
@@ -34,7 +34,7 @@ export function truncateToVisualLines(
 		return { visualLines: [], skippedCount: 0 };
 	}
 
-	// Create a temporary Text component to render and get visual lines
+	// 创建临时 Text 组件进行渲染并获取可视行
 	const tempText = new Text(text, paddingX, 0);
 	const allVisualLines = tempText.render(width);
 
@@ -42,7 +42,7 @@ export function truncateToVisualLines(
 		return { visualLines: allVisualLines, skippedCount: 0 };
 	}
 
-	// Take the last N visual lines
+	// 取最后 N 个可视行
 	const truncatedLines = allVisualLines.slice(-maxVisualLines);
 	const skippedCount = allVisualLines.length - maxVisualLines;
 

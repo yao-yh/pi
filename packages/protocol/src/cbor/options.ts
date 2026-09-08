@@ -2,17 +2,17 @@ export const UINT32_BASE = 0x1_0000_0000;
 export const MAX_UINT32 = 0xffff_ffff;
 const MAX_CONFIGURED_DEPTH = 512;
 
-/** Safe defaults for untrusted protocol payloads. */
+/** 面向不可信协议载荷的安全默认值。 */
 export const DEFAULT_MAX_CBOR_BYTE_LENGTH = 16 * 1024 * 1024;
 export const DEFAULT_MAX_CBOR_CONTAINER_LENGTH = 1_000_000;
 export const DEFAULT_MAX_CBOR_DEPTH = 64;
 
 export interface CborOptions {
-	/** Maximum encoded input/output bytes and maximum byte/text string length. */
+	/** 编码输入/输出的最大字节数，以及字节字符串/文本字符串的最大长度。 */
 	maxByteLength?: number;
-	/** Maximum number of elements in an array or entries in a map. */
+	/** 数组的最大元素数或映射的最大条目数。 */
 	maxContainerLength?: number;
-	/** Maximum recursive item depth. */
+	/** 数据项的最大递归深度。 */
 	maxDepth?: number;
 }
 

@@ -3,29 +3,28 @@ import type { JsonValue } from "../types.ts";
 export type { JsonValue } from "../types.ts";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// chord/delta — flush-time change tracking over plain JSON.
+// chord/delta —— 对普通 JSON 进行刷新时变更跟踪。
 //
-// Depends on nothing else in the harness. Session storage, the runtime and the
-// facet host consume it; keep the arrows pointing that way.
+// 不依赖执行框架中的其他组件。会话存储、运行时和切面宿主会使用它；
+// 应始终保持这一依赖方向。
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type Seg = string | number;
 export type Path = readonly Seg[];
 export type NonEmptyPath = readonly [Seg, ...Seg[]];
 
-/** A path inline, or an id assigned by the encoder on second use. */
+/** 内联路径，或编码器在第二次使用时分配的 ID。 */
 export type PathRef<P extends Path = Path> = P | number;
 
 /**
- * Tuples are the form — in memory, on the wire, on disk.
+ * 元组是内存、线路和磁盘上的统一形式。
  *
- * `r` is the ONLY op that replaces a whole value. `s`/`d`/`a`/`t` cannot target
- * the root: the type forbids it. `p` may, and only because a tracked value can
- * itself be an array — but a `p` that replaces its entire target is normalised to
- * `r`/`s` at flush time, so a root `p` is always a partial modification.
+ * `r` 是唯一替换整个值的操作。`s`/`d`/`a`/`t` 不能以根为目标，类型已禁止这种情况。
+ * `p` 可以以根为目标，但仅因为被跟踪值本身可能是数组；如果 `p` 替换其整个目标，
+ * 刷新时会将它规范化为 `r`/`s`，因此针对根的 `p` 始终是局部修改。
  *
- * `Op` knows nothing about the path dictionary. Interning, id references and
- * omitted paths live in `WireOp` and exist only between `encode` and `decode`.
+ * `Op` 不感知路径字典。驻留、ID 引用和省略路径均属于 `WireOp`，
+ * 仅存在于 `encode` 与 `decode` 之间。
  */
 export type Op =
 	| readonly ["r", JsonValue]
@@ -36,14 +35,13 @@ export type Op =
 	| readonly ["p", Path, number, number, JsonValue[]];
 
 /**
- * What crosses a boundary. Adds two compressions and nothing else:
+ * 跨边界传输的形式。只增加以下两种压缩：
  *
- *   ["#", id, path]    defines an id, emitted on a path's SECOND use
- *   a numeric PathRef  references a previously defined id
- *   a shortened tuple  reuses the previous op's path; arity disambiguates
+ *   ["#", id, path]    定义 ID，在路径第二次使用时发出
+ *   数字 PathRef       引用此前定义的 ID
+ *   缩短后的元组       复用前一个操作的路径，并通过元组长度消除歧义
  *
- * ["r", value] carries no path, so it encodes to itself — which is why isBase
- * works unchanged on either vocabulary.
+ * ["r", value] 不携带路径，因此编码后保持原样；这也是 isBase 可同时适用于两种词汇表的原因。
  */
 export type WireOp =
 	| readonly ["r", JsonValue]
@@ -59,37 +57,34 @@ export type WireOp =
 	| readonly ["p", number, number, JsonValue[]]
 	| readonly ["#", number, Path];
 
-// ─── Classification ──────────────────────────────────────────────────────────
+// ─── 分类 ────────────────────────────────────────────────────────────────────
 
 export const isReplace = (op: Op | WireOp): boolean => op[0] === "r";
 
 /**
- * A batch begins with a replacement. Flush guarantees `r` is at index 0 or absent,
- * so this is exact rather than a heuristic.
+ * 批次以替换操作开始。刷新过程保证 `r` 要么位于索引 0，要么不存在，
+ * 因此这是精确判断，而非启发式判断。
  */
 export const isBase = (ops: readonly (Op | WireOp)[]): boolean => ops.length > 0 && ops[0]![0] === "r";
 
-// ─── Overlap ─────────────────────────────────────────────────────────────────
+// ─── 重叠 ────────────────────────────────────────────────────────────────────
 
 /**
- * Longest suffix of `a` that is a prefix of `b`. Probes with indexOf and verifies
- * exact substring equality, so the hot loops are native. A hand-written KMP is
- * asymptotically equivalent and much slower in practice.
+ * 查找 `a` 中同时为 `b` 前缀的最长后缀。使用 indexOf 探测并验证子串严格相等，
+ * 因此热点循环由原生实现执行。手写 KMP 的渐近复杂度相同，但实际运行慢得多。
  *
- * Always correct: the returned n satisfies a.slice(a.length - n) === b.slice(0, n).
+ * 返回结果始终满足：a.slice(a.length - n) === b.slice(0, n)。
  */
 export function overlap(a: string, b: string, scan: number, probe = 64, maxCandidates = 8): number {
 	if (a.length === 0 || b.length === 0 || scan === 0) return 0;
 	const tail = a.length > scan ? a.slice(a.length - scan) : a;
 
-	// A probe of length h can only find overlaps of at least h — the head must
-	// actually occur in `a`. So try a long head first (few candidates, and it
-	// catches the large overlaps a rolling window produces), then fall back to one
-	// character, which finds any overlap at the cost of more candidates.
+	// 长度为 h 的探针只能找到至少为 h 的重叠，因为头部必须确实出现在 `a` 中。
+	// 因此先尝试较长头部（候选较少，也能捕获滚动窗口产生的大段重叠），
+	// 再回退到单个字符，以更多候选为代价找出任意重叠。
 	//
-	// Candidates are bounded because repetitive output — a build log, or any run of
-	// one character — makes a long head match at thousands of positions. Giving up
-	// returns 0, which emits a set: larger, never wrong.
+	// 候选数量受到限制，因为构建日志或单字符连续输出等重复内容，
+	// 会让较长头部在数千个位置匹配。放弃时返回 0，从而发出 set：体积更大，但绝不会出错。
 	for (const h of [Math.min(probe, b.length), 1]) {
 		const head = b.slice(0, h);
 		let tried = 0;
@@ -103,7 +98,7 @@ export function overlap(a: string, b: string, scan: number, probe = 64, maxCandi
 	return 0;
 }
 
-// ─── Tracker ─────────────────────────────────────────────────────────────────
+// ─── 跟踪器 ──────────────────────────────────────────────────────────────────
 
 export interface TrackerOptions {
 	maxOverlapScan?: number;
@@ -111,17 +106,16 @@ export interface TrackerOptions {
 
 export interface Tracker<T extends object> {
 	/**
-	 * The tracked value. Mutate and read state only through this proxy. Values
-	 * inserted into it are adopted: callers may retain read-only references, but
-	 * must not mutate them outside this proxy.
+	 * 被跟踪的值。只能通过此代理修改和读取状态。插入其中的值会被接管：
+	 * 调用方可以保留只读引用，但不得绕过此代理修改这些值。
 	 */
 	state: T;
-	/** The untracked current value. Mutating it bypasses change tracking. */
+	/** 未被跟踪的当前值。修改它会绕过变更跟踪。 */
 	readonly target: T;
 	flush(): Op[];
-	/** Make the next flush a complete base batch without changing the value. */
+	/** 在不改变值的情况下，使下一次刷新产生完整的基础批次。 */
 	rebase(): void;
-	/** Accept pending mutations locally without emitting them. */
+	/** 在本地接受待处理变更，但不发出这些变更。 */
 	discard(): void;
 	readonly dirty: boolean;
 }
@@ -209,10 +203,9 @@ const diffString = (before: string, after: string, path: Path, scan: number, out
 		return;
 	}
 	const at = [...path] as unknown as NonEmptyPath;
-	// NOT `after.startsWith(before)`. `after` is usually a cons string — the
-	// producer just did `s += chunk` — and V8's startsWith walks a cons char by
-	// char. `slice(...) === before` flattens once and compares with memcmp.
-	// Measured on a 200 KB string growing by 8 bytes per flush: 845 us -> 42 us.
+	// 不使用 `after.startsWith(before)`。`after` 通常是刚执行过 `s += chunk` 的拼接字符串，
+	// V8 的 startsWith 会逐字符遍历该字符串，而 `slice(...) === before` 只展平一次并通过 memcmp 比较。
+	// 实测 200 KB 字符串每次刷新增长 8 字节时：845 us -> 42 us。
 	if (after.length > before.length && after.slice(0, before.length) === before) {
 		out.push(["a", at, after.slice(before.length)]);
 		return;
@@ -297,10 +290,9 @@ function diffArray(before: JsonValue[], after: JsonValue[], path: Path, scan: nu
 		return;
 	}
 
-	// Structural movement combined with retained-index edits has no unique
-	// alignment. Preserve the retained index deltas and express only the tail
-	// length change structurally. It may be broader than the producer's intent,
-	// but never degrades those edits to a whole-array replacement.
+	// 结构移动与保留索引编辑同时存在时没有唯一对齐方式。保留已有索引的增量，
+	// 仅以结构方式表达尾部长度变化。范围可能大于生产方的原始意图，
+	// 但绝不会把这些编辑降级为整个数组替换。
 	for (let index = 0; index < shorter; index++) {
 		diffValue(before[index]!, after[index]!, [...path, index], scan, out);
 	}
@@ -363,14 +355,12 @@ const walkDirty = (before: JsonValue, after: JsonValue, node: DirtyNode, path: P
 };
 
 /**
- * Bring `baseline` up to `root` along the dirty paths by sharing references.
- * Returns false — having changed nothing — if any dirty node is an array
- * change other than a pure append, so the caller can replay ops instead.
- * Cloning a whole array there is O(n) per flush; replay is O(changes).
+ * 通过共享引用，沿脏路径将 `baseline` 同步到 `root`。
+ * 如果任一脏节点是纯追加之外的数组变更，则不做任何修改并返回 false，
+ * 以便调用方改为重放操作。此处克隆整个数组每次刷新需要 O(n)，而重放为 O(变更数)。
  *
- * Strings are immutable, so root's `after` is shared outright, and sharing it
- * also means the next flush compares against a flat string rather than a cons.
- * Objects are cloned because root keeps mutating them.
+ * 字符串不可变，因此可以直接共享 root 中的 `after`；这样下一次刷新会与平坦字符串比较，
+ * 而不是与拼接字符串比较。对象则需要克隆，因为 root 会继续修改它们。
  */
 const syncBaseline = (baseline: JsonValue, root: JsonValue, node: DirtyNode): boolean => {
 	if (!canSync(node)) return false;
@@ -571,7 +561,7 @@ export function track<T extends object>(root: T, options: TrackerOptions = {}): 
 									const start = appendStart(path);
 									if (index === 0 && remove === before) markArrayReplace(path);
 									else if (start !== undefined && index >= start) {
-										// The final append payload includes all tail edits.
+										// 最终追加载荷已包含所有尾部编辑。
 									} else if (index === before && remove === 0) markArrayAppend(path, before);
 									else markArrayDiff(path);
 								}
@@ -733,12 +723,10 @@ export function track<T extends object>(root: T, options: TrackerOptions = {}): 
 			if (!hasPending || baseline === undefined) return [];
 			const out: Op[] = [];
 			walkDirty(baseline, root as unknown as JsonValue, pending, [], scan, out);
-			// Advance the baseline by SHARING references from root where that is
-			// cheap and exact — scalars, strings, and array appends. Replaying the
-			// ops rebuilds every touched string via slice + concat: two window-sized
-			// allocations per flush and a cons the next flush must flatten. For
-			// anything the sync cannot express cheaply (a non-append array change),
-			// it declines and the original replay runs unchanged.
+			// 在成本低且结果精确的情况下，通过共享 root 的引用推进基线，
+			// 包括标量、字符串和数组追加。重放操作会通过 slice + concat 重建每个受影响的字符串：
+			// 每次刷新产生两次窗口大小的分配，并留下一个需要在下次刷新时展平的拼接字符串。
+			// 对于同步无法低成本表达的情况（非追加型数组变更），则放弃同步并原样执行重放。
 			if (!syncBaseline(baseline as JsonValue, root as unknown as JsonValue, pending)) {
 				if (out.length > 0) baseline = apply(baseline, out.map(cloneOp));
 			}
@@ -748,24 +736,23 @@ export function track<T extends object>(root: T, options: TrackerOptions = {}): 
 	};
 }
 
-// ─── Path safety ─────────────────────────────────────────────────────────────
+// ─── 路径安全 ────────────────────────────────────────────────────────────────
 
 /**
- * Segments that reach the prototype chain.
+ * 能够访问原型链的路径段。
  *
- * `JSON.parse` is safe on its own — it makes `__proto__` an own property. What is
- * not safe is `parent[key] = value`, which is exactly what an applier does, and
- * paths are data: `["s", ["__proto__", "isAdmin"], true]` pollutes
- * `Object.prototype` for the whole process.
+ * `JSON.parse` 本身是安全的，因为它会把 `__proto__` 创建为自有属性。
+ * 不安全的是 `parent[key] = value`，而应用器恰好会这样做，且路径本身也是数据：
+ * `["s", ["__proto__", "isAdmin"], true]` 会污染整个进程的 `Object.prototype`。
  *
- * Ops arrive from a facet, a plugin compartment, or a tool whose details may echo
- * model output, so none of it is trusted input.
+ * 操作可能来自切面、插件隔离区，或详情中可能回显模型输出的工具，
+ * 因此任何操作都不能视为可信输入。
  */
 export const RESERVED_SEGMENTS: ReadonlySet<string> = new Set(["__proto__", "constructor", "prototype"]);
 
 export class UnsafePathError extends Error {
-	// Not a parameter property: Node's --experimental-strip-types rejects those,
-	// and these files are meant to run under it directly.
+	// 不使用参数属性：Node 的 --experimental-strip-types 不接受该语法，
+	// 而这些文件需要在该模式下直接运行。
 	readonly segment: Seg;
 	constructor(segment: Seg) {
 		super(`unsafe path segment: ${String(segment)}`);
@@ -775,12 +762,11 @@ export class UnsafePathError extends Error {
 }
 
 /**
- * Verb, arity and payload shape for a **decoded** op: paths inline, no `#`, no
- * short forms. `apply` uses this.
+ * **已解码**操作的动词、元组长度和载荷结构：路径内联，不含 `#`，也没有缩写形式。
+ * `apply` 使用此格式。
  *
- * Validating `Op` against the wire grammar would be laxer than the type: a
- * two-element `["s", value]` would pass, and `apply` would then read the value as
- * a path. Each vocabulary gets the validator that matches it.
+ * 按线路语法验证 `Op` 会比类型约束更宽松：两个元素的 `["s", value]` 会通过，
+ * 随后 `apply` 会把 value 当作路径读取。每套词汇表都应使用与之匹配的验证器。
  */
 export function assertValidOp(op: unknown): asserts op is Op {
 	if (!Array.isArray(op) || op.length === 0) throw new TypeError("op is not a tuple");
@@ -812,7 +798,7 @@ export function assertValidOp(op: unknown): asserts op is Op {
 			if (!Array.isArray(op[4])) throw new TypeError("p items");
 			return;
 		}
-		// Silently skipping an unknown verb is how a newer producer's op vanishes.
+		// 静默跳过未知动词会导致较新生产方发出的操作消失。
 		default:
 			throw new TypeError(`unknown op verb: ${String(op[0])}`);
 	}
@@ -824,7 +810,7 @@ function assertPathArg(p: unknown, nonEmpty = false): void {
 	assertSafePath(p as Path);
 }
 
-/** The same, for the wire grammar: ids and short forms are legal here. */
+/** 对线路语法执行同类验证；此处允许 ID 和缩写形式。 */
 export function assertValidWireOp(op: unknown): asserts op is WireOp {
 	if (!Array.isArray(op) || op.length === 0) throw new TypeError("op is not a tuple");
 	const [verb] = op as unknown[];
@@ -833,8 +819,8 @@ export function assertValidWireOp(op: unknown): asserts op is WireOp {
 			if (!Number.isInteger(r) || r < 0) throw new TypeError("bad path id");
 			return;
 		}
-		// A string is not a path. Unchecked, `"a".slice(0, -1)` is `""`, so it
-		// resolves to the ROOT and writes there — a path that is not a path, accepted.
+		// 字符串不是路径。若不检查，`"a".slice(0, -1)` 会得到 `""`，
+		// 从而解析到根并写入；这会错误接受一个并非路径的值。
 		if (!Array.isArray(r)) throw new TypeError("path is not an array");
 		assertSafePath(r as Path);
 	};
@@ -882,7 +868,7 @@ export function assertValidWireOp(op: unknown): asserts op is WireOp {
 			assertSafePath(op[2] as Path);
 			return;
 		}
-		// Silently skipping an unknown verb is how a newer producer's op vanishes.
+		// 静默跳过未知动词会导致较新生产方发出的操作消失。
 		default:
 			throw new TypeError(`unknown op verb: ${String(verb)}`);
 	}
@@ -899,25 +885,22 @@ export function assertSafePath(path: Path): void {
 }
 
 /**
- * An index may address an existing element or append exactly one past the end.
+ * 索引可以指向现有元素，或恰好指向末尾后一位以执行追加。
  *
- * This is not an arbitrary cap — it is what keeps the value a `JsonValue`. A
- * sparse array does not survive a JSON round trip: holes serialise to `null` and
- * return as real properties, so `arr[7] = x` on a length-3 array already produces
- * state a replica cannot match. Rejecting the write is more honest than silently
- * diverging.
+ * 这不是任意限制，而是确保值仍为 `JsonValue` 的必要条件。稀疏数组无法在 JSON 往返后保持原样：
+ * 空洞会序列化为 `null`，并在返回时成为真实属性。因此在长度为 3 的数组上执行 `arr[7] = x`，
+ * 已经会产生副本无法匹配的状态。拒绝该写入比静默产生分歧更合理。
  *
- * It also removes the denial of service it would otherwise permit:
- * `["s", ["xs", 4294967290], 1]` allocates a 4.29-billion-entry array from one op.
- * Growth stays possible and stays proportional — the tracker already emits
- * `arr.length = n` as a splice of explicit nulls, whose op size grows with the
- * gap, so a large growth costs a large op rather than a small one.
+ * 这也消除了原本可能出现的拒绝服务风险：
+ * `["s", ["xs", 4294967290], 1]` 会通过一个操作分配包含 42.9 亿项的数组。
+ * 数组仍可扩展，且成本与增长量成正比；跟踪器已将 `arr.length = n` 表达为插入显式 null 的 splice，
+ * 操作大小会随间隔增长，因此大幅扩展需要大型操作，而无法用小型操作触发。
  */
 function assertIndexInRange(parent: readonly unknown[], index: number): void {
 	if (index > parent.length) throw new UnsafePathError(index);
 }
 
-// ─── Applier ─────────────────────────────────────────────────────────────────
+// ─── 应用器 ──────────────────────────────────────────────────────────────────
 
 export class PathError extends Error {
 	readonly path: Path | number;
@@ -929,11 +912,10 @@ export class PathError extends Error {
 }
 
 /**
- * Apply ops to a plain mutable value. Returns the value, because `r` replaces it
- * outright and cannot be done in place.
+ * 将操作应用到普通可变值。由于 `r` 会直接替换该值而无法原地执行，因此返回结果值。
  *
- * Takes decoded ops. Path ids and omitted paths are a wire concern — run
- * `decode` first if the ops came from a boundary.
+ * 此函数接收已解码操作。路径 ID 和省略路径属于线路层问题；
+ * 如果操作来自边界，应先执行 `decode`。
  */
 export function apply<T>(target: T | undefined, ops: readonly Op[]): T {
 	return applyOps(target, ops);
@@ -945,13 +927,11 @@ function applyOps<T>(target: T | undefined, ops: readonly Op[]): T {
 	for (const op of ops) {
 		assertValidOp(op);
 		if (op[0] === "r") {
-			// Adopted, not copied. The consumer owns the batch it was handed.
+			// 直接接管而不复制。消费方拥有交给它的批次。
 			//
-			// Fanning one batch out to several consumers in-process therefore makes
-			// their replicas alias each other. That is an ownership rule, not a
-			// defect: copy the batch at the fan-out point, or let each consumer
-			// decode its own. A batch that crosses a real boundary is already
-			// distinct, because serialisation produces fresh objects.
+			// 因此在进程内将同一批次扇出给多个消费方，会使它们的副本相互别名。
+			// 这是所有权规则而非缺陷：应在扇出点复制批次，或让每个消费方自行解码。
+			// 跨越真实边界的批次已经彼此独立，因为序列化会生成全新对象。
 			root = op[1];
 			continue;
 		}
@@ -970,15 +950,14 @@ function applyOps<T>(target: T | undefined, ops: readonly Op[]): T {
 			continue;
 		}
 
-		// s/d/a/t can never target the root — the type forbids it.
+		// s/d/a/t 永远不能以根为目标，类型已禁止这种情况。
 		const parent = resolve(root, path.slice(0, -1)) as Record<Seg, JsonValue>;
 		const key = path[path.length - 1]!;
 		if (Array.isArray(parent)) {
 			if (typeof key !== "number") throw new UnsafePathError(key);
 			assertIndexInRange(parent, key);
 		}
-		// defineProperty rather than assignment: a setter inherited from the prototype
-		// chain would otherwise run on write.
+		// 使用 defineProperty 而非赋值，否则写入时可能触发从原型链继承的 setter。
 		const write = (value: JsonValue) => {
 			Object.defineProperty(parent, key, { value, writable: true, enumerable: true, configurable: true });
 		};
@@ -1010,7 +989,7 @@ function applyOps<T>(target: T | undefined, ops: readonly Op[]): T {
 	return root as unknown as T;
 }
 
-/** Apply decoded operations without mutating the previous immutable value. */
+/** 在不修改前一个不可变值的情况下应用已解码操作。 */
 export function applyImmutable<T>(target: T | undefined, ops: readonly Op[]): T {
 	let root = target as unknown as JsonValue;
 	for (const op of ops) {
@@ -1068,8 +1047,7 @@ function resolveValue(root: JsonValue, path: Path): JsonValue {
 	for (const seg of path) {
 		if (!isObj(node)) throw new PathError(path);
 		if (Array.isArray(node) && typeof seg !== "number") throw new UnsafePathError(seg);
-		// Own properties only: an inherited getter must not run, and a walk must not
-		// escape the value into the prototype chain.
+		// 仅访问自有属性：不得触发继承的 getter，遍历过程也不得从当前值逃逸到原型链。
 		if (!Object.hasOwn(node, seg as PropertyKey)) throw new PathError(path);
 		node = (node as Record<Seg, JsonValue>)[seg]!;
 	}
@@ -1082,15 +1060,12 @@ function resolve(root: JsonValue, path: Path): JsonValue {
 	return node;
 }
 
-// ─── Codec ───────────────────────────────────────────────────────────────────
+// ─── 编解码器 ────────────────────────────────────────────────────────────────
 //
-// Path interning and arity omission live between the tracker and a boundary;
-// `Op` and `apply` know nothing about them.
+// 路径驻留和元组长度省略只存在于跟踪器与边界之间；`Op` 和 `apply` 不感知这些机制。
 //
-// ONE PAIR PER INDEPENDENT STATE STREAM. Every decoder must observe exactly the
-// batches encoded by its matching encoder, beginning with that state's base.
-// Sharing a transport connection does not make separately hydrated states one
-// stream.
+// 每个独立状态流使用一对编解码器。每个解码器必须严格接收其匹配编码器产生的批次，
+// 并从该状态的基础批次开始。共享传输连接并不会让分别水合的状态成为同一个流。
 
 const pathKey = (path: Path): string => JSON.stringify(path);
 
@@ -1099,30 +1074,28 @@ export interface Encoder {
 }
 
 /**
- * Intern on SECOND use. A definition costs more than the path it replaces, so
- * interning on first use loses on the many paths written exactly once.
+ * 在第二次使用时驻留。定义本身比它替换的路径成本更高，
+ * 因此对大量只写入一次的路径在首次使用时驻留反而得不偿失。
  */
 export function encoder(): Encoder {
 	const seen = new Set<string>();
 	const ids = new Map<string, number>();
 	let nextId = 0;
-	let previous: string | undefined; // last path in THIS batch
+	let previous: string | undefined; // 当前批次中的最后一个路径
 
 	return {
 		encode(ops) {
-			// Arity omission is scoped to a batch. Letting it span batches would make
-			// a batch's first op depend on the previous batch's last one, so a reader
-			// that skips or reorders a batch decodes into the wrong path. Ids are the
-			// only cross-batch state, and the dictionary makes those explicit.
+			// 元组长度省略只作用于一个批次。若跨批次延续，会让当前批次的首个操作依赖前一批次的末项，
+			// 从而使跳过或重排批次的读取方解码到错误路径。ID 是唯一的跨批次状态，
+			// 且字典会显式记录这些 ID。
 			previous = undefined;
 			const out: WireOp[] = [];
 			for (const op of ops) {
 				if (op[0] === "r") {
 					out.push(op);
-					// A base batch is a RECOVERY POINT: a reader replays from the last one
-					// with a fresh decoder. So everything after it must be self-contained.
-					// Keeping ids across a replacement emits references to definitions the
-					// reader never saw — recovery fails with an unresolvable path id.
+					// 基础批次是恢复点：读取方会使用全新解码器从最近的基础批次开始重放，
+					// 因此其后的所有内容都必须自包含。若在替换后保留 ID，
+					// 会发出对读取方从未见过的定义的引用，导致恢复因路径 ID 无法解析而失败。
 					seen.clear();
 					ids.clear();
 					nextId = 0;
@@ -1132,7 +1105,7 @@ export function encoder(): Encoder {
 				const path = op[1];
 				const key = pathKey(path);
 
-				// Same path as the previous op: drop the ref entirely.
+				// 与前一个操作路径相同：完全省略引用。
 				if (key === previous) {
 					switch (op[0]) {
 						case "s":
@@ -1161,10 +1134,10 @@ export function encoder(): Encoder {
 				} else if (seen.has(key)) {
 					const id = nextId++;
 					ids.set(key, id);
-					out.push(["#", id, path]); // second use: define, then reference
+					out.push(["#", id, path]); // 第二次使用：先定义，再引用
 					ref = id;
 				} else {
-					seen.add(key); // first use: inline
+					seen.add(key); // 第一次使用：内联
 				}
 
 				switch (op[0]) {
@@ -1200,7 +1173,7 @@ export function decoder(): Decoder {
 
 	return {
 		decode(wire) {
-			let previous: Path | undefined; // scoped to the batch, as in encode
+			let previous: Path | undefined; // 与 encode 相同，作用域限定于当前批次
 			const out: Op[] = [];
 			for (const op of wire) {
 				assertValidWireOp(op);
@@ -1216,7 +1189,7 @@ export function decoder(): Decoder {
 					continue;
 				}
 
-				// Arity tells us whether a ref is present: the short forms omit it.
+				// 元组长度表明是否存在引用：缩写形式会省略引用。
 				const short =
 					(op[0] === "d" && op.length === 1) ||
 					(op[0] !== "d" && op[0] !== "p" && op.length === 2) ||

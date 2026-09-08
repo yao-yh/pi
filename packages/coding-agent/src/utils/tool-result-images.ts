@@ -4,20 +4,19 @@ import { processImage } from "./image-process.ts";
 export type ToolResultContent = TextContent | ImageContent;
 
 export interface NormalizeToolResultImagesOptions {
-	/** Whether oversized images are resized to inline provider limits. Default: true */
+	/** 是否将过大图像缩放到提供商的内联限制以内。默认值：true。 */
 	autoResizeImages?: boolean;
 }
 
 /**
- * Normalize image blocks returned by tool results.
+ * 规范化工具结果返回的图像块。
  *
- * The `read` tool and `@file` CLI attachments run their images through `processImage`, but tools
- * that produce images themselves (extensions, MCP bridges, screenshot tools) hand back arbitrary
- * base64 payloads that go straight into session history and every subsequent provider request.
- * Oversized images make the provider reject the whole conversation, not just the offending turn,
- * so normalize them once as they enter history.
+ * `read` 工具和 `@file` CLI 附件会通过 `processImage` 处理图像，但自行生成图像的工具
+ * （扩展、MCP 桥接器、截图工具）会返回任意 base64 负载，并将其直接写入会话历史及后续
+ * 每一次提供商请求。过大的图像会导致提供商拒绝整个对话，而不只是有问题的那一轮，
+ * 因此应在图像进入历史记录时统一规范化一次。
  *
- * Returns the original array when nothing changed so callers can skip rewriting the result.
+ * 未发生更改时返回原数组，使调用方可以跳过结果重写。
  */
 export async function normalizeToolResultImages(
 	content: ToolResultContent[],
@@ -39,9 +38,8 @@ export async function normalizeToolResultImages(
 
 		const processed = await processImage(Buffer.from(block.data, "base64"), block.mimeType, { autoResizeImages });
 		if (!processed.ok) {
-			// Unlike `read`, keep the original block. The tool already produced this image and the
-			// failure may just be an unavailable image backend, so passing it through preserves the
-			// behavior tools have today instead of silently deleting their output.
+			// 与 `read` 不同，此处保留原始块。工具已经生成了该图像，失败原因可能只是图像后端不可用；
+			// 直接传递原块可以维持工具当前的行为，避免静默删除其输出。
 			normalized.push(block);
 			continue;
 		}

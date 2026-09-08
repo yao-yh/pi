@@ -27,7 +27,7 @@ const MISTRAL_TOOL_CALL_ID_LENGTH = 9;
 const MAX_MISTRAL_ERROR_BODY_CHARS = 4000;
 
 /**
- * Provider-specific options for the Mistral API.
+ * Mistral API 的提供商专用选项。
  */
 type MistralReasoningEffort = "none" | "high";
 
@@ -117,7 +117,7 @@ type MistralCompletionEvent = {
 };
 
 /**
- * Stream responses from the native Mistral Chat Completions endpoint.
+ * 从原生 Mistral Chat Completions 端点流式返回响应。
  */
 export const stream: StreamFunction<"mistral-conversations", MistralOptions> = (
 	model: Model<"mistral-conversations">,
@@ -162,7 +162,7 @@ export const stream: StreamFunction<"mistral-conversations", MistralOptions> = (
 			stream.end();
 		} catch (error) {
 			for (const block of output.content) {
-				// partialArgs is only a streaming scratch buffer; never persist it.
+				// partialArgs 仅作为流式暂存缓冲区，绝不持久化。
 				delete (block as { partialArgs?: string }).partialArgs;
 			}
 			output.stopReason = options?.signal?.aborted ? "aborted" : "error";
@@ -176,7 +176,7 @@ export const stream: StreamFunction<"mistral-conversations", MistralOptions> = (
 };
 
 /**
- * Maps provider-agnostic `SimpleStreamOptions` to Mistral options.
+ * 将与提供商无关的 `SimpleStreamOptions` 映射为 Mistral 选项。
  */
 export const streamSimple: StreamFunction<"mistral-conversations", SimpleStreamOptions> = (
 	model: Model<"mistral-conversations">,
@@ -589,8 +589,8 @@ async function consumeChatStream(
 
 	for await (const event of mistralStream) {
 		const chunk = event.data;
-		// Mistral's streamed CompletionChunk carries an id field. Keep the first non-empty one,
-		// mirroring how OpenAI-style streaming exposes a stable response identifier per stream.
+		// Mistral 的流式 CompletionChunk 携带 id 字段。保留第一个非空值，
+		// 与 OpenAI 风格流为每个流公开稳定响应标识符的方式保持一致。
 		output.responseId ||= chunk.id;
 
 		if (chunk.usage) {
@@ -738,8 +738,7 @@ async function consumeChatStream(
 		if (block.type !== "toolCall") continue;
 		const toolBlock = block as ToolCall & { partialArgs?: string };
 		toolBlock.arguments = parseStreamingJson<Record<string, unknown>>(toolBlock.partialArgs);
-		// Finalize in-place and strip the scratch buffer so replay only
-		// carries parsed arguments.
+		// 就地完成并移除暂存缓冲区，使重放只携带已解析参数。
 		delete toolBlock.partialArgs;
 		stream.push({
 			type: "toolcall_end",

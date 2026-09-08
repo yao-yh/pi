@@ -9,8 +9,8 @@ export function collectSettingsDiagnostics(settingsManager: SettingsManager): Ag
 }
 
 /**
- * Remove duplicate type/message diagnostics while preserving their first occurrence.
- * Startup and runtime settings managers can report the same file error.
+ * 删除类型和消息均重复的诊断，同时保留首次出现的诊断。
+ * 启动设置管理器和运行时设置管理器可能报告同一个文件错误。
  */
 export function deduplicateDiagnostics(
 	diagnostics: readonly AgentSessionRuntimeDiagnostic[],

@@ -3,9 +3,8 @@ import { registerHooks } from "node:module";
 import { extname, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-// Node strips TypeScript natively, but it does not apply the workspace source
-// aliases from tsconfig.json. Internal source processes preload this resolver so
-// they cannot silently fall through to stale package dist files.
+// Node 会原生剥离 TypeScript，但不会应用 tsconfig.json 中的工作区源码别名。
+// 内部源码进程会预加载此解析器，避免静默回退到过期的包 dist 文件。
 
 interface TsConfig {
 	readonly compilerOptions?: {

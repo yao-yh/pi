@@ -187,7 +187,7 @@ export const SessionWorkerEventSchema = Type.Union([
 ]);
 export type SessionWorkerEvent = Static<typeof SessionWorkerEventSchema>;
 
-/** Worker-local reconciliation of server-generation demand and Harness activity. */
+/** 在 worker 本地协调服务器代次请求和 Harness 活动。 */
 export class WorkerLifecycle {
 	readonly #initialDemandGraceMs: number;
 	readonly #orphanDemandGraceMs: number;

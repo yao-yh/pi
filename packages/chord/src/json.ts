@@ -1,6 +1,6 @@
 import type { JsonValue } from "./types.ts";
 
-/** Return whether a value is finite strict JSON with plain objects and no cycles. */
+/** 判断值是否为有限、仅含普通对象且无循环引用的严格 JSON。 */
 export function isJsonValue(value: unknown): value is JsonValue {
 	return check(value, new Set<object>(), 0);
 }

@@ -2,12 +2,12 @@ import type { ServerOptions } from "../../types.ts";
 
 export interface UnixListenerOptions {
 	path: string;
-	/** Socket filesystem permissions. Defaults to owner read/write only (0o600). */
+	/** 套接字文件系统权限。默认仅允许所有者读写（0o600）。 */
 	mode?: number;
-	/** Maximum framed bytes queued per connection before a slow peer is disconnected. */
+	/** 断开缓慢对端前，每个连接允许排队的最大分帧字节数。 */
 	maxPendingBytes?: number;
 	gracefulCloseTimeoutMs?: number;
-	/** Used to derive and validate maxPendingBytes. Must match the server when customized. */
+	/** 用于派生并验证 maxPendingBytes。自定义时必须与服务器配置一致。 */
 	maxFrameLength?: number;
 	onError?: (error: Error) => void;
 }

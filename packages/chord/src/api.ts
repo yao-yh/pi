@@ -15,7 +15,7 @@ import type {
 	Service,
 } from "./types.ts";
 
-/** Create an active host for one complete set of facets. */
+/** 为一组完整切面创建活动宿主。 */
 export async function createFacetHost(options: FacetOptions): Promise<FacetHost> {
 	const kernel = new FacetKernel(options);
 	await kernel.activate();
@@ -76,7 +76,7 @@ export function defineService<T>(
 ): Service<T>;
 export function defineService(id: string, options?: { readonly local?: boolean }): Service<unknown> {
 	if (id.length === 0) throw new TypeError("Service ID must not be empty");
-	// TODO: check if the reserved namespace should be part of Chord.
+	// TODO：确认保留命名空间是否应由 Chord 管理。
 	if (id.startsWith("$chord.")) throw new TypeError("Service IDs beginning with $chord. are reserved");
 	return Object.freeze({ id, local: options?.local ?? false });
 }

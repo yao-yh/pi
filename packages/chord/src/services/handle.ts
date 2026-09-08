@@ -5,7 +5,7 @@ interface ResolvedValue {
 
 type ValueResolver = () => ResolvedValue;
 
-/** Host-owned mutable target with consumer-owned guarded views. */
+/** 由宿主持有的可变目标，并向消费方提供受保护的视图。 */
 export class ServiceSlot {
 	readonly #serviceId: string;
 	readonly #wrapObjects: boolean;

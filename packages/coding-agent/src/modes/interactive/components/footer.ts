@@ -7,11 +7,11 @@ import { addUsageToTotals, createUsageTotals } from "../../../core/usage-totals.
 import { theme } from "../theme/theme.ts";
 
 /**
- * Sanitize text for display in a single-line status.
- * Removes newlines, tabs, carriage returns, and other control characters.
+ * 清理要在单行状态中显示的文本。
+ * 移除换行符、制表符、回车符及其他控制字符。
  */
 function sanitizeStatusText(text: string): string {
-	// Replace newlines, tabs, carriage returns with space, then collapse multiple spaces
+	// 将换行符、制表符和回车符替换为空格，然后合并连续空格
 	return text
 		.replace(/[\r\n\t]/g, " ")
 		.replace(/ +/g, " ")
@@ -19,7 +19,7 @@ function sanitizeStatusText(text: string): string {
 }
 
 /**
- * Format token counts for compact footer display.
+ * 格式化令牌数，以便在页脚中紧凑显示。
  */
 export function formatTokens(count: number): string {
 	if (count < 1000) return count.toString();
@@ -44,8 +44,8 @@ export function formatCwdForFooter(cwd: string, home: string | undefined): strin
 }
 
 /**
- * Footer component that shows pwd, token stats, and context usage.
- * Computes token/context stats from session, gets git branch and extension statuses from provider.
+ * 显示 pwd、令牌统计和上下文用量的页脚组件。
+ * 从会话计算令牌和上下文统计，并从提供程序获取 git 分支及扩展状态。
  */
 export class FooterComponent implements Component {
 	private autoCompactEnabled = true;
@@ -66,25 +66,25 @@ export class FooterComponent implements Component {
 	}
 
 	/**
-	 * No-op: git branch caching now handled by provider.
-	 * Kept for compatibility with existing call sites in interactive-mode.
+	 * 空操作：git 分支缓存现由提供程序处理。
+	 * 为兼容 interactive-mode 中的现有调用点而保留。
 	 */
 	invalidate(): void {
-		// No-op: git branch is cached/invalidated by provider
+		// 空操作：git 分支由提供程序缓存和失效
 	}
 
 	/**
-	 * Clean up resources.
-	 * Git watcher cleanup now handled by provider.
+	 * 清理资源。
+	 * Git 观察器清理现由提供程序处理。
 	 */
 	dispose(): void {
-		// Git watcher cleanup handled by provider
+		// Git 观察器清理由提供程序处理
 	}
 
 	render(width: number): string[] {
 		const state = this.session.state;
 
-		// Calculate cumulative usage from ALL session entries (not just post-compaction messages)
+		// 根据所有会话条目计算累积用量（不只包括压缩后的消息）
 		const usageTotals = createUsageTotals();
 		let latestCacheHitRate: number | undefined;
 
@@ -103,29 +103,29 @@ export class FooterComponent implements Component {
 			}
 		}
 
-		// Calculate context usage from session (handles compaction correctly).
-		// After compaction, tokens are unknown until the next LLM response.
+		// 根据会话计算上下文用量（正确处理压缩）。
+		// 压缩后，在下一次 LLM 响应前令牌数未知。
 		const contextUsage = this.session.getContextUsage();
 		const contextWindow = contextUsage?.contextWindow ?? state.model?.contextWindow ?? 0;
 		const contextPercentValue = contextUsage?.percent ?? 0;
 		const contextPercent = contextUsage?.percent !== null ? contextPercentValue.toFixed(1) : "?";
 
-		// Replace home directory with ~
+		// 将主目录替换为 ~
 		let pwd = formatCwdForFooter(this.session.sessionManager.getCwd(), process.env.HOME || process.env.USERPROFILE);
 
-		// Add git branch if available
+		// 如果可用则添加 git 分支
 		const branch = this.footerData.getGitBranch();
 		if (branch) {
 			pwd = `${pwd} (${branch})`;
 		}
 
-		// Add session name if set
+		// 如果设置了会话名称则添加
 		const sessionName = this.session.sessionManager.getSessionName();
 		if (sessionName) {
 			pwd = `${pwd} • ${sessionName}`;
 		}
 
-		// Build stats line
+		// 构建统计行
 		const statsParts = [];
 		if (usageTotals.input) statsParts.push(`↑${formatTokens(usageTotals.input)}`);
 		if (usageTotals.output) statsParts.push(`↓${formatTokens(usageTotals.output)}`);
@@ -135,7 +135,7 @@ export class FooterComponent implements Component {
 			statsParts.push(`CH${latestCacheHitRate.toFixed(1)}%`);
 		}
 
-		// Kimi Coding is subscription-backed despite using API-key authentication.
+		// Kimi Coding 虽然使用 API 密钥认证，但由订阅支持。
 		const usingSubscription = state.model
 			? state.model.provider === "kimi-coding" || this.session.modelRuntime.isUsingSubscription(state.model.provider)
 			: false;
@@ -144,7 +144,7 @@ export class FooterComponent implements Component {
 			statsParts.push(costStr);
 		}
 
-		// Colorize context percentage based on usage
+		// 根据用量为上下文百分比着色
 		let contextPercentStr: string;
 		const autoIndicator = this.autoCompactEnabled ? " (auto)" : "";
 		const contextPercentDisplay =
@@ -165,21 +165,21 @@ export class FooterComponent implements Component {
 
 		let statsLeft = statsParts.join(" ");
 
-		// Add model name on the right side, plus thinking level if model supports it
+		// 在右侧添加模型名称；如果模型支持思考，还要添加思考级别
 		const modelName = state.model?.id || "no-model";
 
 		let statsLeftWidth = visibleWidth(statsLeft);
 
-		// If statsLeft is too wide, truncate it
+		// statsLeft 过宽时将其截断
 		if (statsLeftWidth > width) {
 			statsLeft = truncateToWidth(statsLeft, width, "...");
 			statsLeftWidth = visibleWidth(statsLeft);
 		}
 
-		// Calculate available space for padding (minimum 2 spaces between stats and model)
+		// 计算可用于填充的空间（统计信息与模型之间至少留 2 个空格）
 		const minPadding = 2;
 
-		// Add thinking level indicator if model supports reasoning
+		// 如果模型支持推理，则添加思考级别指示器
 		let rightSideWithoutProvider = modelName;
 		if (state.model?.reasoning) {
 			const thinkingLevel = state.thinkingLevel || "off";
@@ -187,12 +187,12 @@ export class FooterComponent implements Component {
 				thinkingLevel === "off" ? `${modelName} • thinking off` : `${modelName} • ${thinkingLevel}`;
 		}
 
-		// Prepend the provider in parentheses if there are multiple providers and there's enough room
+		// 存在多个提供商且空间足够时，在前面用括号添加提供商
 		let rightSide = rightSideWithoutProvider;
 		if (this.footerData.getAvailableProviderCount() > 1 && state.model) {
 			rightSide = `(${state.model!.provider}) ${rightSideWithoutProvider}`;
 			if (statsLeftWidth + minPadding + visibleWidth(rightSide) > width) {
-				// Too wide, fall back
+				// 过宽，进行回退
 				rightSide = rightSideWithoutProvider;
 			}
 		}
@@ -202,11 +202,11 @@ export class FooterComponent implements Component {
 
 		let statsLine: string;
 		if (totalNeeded <= width) {
-			// Both fit - add padding to right-align model
+			// 两侧都能容纳：添加填充使模型右对齐
 			const padding = " ".repeat(width - statsLeftWidth - rightSideWidth);
 			statsLine = statsLeft + padding + rightSide;
 		} else {
-			// Need to truncate right side
+			// 需要截断右侧
 			const availableForRight = width - statsLeftWidth - minPadding;
 			if (availableForRight > 0) {
 				const truncatedRight = truncateToWidth(rightSide, availableForRight, "");
@@ -214,29 +214,28 @@ export class FooterComponent implements Component {
 				const padding = " ".repeat(Math.max(0, width - statsLeftWidth - truncatedRightWidth));
 				statsLine = statsLeft + padding + truncatedRight;
 			} else {
-				// Not enough space for right side at all
+				// 完全没有足够空间显示右侧
 				statsLine = statsLeft;
 			}
 		}
 
-		// Apply dim to each part separately. statsLeft may contain color codes (for context %)
-		// that end with a reset, which would clear an outer dim wrapper. So we dim the parts
-		// before and after the colored section independently.
+		// 分别为各部分应用暗色。statsLeft 可能包含以重置结尾的颜色代码（用于上下文百分比），
+		// 会清除外层暗色包装。因此，对着色部分前后的内容分别应用暗色。
 		const dimStatsLeft = theme.fg("dim", statsLeft);
-		const remainder = statsLine.slice(statsLeft.length); // padding + rightSide
+		const remainder = statsLine.slice(statsLeft.length); // 填充和 rightSide
 		const dimRemainder = theme.fg("dim", remainder);
 
 		const pwdLine = truncateToWidth(theme.fg("dim", pwd), width, theme.fg("dim", "..."));
 		const lines = [pwdLine, dimStatsLeft + dimRemainder];
 
-		// Add extension statuses on a single line, sorted by key alphabetically
+		// 在单行中添加扩展状态，并按键名字母顺序排序
 		const extensionStatuses = this.footerData.getExtensionStatuses();
 		if (extensionStatuses.size > 0) {
 			const sortedStatuses = Array.from(extensionStatuses.entries())
 				.sort(([a], [b]) => a.localeCompare(b))
 				.map(([, text]) => sanitizeStatusText(text));
 			const statusLine = sortedStatuses.join(" ");
-			// Truncate to terminal width with dim ellipsis for consistency with footer style
+			// 截断到终端宽度，并使用暗色省略号以保持页脚样式一致
 			lines.push(truncateToWidth(statusLine, width, theme.fg("dim", "...")));
 		}
 

@@ -1,5 +1,5 @@
 /**
- * Core modules shared between all run modes.
+ * 所有运行模式共享的核心模块。
  */
 
 export {
@@ -29,7 +29,7 @@ export { type BashExecutorOptions, type BashResult, executeBashWithOperations } 
 export type { CompactionResult } from "./compaction/index.ts";
 export { createEventBus, type EventBus, type EventBusController } from "./event-bus.ts";
 export { areExperimentalFeaturesEnabled } from "./experimental.ts";
-// Extensions system
+// 扩展系统
 export {
 	type AgentEndEvent,
 	type AgentSettledEvent,

@@ -18,9 +18,8 @@ const HOST_RETRY_MAX_MS = 30_000;
 const MISSING_AUTH_RETRY_MS = 30_000;
 const CLIENT_RETRY_INITIAL_MS = 1_000;
 const CLIENT_RETRY_MAX_MS = 30_000;
-// Undici implements the browser WebSocket API, which permits callers to send
-// only code 1000 or application codes from 3000 through 4999. RFC protocol
-// codes such as 1002 and 1011 may be received but cannot be passed to close().
+// Undici 实现浏览器 WebSocket API，只允许调用方发送代码 1000 或 3000 至 4999 的应用代码。
+// 可以接收 1002、1011 等 RFC 协议代码，但不能将其传给 close()。
 const LOCAL_PROTOCOL_ERROR_CLOSE_CODE = 4000;
 const LOCAL_TRANSPORT_ERROR_CLOSE_CODE = 4001;
 
@@ -100,7 +99,7 @@ export interface RadiusRelayHostOptions {
 	readonly onStatus?: (status: RadiusRelayHostStatus) => void;
 }
 
-/** Maintain the experimental server's multiplexed, authenticated Radius host connection. */
+/** 维护实验服务器经过认证的多路复用 Radius 宿主连接。 */
 export class RadiusRelayHost {
 	readonly #options: RadiusRelayHostOptions;
 	readonly #abortController = new AbortController();
@@ -340,7 +339,7 @@ type RadiusReconnectClient = Pick<
 	| "reconnect"
 >;
 
-/** Reconnect one established Radius client and restore its last selected Session. */
+/** 重新连接一个已建立的 Radius 客户端，并恢复其最后选择的 Session。 */
 export class RadiusClientReconnect {
 	readonly #client: RadiusReconnectClient;
 	readonly #reattach: (sessionId: string) => Promise<void>;
@@ -684,7 +683,7 @@ function closeWebSocket(socket: RadiusRelayWebSocket, code: number, reason: stri
 	try {
 		socket.close(code, reason);
 	} catch {
-		// A WebSocket can reject close() while its opening handshake is still pending.
+		// WebSocket 的开启握手仍处于待处理状态时，可能拒绝 close()。
 	}
 }
 

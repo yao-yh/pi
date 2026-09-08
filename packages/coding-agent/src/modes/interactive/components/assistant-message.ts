@@ -9,7 +9,7 @@ const OSC133_ZONE_END = "\x1b]133;B\x07";
 const OSC133_ZONE_FINAL = "\x1b]133;C\x07";
 
 /**
- * Component that renders a complete assistant message
+ * 渲染完整助手消息的组件。
  */
 export class AssistantMessageComponent extends Container {
 	private contentContainer: Container;
@@ -39,7 +39,7 @@ export class AssistantMessageComponent extends Container {
 		this.outputPad = outputPad;
 		this.markdownTransformers = markdownTransformers;
 
-		// Container for text/thinking content
+		// 文本和思考内容的容器
 		this.contentContainer = new Container();
 		this.addChild(this.contentContainer);
 
@@ -92,7 +92,7 @@ export class AssistantMessageComponent extends Container {
 		this.lastMessage = message;
 		this.isStreaming = isStreaming;
 
-		// Clear content container
+		// 清空内容容器
 		this.contentContainer.clear();
 
 		const hasVisibleContent = message.content.some(
@@ -103,13 +103,13 @@ export class AssistantMessageComponent extends Container {
 			this.contentContainer.addChild(new Spacer(1));
 		}
 
-		// Render content in order
+		// 按顺序渲染内容
 		let thinkingRunIndex = 0;
 		for (let i = 0; i < message.content.length; i++) {
 			const content = message.content[i];
 			if (content.type === "text" && content.text.trim()) {
-				// Assistant text messages with no background - trim the text
-				// Set paddingY=0 to avoid extra spacing before tool executions
+				// 助手文本消息没有背景，因此移除文本首尾空白
+				// 将 paddingY 设为 0，避免工具执行前出现额外间距
 				this.contentContainer.addChild(
 					new Markdown(content.text.trim(), this.outputPad, 0, this.markdownTheme, undefined, {
 						transform: createMarkdownTransform("assistant", this.isStreaming, this.markdownTransformers),
@@ -133,8 +133,8 @@ export class AssistantMessageComponent extends Container {
 					continue;
 				}
 
-				// Add spacing only when another visible assistant content block follows.
-				// This avoids a superfluous blank line before separately-rendered tool execution blocks.
+				// 仅在后面还有其他可见助手内容块时添加间距。
+				// 这样可避免在单独渲染的工具执行块前出现多余空行。
 				const hasVisibleContentAfter = message.content
 					.slice(i + 1)
 					.some((c) => (c.type === "text" && c.text.trim()) || (c.type === "thinking" && c.thinking.trim()));
@@ -174,9 +174,9 @@ export class AssistantMessageComponent extends Container {
 			}
 		}
 
-		// Check if incomplete/failed - show after partial content.
-		// For aborted/error tool calls, tool execution components show the error.
-		// Length stops can happen before a tool call is complete, so surface them here too.
+		// 检查是否未完成或失败，并在部分内容后显示状态。
+		// 对于中止或出错的工具调用，错误由工具执行组件显示。
+		// 长度限制可能在工具调用完成前触发，因此此处也要显示该状态。
 		const hasToolCalls = message.content.some((c) => c.type === "toolCall");
 		this.hasToolCalls = hasToolCalls;
 		if (message.stopReason === "length") {

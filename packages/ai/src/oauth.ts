@@ -1,4 +1,4 @@
-/** Type-only compatibility entry point for coding-agent extension OAuth declarations. */
+/** 用于 coding-agent 扩展 OAuth 声明的纯类型兼容入口。 */
 export type {
 	OAuthAuthInfo,
 	OAuthCredentials,

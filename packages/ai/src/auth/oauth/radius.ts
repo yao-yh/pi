@@ -1,15 +1,14 @@
 /**
- * Radius gateway OAuth flow.
+ * Radius 网关 OAuth 流程。
  *
- * Radius is a pi-messages gateway. OAuth client APIs live on the configured
- * gateway; only the interactive browser authorization endpoint is discovered.
- * Model catalog loading is owned by the Radius provider.
+ * Radius 是 pi-messages 网关。OAuth 客户端 API 位于已配置网关上；
+ * 仅发现交互式浏览器授权端点。模型目录加载由 Radius 提供商负责。
  *
- * NOTE: This module uses node:http for the OAuth callback server.
- * It is only intended for CLI use, not browser environments.
+ * 注意：此模块使用 node:http 创建 OAuth 回调服务器。
+ * 仅用于 CLI，不适用于浏览器环境。
  */
 
-// NEVER convert to top-level imports - breaks browser/Vite builds
+// 切勿改为顶层导入，否则会破坏浏览器/Vite 构建
 let _http: typeof import("node:http") | null = null;
 if (typeof process !== "undefined" && (process.versions?.node || process.versions?.bun)) {
 	import("node:http").then((m) => {

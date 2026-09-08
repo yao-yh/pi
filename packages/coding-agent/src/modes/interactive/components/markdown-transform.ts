@@ -22,7 +22,7 @@ function applyMarkdownTransformers(
 				transformedMarkdown = transformed;
 			}
 		} catch {
-			// Keep the current Markdown and continue with the next transformer.
+			// 保留当前 Markdown，并继续执行下一个转换器。
 		}
 	}
 	return transformedMarkdown;

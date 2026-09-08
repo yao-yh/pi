@@ -1,16 +1,16 @@
 /**
- * AgentSession - Core abstraction for agent lifecycle and session management.
+ * AgentSession——代理生命周期和会话管理的核心抽象。
  *
- * This class is shared between all run modes (interactive, print, rpc).
- * It encapsulates:
- * - Agent state access
- * - Event subscription with automatic session persistence
- * - Model and thinking level management
- * - Compaction (manual and auto)
- * - Bash execution
- * - Session switching and branching
+ * 此类由所有运行模式（interactive、print、rpc）共享。
+ * 它封装了：
+ * - 代理状态访问
+ * - 带自动会话持久化的事件订阅
+ * - 模型和思考级别管理
+ * - 压缩（手动和自动）
+ * - Bash 执行
+ * - 会话切换和分支
  *
- * Modes use this class and add their own I/O layer on top.
+ * 各模式使用此类，并在其上添加自己的 I/O 层。
  */
 
 import { readFileSync } from "node:fs";
@@ -114,10 +114,10 @@ import { createToolDefinitionFromAgentTool } from "./tools/tool-definition-wrapp
 import { addUsageToTotals, createUsageTotals } from "./usage-totals.ts";
 
 // ============================================================================
-// Skill Block Parsing
+// Skill 块解析
 // ============================================================================
 
-/** Parsed skill block from a user message */
+/** 从用户消息中解析出的 skill 块 */
 export interface ParsedSkillBlock {
 	name: string;
 	location: string;
@@ -126,8 +126,8 @@ export interface ParsedSkillBlock {
 }
 
 /**
- * Parse a skill block from message text.
- * Returns null if the text doesn't contain a skill block.
+ * 从消息文本中解析 skill 块。
+ * 文本不包含 skill 块时返回 null。
  */
 export function parseSkillBlock(text: string): ParsedSkillBlock | null {
 	const match = text.match(/^<skill name="([^"]+)" location="([^"]+)">\n([\s\S]*?)\n<\/skill>(?:\n\n([\s\S]+))?$/);
@@ -140,7 +140,7 @@ export function parseSkillBlock(text: string): ParsedSkillBlock | null {
 	};
 }
 
-/** Session-specific events that extend the core AgentEvent */
+/** 扩展核心 AgentEvent 的会话专用事件 */
 export type AgentSessionEvent =
 	| Exclude<AgentEvent, { type: "agent_end" }>
 	| {
@@ -184,11 +184,11 @@ export type AgentSessionEvent =
 	| { type: "summarization_retry_finished" }
 	| { type: "bash_execution_update"; id?: string; delta: string };
 
-/** Listener function for agent session events */
+/** 代理会话事件的监听函数 */
 export type AgentSessionEventListener = (event: AgentSessionEvent) => void;
 
 // ============================================================================
-// Types
+// 类型
 // ============================================================================
 
 function withoutDeletedHeaders(headers: ProviderHeaders | undefined): Record<string, string> | undefined {
@@ -202,30 +202,30 @@ export interface AgentSessionConfig {
 	sessionManager: SessionManager;
 	settingsManager: SettingsManager;
 	cwd: string;
-	/** Models to cycle through with Ctrl+P (from --models flag) */
+	/** 使用 Ctrl+P 循环切换的模型（来自 --models 标志） */
 	scopedModels?: Array<{ model: Model<any>; thinkingLevel?: ThinkingLevel }>;
-	/** Resource loader for extensions, skills, prompts, themes, context files, and system prompt */
+	/** 用于扩展、skill、提示词、主题、上下文文件和系统提示词的资源加载器 */
 	resourceLoader: ResourceLoader;
-	/** SDK custom tools registered outside extensions */
+	/** 在扩展之外注册的 SDK 自定义工具 */
 	customTools?: ToolDefinition[];
-	/** Canonical model/auth runtime used by coding-agent internals. */
+	/** coding-agent 内部使用的规范模型/认证运行时。 */
 	modelRuntime: ModelRuntime;
-	/** Initial active built-in tool names. Default: [read, bash, edit, write] */
+	/** 初始活动内置工具名称。默认值：[read, bash, edit, write] */
 	initialActiveToolNames?: string[];
-	/** Optional allowlist of tool names. When provided, only these tool names are exposed. */
+	/** 可选的工具名称允许列表。提供时仅公开这些工具。 */
 	allowedToolNames?: string[];
-	/** Optional denylist of tool names. When provided, these tool names are not exposed. */
+	/** 可选的工具名称拒绝列表。提供时不公开这些工具。 */
 	excludedToolNames?: string[];
 	/**
-	 * Override base tools (useful for custom runtimes).
+	 * 覆盖基础工具（适用于自定义运行时）。
 	 *
-	 * These are synthesized into minimal ToolDefinitions internally so AgentSession can keep
-	 * a definition-first registry even when callers provide plain AgentTool instances.
+	 * 这些工具会在内部合成为最小 ToolDefinition，使 AgentSession 即使在调用方提供
+	 * 普通 AgentTool 实例时，也能维持定义优先的注册表。
 	 */
 	baseToolsOverride?: Record<string, AgentTool>;
-	/** Mutable ref used by Agent to access the current ExtensionRunner */
+	/** 供 Agent 访问当前 ExtensionRunner 的可变引用 */
 	extensionRunnerRef?: { current?: ExtensionRunner };
-	/** Session start event metadata emitted when extensions bind to this runtime. */
+	/** 扩展绑定到此运行时时发送的会话启动事件元数据。 */
 	sessionStartEvent?: SessionStartEvent;
 }
 
@@ -238,35 +238,35 @@ export interface ExtensionBindings {
 	onError?: ExtensionErrorListener;
 }
 
-/** Options for AgentSession.prompt() */
+/** AgentSession.prompt() 的选项 */
 export interface PromptOptions {
-	/** Whether to dispatch extension commands and expand skill commands and prompt templates (default: true) */
+	/** 是否分派扩展命令并展开 skill 命令和提示词模板（默认值：true） */
 	expandPromptTemplates?: boolean;
-	/** Image attachments */
+	/** 图像附件 */
 	images?: ImageContent[];
-	/** When streaming, how to queue the message: "steer" (interrupt) or "followUp" (wait). Required if streaming. */
+	/** 流式处理时的消息排队方式："steer"（打断）或 "followUp"（等待）。流式处理时必需。 */
 	streamingBehavior?: "steer" | "followUp";
-	/** Source of input for extension input event handlers. Defaults to "interactive". */
+	/** 扩展输入事件处理器的输入来源。默认为 "interactive"。 */
 	source?: InputSource;
-	/** Internal hook used by RPC mode to observe prompt preflight acceptance or rejection. */
+	/** RPC 模式用于观察提示词预检接受或拒绝状态的内部钩子。 */
 	preflightResult?: (success: boolean) => void;
 }
 
-/** Options for model/thinking mutations. */
+/** 模型/思考设置变更选项。 */
 export interface ModelMutationOptions {
-	/** Persist the new value to global defaults. Defaults to session-only. */
+	/** 将新值持久化到全局默认值。默认仅作用于当前会话。 */
 	persist?: boolean;
 }
 
-/** Result from cycleModel() */
+/** cycleModel() 的结果 */
 export interface ModelCycleResult {
 	model: Model<any>;
 	thinkingLevel: ThinkingLevel;
-	/** Whether cycling through scoped models (--models flag) or all available */
+	/** 是否循环切换限定范围的模型（--models 标志），否则切换所有可用模型 */
 	isScoped: boolean;
 }
 
-/** Session statistics for /session command */
+/** /session 命令的会话统计信息 */
 export interface SessionStats {
 	sessionFile: string | undefined;
 	sessionId: string;
@@ -300,11 +300,11 @@ function estimateMessagesTokens(messages: AgentMessage[]): number {
 }
 
 // ============================================================================
-// Constants
+// 常量
 // ============================================================================
 
 // ============================================================================
-// AgentSession Class
+// AgentSession 类
 // ============================================================================
 
 export class AgentSession {
@@ -314,39 +314,39 @@ export class AgentSession {
 
 	private _scopedModels: Array<{ model: Model<any>; thinkingLevel?: ThinkingLevel }>;
 
-	// Event subscription state
+	// 事件订阅状态
 	private _unsubscribeAgent?: () => void;
 	private _eventListeners: AgentSessionEventListener[] = [];
 	private _isAgentRunActive = false;
 	private _idleWaitPromise: Promise<void> | undefined;
 	private _resolveIdleWait: (() => void) | undefined;
 
-	/** Tracks pending steering messages for UI display. Removed when delivered. */
+	/** 跟踪供 UI 显示的待处理 steering 消息。投递后移除。 */
 	private _steeringMessages: string[] = [];
-	/** Tracks pending follow-up messages for UI display. Removed when delivered. */
+	/** 跟踪供 UI 显示的待处理 follow-up 消息。投递后移除。 */
 	private _followUpMessages: string[] = [];
-	/** Messages queued to be included with the next user prompt as context ("asides"). */
+	/** 排队等待作为上下文随下一条用户提示词一起加入的消息（“旁注”）。 */
 	private _pendingNextTurnMessages: CustomMessage[] = [];
-	/** Context-only custom messages queued during a run, flushed once the current turn's tool results are in. */
+	/** 运行期间排队的仅上下文自定义消息；当前轮次的工具结果到达后刷写。 */
 	private _pendingCustomMessages: CustomMessage[] = [];
 
-	// Compaction state
+	// 压缩状态
 	private _compactionAbortController: AbortController | undefined = undefined;
 	private _autoCompactionAbortController: AbortController | undefined = undefined;
 	private _overflowRecoveryAttempted = false;
 
-	// Branch summarization state
+	// 分支摘要状态
 	private _branchSummaryAbortController: AbortController | undefined = undefined;
 
-	// Retry state
+	// 重试状态
 	private _retryAbortController: AbortController | undefined = undefined;
 	private _retryAttempt = 0;
 
-	// Bash execution state
+	// Bash 执行状态
 	private readonly _bashAbortControllers = new Set<AbortController>();
 	private _pendingBashMessages: BashExecutionMessage[] = [];
 
-	// Extension system
+	// 扩展系统
 	private _extensionRunner!: ExtensionRunner;
 	private _turnIndex = 0;
 
@@ -370,13 +370,13 @@ export class AgentSession {
 
 	private _modelRuntime: ModelRuntime;
 
-	// Tool registry for extension getTools/setTools
+	// 供扩展 getTools/setTools 使用的工具注册表
 	private _toolRegistry: Map<string, AgentTool> = new Map();
 	private _toolDefinitions: Map<string, ToolDefinitionEntry> = new Map();
 	private _toolPromptSnippets: Map<string, string> = new Map();
 	private _toolPromptGuidelines: Map<string, string[]> = new Map();
 
-	// Base system prompt (without extension appends) - used to apply fresh appends each turn
+	// 基础系统提示词（不含扩展附加内容）——用于每轮应用新的附加内容
 	private _baseSystemPrompt = "";
 	private _baseSystemPromptOptions!: BuildSystemPromptOptions;
 	private _systemPromptOverride?: string;
@@ -397,8 +397,8 @@ export class AgentSession {
 		this._baseToolsOverride = config.baseToolsOverride;
 		this._sessionStartEvent = config.sessionStartEvent ?? { type: "session_start", reason: "startup" };
 
-		// Always subscribe to agent events for internal handling
-		// (session persistence, extensions, auto-compaction, retry logic)
+		// 始终订阅代理事件，以便进行内部处理
+		// （会话持久化、扩展、自动压缩、重试逻辑）
 		this._unsubscribeAgent = this.agent.subscribe(this._handleAgentEvent);
 		this._installAgentToolHooks();
 		this._installAgentNextTurnRefresh();
@@ -476,12 +476,11 @@ export class AgentSession {
 	}
 
 	/**
-	 * Install tool hooks once on the Agent instance.
+	 * 在 Agent 实例上安装一次工具钩子。
 	 *
-	 * The callbacks read `this._extensionRunner` at execution time, so extension reload swaps in the
-	 * new runner without reinstalling hooks. Extension-specific tool wrappers are still used to adapt
-	 * registered tool execution to the extension context. Tool call and tool result interception now
-	 * happens here instead of in wrappers.
+	 * 回调在执行时读取 `this._extensionRunner`，因此扩展重载可以换入新运行器，
+	 * 无需重新安装钩子。仍使用扩展专用工具包装器，使已注册工具的执行适配扩展上下文。
+	 * 工具调用和工具结果拦截现在在此处进行，而不再位于包装器中。
 	 */
 	private _installAgentToolHooks(): void {
 		this.agent.beforeToolCall = async ({ toolCall, args }) => {
@@ -521,7 +520,7 @@ export class AgentSession {
 				: undefined;
 
 			const content = hookResult?.content ?? result.content ?? [];
-			// Runs after the extension hook so images injected or replaced by extensions are normalized too.
+			// 在扩展钩子后运行，因此扩展注入或替换的图像也会被规范化。
 			const normalizedContent = await normalizeToolResultImages(content, {
 				autoResizeImages: this.settingsManager.getImageAutoResize(),
 			});
@@ -583,10 +582,10 @@ export class AgentSession {
 	}
 
 	// =========================================================================
-	// Event Subscription
+	// 事件订阅
 	// =========================================================================
 
-	/** Emit an event to all listeners */
+	/** 向所有监听器发送事件 */
 	private _emit(event: AgentSessionEvent): void {
 		for (const l of this._eventListeners) {
 			l(event);
@@ -636,24 +635,24 @@ export class AgentSession {
 		}
 	}
 
-	// Track last assistant message for auto-compaction check
+	// 跟踪最后一条助手消息，用于自动压缩检查
 	private _lastAssistantMessage: AssistantMessage | undefined = undefined;
 
-	/** Internal handler for agent events - shared by subscribe and reconnect */
+	/** 代理事件的内部处理器——由订阅和重新连接共享 */
 	private _handleAgentEvent = async (event: AgentEvent): Promise<void> => {
-		// When a user message starts, check if it's from either queue and remove it BEFORE emitting
-		// This ensures the UI sees the updated queue state
+		// 用户消息开始时，检查它是否来自任一队列，并在发送事件前将其移除
+		// 这样可确保 UI 看到更新后的队列状态
 		if (event.type === "message_start" && event.message.role === "user") {
 			this._overflowRecoveryAttempted = false;
 			const messageText = contentText(event.message.content, "");
 			if (messageText) {
-				// Check steering queue first
+				// 首先检查 steering 队列
 				const steeringIndex = this._steeringMessages.indexOf(messageText);
 				if (steeringIndex !== -1) {
 					this._steeringMessages.splice(steeringIndex, 1);
 					this._emitQueueUpdate();
 				} else {
-					// Check follow-up queue
+					// 检查 follow-up 队列
 					const followUpIndex = this._followUpMessages.indexOf(messageText);
 					if (followUpIndex !== -1) {
 						this._followUpMessages.splice(followUpIndex, 1);
@@ -663,17 +662,17 @@ export class AgentSession {
 			}
 		}
 
-		// Emit to extensions first
+		// 首先向扩展发送
 		await this._emitExtensionEvent(event);
 
-		// Notify all listeners
+		// 通知所有监听器
 		this._emit(event.type === "agent_end" ? { ...event, willRetry: this._willRetryAfterAgentEnd(event) } : event);
 
-		// Handle session persistence
+		// 处理会话持久化
 		if (event.type === "message_end") {
-			// Check if this is a custom message from extensions
+			// 检查是否为扩展发出的自定义消息
 			if (event.message.role === "custom") {
-				// Persist as CustomMessageEntry
+				// 持久化为 CustomMessageEntry
 				this.sessionManager.appendCustomMessageEntry(
 					event.message.customType,
 					event.message.content,
@@ -685,12 +684,12 @@ export class AgentSession {
 				event.message.role === "assistant" ||
 				event.message.role === "toolResult"
 			) {
-				// Regular LLM message - persist as SessionMessageEntry
+				// 普通 LLM 消息——持久化为 SessionMessageEntry
 				this.sessionManager.appendMessage(event.message);
 			}
-			// Other message types (bashExecution, compactionSummary, branchSummary) are persisted elsewhere
+			// 其他消息类型（bashExecution、compactionSummary、branchSummary）在其他位置持久化
 
-			// Track assistant message for auto-compaction (checked on agent_end)
+			// 跟踪助手消息以便自动压缩（在 agent_end 时检查）
 			if (event.message.role === "assistant") {
 				this._lastAssistantMessage = event.message;
 
@@ -699,8 +698,8 @@ export class AgentSession {
 					this._overflowRecoveryAttempted = false;
 				}
 
-				// Reset retry counter immediately on successful assistant response
-				// This prevents accumulation across multiple LLM calls within a turn
+				// 助手响应成功时立即重置重试计数器
+				// 避免在一轮中的多次 LLM 调用之间累计
 				if (assistantMsg.stopReason !== "error" && this._retryAttempt > 0) {
 					this._emit({
 						type: "auto_retry_end",
@@ -712,11 +711,9 @@ export class AgentSession {
 			}
 		}
 
-		// A turn ends after its assistant message and every tool result has been appended,
-		// so this is the first point in the run where a context-only custom message can be
-		// inserted without landing between a tool call and its result. Flushing after the
-		// extension and listener dispatch above also picks up messages that turn_end
-		// handlers queued.
+		// 助手消息和所有工具结果追加完成后，一轮才结束；因此这是运行期间第一个可以插入
+		// 仅上下文自定义消息，且不会落在工具调用与其结果之间的位置。在上述扩展和监听器
+		// 分派后刷写，还会包含 turn_end 处理器排队的消息。
 		if (event.type === "turn_end") {
 			this._flushPendingCustomMessages();
 		}
@@ -737,7 +734,7 @@ export class AgentSession {
 		return false;
 	}
 
-	/** Find the last assistant message in agent state (including aborted ones) */
+	/** 查找代理状态中的最后一条助手消息（包括已中止消息） */
 	private _findLastAssistantMessage(): AssistantMessage | undefined {
 		const messages = this.agent.state.messages;
 		for (let i = messages.length - 1; i >= 0; i--) {
@@ -750,10 +747,10 @@ export class AgentSession {
 	}
 
 	private _replaceMessageInPlace(target: AgentMessage, replacement: AgentMessage): void {
-		// Agent-core stores the finalized message object in its state before emitting message_end.
-		// SessionManager persistence happens later in _handleAgentEvent() with event.message.
-		// Mutating this object in place keeps agent state, later turn/agent events, listeners,
-		// and the eventual SessionManager.appendMessage(event.message) persistence in sync.
+		// agent-core 在发送 message_end 前将已完成的消息对象存入其状态。
+		// SessionManager 稍后在 _handleAgentEvent() 中使用 event.message 持久化。
+		// 原地修改此对象可使代理状态、后续轮次/代理事件、监听器以及最终的
+		// SessionManager.appendMessage(event.message) 持久化保持同步。
 		if (target === replacement) {
 			return;
 		}
@@ -765,7 +762,7 @@ export class AgentSession {
 		Object.assign(targetRecord, replacement);
 	}
 
-	/** Emit extension events based on agent events */
+	/** 根据代理事件发送扩展事件 */
 	private async _emitExtensionEvent(event: AgentEvent): Promise<void> {
 		if (event.type === "agent_start") {
 			this._turnIndex = 0;
@@ -808,8 +805,8 @@ export class AgentSession {
 			};
 			const replacement = await this._extensionRunner.emitMessageEnd(extensionEvent);
 			if (replacement) {
-				// Untyped extension handlers can return messages with null/missing content;
-				// normalize so it never enters agent state or session history.
+				// 无类型扩展处理器可能返回 content 为 null 或缺失的消息；
+				// 进行规范化，避免其进入代理状态或会话历史。
 				const normalized =
 					(replacement.role === "user" ||
 						replacement.role === "assistant" ||
@@ -850,14 +847,14 @@ export class AgentSession {
 	}
 
 	/**
-	 * Subscribe to agent events.
-	 * Session persistence is handled internally (saves messages on message_end).
-	 * Multiple listeners can be added. Returns unsubscribe function for this listener.
+	 * 订阅代理事件。
+	 * 会话持久化在内部处理（在 message_end 时保存消息）。
+	 * 可以添加多个监听器。返回此监听器的取消订阅函数。
 	 */
 	subscribe(listener: AgentSessionEventListener): () => void {
 		this._eventListeners.push(listener);
 
-		// Return unsubscribe function for this specific listener
+		// 返回此特定监听器的取消订阅函数
 		return () => {
 			const index = this._eventListeners.indexOf(listener);
 			if (index !== -1) {
@@ -866,7 +863,7 @@ export class AgentSession {
 		};
 	}
 
-	/** Disconnect from agent events during disposal. */
+	/** 释放期间断开代理事件连接。 */
 	private _disconnectFromAgent(): void {
 		if (this._unsubscribeAgent) {
 			this._unsubscribeAgent();
@@ -875,8 +872,8 @@ export class AgentSession {
 	}
 
 	/**
-	 * Remove all listeners and disconnect from agent.
-	 * Call this when completely done with the session.
+	 * 移除所有监听器并断开代理连接。
+	 * 完全结束会话使用后调用此方法。
 	 */
 	dispose(): void {
 		try {
@@ -886,7 +883,7 @@ export class AgentSession {
 			this.abortBash();
 			this.agent.abort();
 		} catch {
-			// Dispose must succeed even if an abort hook throws.
+			// 即使中止钩子抛出异常，释放操作也必须成功。
 		}
 
 		this._extensionRunner.invalidate(
@@ -898,54 +895,54 @@ export class AgentSession {
 	}
 
 	// =========================================================================
-	// Read-only State Access
+	// 只读状态访问
 	// =========================================================================
 
-	/** Full agent state */
+	/** 完整代理状态 */
 	get state(): AgentState {
 		return this.agent.state;
 	}
 
-	/** Current model (may be undefined if not yet selected) */
+	/** 当前模型（尚未选择时可能为 undefined） */
 	get model(): Model<any> | undefined {
 		return this.agent.state.model;
 	}
 
-	/** Current thinking level */
+	/** 当前思考级别 */
 	get thinkingLevel(): ThinkingLevel {
 		return this.agent.state.thinkingLevel;
 	}
 
-	/** Whether the session is currently processing an agent run or post-run continuation. */
+	/** 会话当前是否正在处理代理运行或运行后续行。 */
 	get isStreaming(): boolean {
 		return this._isAgentRunActive;
 	}
 
-	/** Whether the session has no active agent run, compaction, branch summary, retry, or queued continuation. */
+	/** 会话是否没有活动的代理运行、压缩、分支摘要、重试或排队续行。 */
 	get isIdle(): boolean {
 		return !this._isAgentRunActive && !this.isCompacting;
 	}
 
-	/** Current effective system prompt (includes any per-turn extension modifications) */
+	/** 当前生效的系统提示词（包含扩展针对当前轮次所做的修改） */
 	get systemPrompt(): string {
 		return this.agent.state.systemPrompt;
 	}
 
-	/** Current retry attempt (0 if not retrying) */
+	/** 当前重试次数（未重试时为 0） */
 	get retryAttempt(): number {
 		return this._retryAttempt;
 	}
 
 	/**
-	 * Get the names of currently active tools.
-	 * Returns the names of tools currently set on the agent.
+	 * 获取当前活动工具的名称。
+	 * 返回当前在代理上设置的工具名称。
 	 */
 	getActiveToolNames(): string[] {
 		return this.agent.state.tools.map((t) => t.name);
 	}
 
 	/**
-	 * Get all configured tools with name, description, parameter schema, prompt guidelines, and source metadata.
+	 * 获取所有已配置工具及其名称、说明、参数架构、提示词指南和来源元数据。
 	 */
 	getAllTools(): ToolInfo[] {
 		return Array.from(this._toolDefinitions.values()).map(({ definition, sourceInfo }) => ({
@@ -962,10 +959,10 @@ export class AgentSession {
 	}
 
 	/**
-	 * Set active tools by name.
-	 * Only tools in the registry can be enabled. Unknown tool names are ignored.
-	 * Also rebuilds the system prompt to reflect the new tool set.
-	 * Changes take effect on the next agent turn.
+	 * 按名称设置活动工具。
+	 * 只能启用注册表中的工具。未知工具名称会被忽略。
+	 * 同时重新构建系统提示词以反映新的工具集。
+	 * 更改在代理下一轮生效。
 	 */
 	setActiveToolsByName(toolNames: string[]): void {
 		const tools: AgentTool[] = [];
@@ -979,12 +976,12 @@ export class AgentSession {
 		}
 		this.agent.state.tools = tools;
 
-		// Rebuild base system prompt with new tool set
+		// 使用新工具集重新构建基础系统提示词
 		this._baseSystemPrompt = this._rebuildSystemPrompt(validToolNames);
 		this.agent.state.systemPrompt = this._systemPromptOverride ?? this._baseSystemPrompt;
 	}
 
-	/** Whether compaction or branch summarization is currently running */
+	/** 当前是否正在运行压缩或分支摘要生成 */
 	get isCompacting(): boolean {
 		return (
 			this._autoCompactionAbortController !== undefined ||
@@ -993,47 +990,47 @@ export class AgentSession {
 		);
 	}
 
-	/** All messages including custom types like BashExecutionMessage */
+	/** 所有消息，包括 BashExecutionMessage 等自定义类型 */
 	get messages(): AgentMessage[] {
 		return this.agent.state.messages;
 	}
 
-	/** Current steering mode */
+	/** 当前 steering 模式 */
 	get steeringMode(): "all" | "one-at-a-time" {
 		return this.agent.steeringMode;
 	}
 
-	/** Current follow-up mode */
+	/** 当前 follow-up 模式 */
 	get followUpMode(): "all" | "one-at-a-time" {
 		return this.agent.followUpMode;
 	}
 
-	/** Current session file path, or undefined if sessions are disabled */
+	/** 当前会话文件路径；会话已禁用时为 undefined */
 	get sessionFile(): string | undefined {
 		return this.sessionManager.getSessionFile();
 	}
 
-	/** Current session ID */
+	/** 当前会话 ID */
 	get sessionId(): string {
 		return this.sessionManager.getSessionId();
 	}
 
-	/** Current session display name, if set */
+	/** 当前会话显示名称（如果已设置） */
 	get sessionName(): string | undefined {
 		return this.sessionManager.getSessionName();
 	}
 
-	/** Scoped models for cycling (from --models flag) */
+	/** 用于循环切换的限定范围模型（来自 --models 标志） */
 	get scopedModels(): ReadonlyArray<{ model: Model<any>; thinkingLevel?: ThinkingLevel }> {
 		return this._scopedModels;
 	}
 
-	/** Update scoped models for cycling */
+	/** 更新用于循环切换的限定范围模型 */
 	setScopedModels(scopedModels: Array<{ model: Model<any>; thinkingLevel?: ThinkingLevel }>): void {
 		this._scopedModels = scopedModels;
 	}
 
-	/** File-based prompt templates */
+	/** 基于文件的提示词模板 */
 	get promptTemplates(): ReadonlyArray<PromptTemplate> {
 		return this._resourceLoader.getPrompts().prompts;
 	}
@@ -1099,7 +1096,7 @@ export class AgentSession {
 	}
 
 	// =========================================================================
-	// Prompting
+	// 提示词处理
 	// =========================================================================
 
 	private async _runAgentPrompt(messages: AgentMessage | AgentMessage[]): Promise<void> {
@@ -1142,19 +1139,19 @@ export class AgentSession {
 			return true;
 		}
 
-		// The agent loop drains both queues before emitting agent_end. Any messages
-		// here were queued by agent_end extension handlers and need a continuation.
+		// 代理循环在发送 agent_end 前会清空两个队列。此时存在的任何消息都是由
+		// agent_end 扩展处理器排队的，需要继续运行。
 		return this.agent.hasQueuedMessages();
 	}
 
 	/**
-	 * Send a prompt to the agent.
-	 * - Handles extension commands (registered via pi.registerCommand) immediately, even during streaming
-	 * - Expands file-based prompt templates by default
-	 * - During streaming, queues via steer() or followUp() based on streamingBehavior option
-	 * - Validates model and API key before sending (when not streaming)
-	 * @throws Error if streaming and no streamingBehavior specified
-	 * @throws Error if no model selected or no API key available (when not streaming)
+	 * 向代理发送提示词。
+	 * - 立即处理扩展命令（通过 pi.registerCommand 注册），即使正在流式处理
+	 * - 默认展开基于文件的提示词模板
+	 * - 流式处理期间，根据 streamingBehavior 选项通过 steer() 或 followUp() 排队
+	 * - 发送前验证模型和 API 密钥（未进行流式处理时）
+	 * @throws 流式处理时未指定 streamingBehavior 则抛出 Error
+	 * @throws 未选择模型或没有可用 API 密钥时抛出 Error（未进行流式处理时）
 	 */
 	async prompt(text: string, options?: PromptOptions): Promise<void> {
 		const expandPromptTemplates = options?.expandPromptTemplates ?? true;
@@ -1162,12 +1159,12 @@ export class AgentSession {
 		let messages: AgentMessage[] | undefined;
 
 		try {
-			// Handle extension commands first (execute immediately, even during streaming)
-			// Extension commands manage their own LLM interaction via pi.sendMessage()
+			// 首先处理扩展命令（即使正在流式处理也立即执行）
+			// 扩展命令通过 pi.sendMessage() 管理自己的 LLM 交互
 			if (expandPromptTemplates && text.startsWith("/")) {
 				const handled = await this._tryExecuteExtensionCommand(text);
 				if (handled) {
-					// Extension command executed, no prompt to send
+					// 扩展命令已执行，无需发送提示词
 					preflightResult?.(true);
 					return;
 				}
@@ -1179,7 +1176,7 @@ export class AgentSession {
 				);
 			}
 
-			// Emit input event for extension interception (before skill/template expansion)
+			// 发送输入事件供扩展拦截（在 skill/模板展开前）
 			let currentText = text;
 			let currentImages = options?.images;
 			if (this._extensionRunner.hasHandlers("input")) {
@@ -1199,14 +1196,14 @@ export class AgentSession {
 				}
 			}
 
-			// Expand skill commands (/skill:name args) and prompt templates (/template args)
+			// 展开 skill 命令（/skill:name args）和提示词模板（/template args）
 			let expandedText = currentText;
 			if (expandPromptTemplates) {
 				expandedText = this._expandSkillCommand(expandedText);
 				expandedText = expandPromptTemplate(expandedText, [...this.promptTemplates]);
 			}
 
-			// If streaming, queue via steer() or followUp() based on option
+			// 流式处理时，根据选项通过 steer() 或 followUp() 排队
 			if (this.isStreaming) {
 				if (!options?.streamingBehavior) {
 					throw new Error(
@@ -1222,11 +1219,11 @@ export class AgentSession {
 				return;
 			}
 
-			// Flush any pending bash and custom messages before the new prompt
+			// 在新提示词前刷写所有待处理 bash 消息和自定义消息
 			this._flushPendingBashMessages();
 			this._flushPendingCustomMessages();
 
-			// Validate model
+			// 验证模型
 			if (!this.model) {
 				throw new Error(formatNoModelSelectedMessage());
 			}
@@ -1246,17 +1243,17 @@ export class AgentSession {
 				throw new Error(formatNoApiKeyFoundMessage(this.model.provider));
 			}
 
-			// Check if we need to compact before sending (catches aborted responses).
-			// The user's new prompt is sent below, so do not call agent.continue() here.
+			// 发送前检查是否需要压缩（捕获已中止响应）。
+			// 用户的新提示词会在下方发送，因此此处不要调用 agent.continue()。
 			const lastAssistant = this._findLastAssistantMessage();
 			if (lastAssistant) {
 				await this._checkCompaction(lastAssistant, false);
 			}
 
-			// Build messages array (custom message if any, then user message)
+			// 构建消息数组（先放可能存在的自定义消息，再放用户消息）
 			messages = [];
 
-			// Add user message
+			// 添加用户消息
 			const userContent: (TextContent | ImageContent)[] = [{ type: "text", text: expandedText }];
 			if (currentImages) {
 				userContent.push(...currentImages);
@@ -1267,26 +1264,26 @@ export class AgentSession {
 				timestamp: Date.now(),
 			});
 
-			// Inject any pending "nextTurn" messages as context alongside the user message
+			// 将所有待处理的 "nextTurn" 消息作为上下文与用户消息一并注入
 			for (const msg of this._pendingNextTurnMessages) {
 				messages.push(msg);
 			}
 			this._pendingNextTurnMessages = [];
 
-			// Emit before_agent_start extension event
+			// 发送 before_agent_start 扩展事件
 			const result = await this._extensionRunner.emitBeforeAgentStart(
 				expandedText,
 				currentImages,
 				this._baseSystemPrompt,
 				this._baseSystemPromptOptions,
 			);
-			// Add all custom messages from extensions
+			// 添加扩展提供的所有自定义消息
 			if (result?.messages) {
 				for (const msg of result.messages) {
 					messages.push({
 						role: "custom",
 						customType: msg.customType,
-						// Untyped extensions can pass null/missing content; normalize at ingestion.
+						// 无类型扩展可能传入 null 或缺失的 content；在接收时进行规范化。
 						content: msg.content ?? [],
 						display: msg.display,
 						details: msg.details,
@@ -1294,12 +1291,12 @@ export class AgentSession {
 					});
 				}
 			}
-			// Apply extension-modified system prompt, or reset to base
+			// 应用扩展修改后的系统提示词，或重置为基础提示词
 			if (result?.systemPrompt !== undefined) {
 				this._systemPromptOverride = result.systemPrompt;
 				this.agent.state.systemPrompt = result.systemPrompt;
 			} else {
-				// Ensure we're using the base prompt (in case previous turn had modifications)
+				// 确保使用基础提示词（防止上一轮存在修改）
 				this._systemPromptOverride = undefined;
 				this.agent.state.systemPrompt = this._baseSystemPrompt;
 			}
@@ -1317,10 +1314,10 @@ export class AgentSession {
 	}
 
 	/**
-	 * Try to execute an extension command. Returns true if command was found and executed.
+	 * 尝试执行扩展命令。找到并执行命令时返回 true。
 	 */
 	private async _tryExecuteExtensionCommand(text: string): Promise<boolean> {
-		// Parse command name and args
+		// 解析命令名称和参数
 		const spaceIndex = text.indexOf(" ");
 		const commandName = spaceIndex === -1 ? text.slice(1) : text.slice(1, spaceIndex);
 		const args = spaceIndex === -1 ? "" : text.slice(spaceIndex + 1);
@@ -1328,14 +1325,14 @@ export class AgentSession {
 		const command = this._extensionRunner.getCommand(commandName);
 		if (!command) return false;
 
-		// Get command context from extension runner (includes session control methods)
+		// 从扩展运行器获取命令上下文（包含会话控制方法）
 		const ctx = this._extensionRunner.createCommandContext();
 
 		try {
 			await command.handler(args, ctx);
 			return true;
 		} catch (err) {
-			// Emit error via extension runner
+			// 通过扩展运行器发送错误
 			this._extensionRunner.emitError({
 				extensionPath: `command:${commandName}`,
 				event: "command",
@@ -1346,9 +1343,9 @@ export class AgentSession {
 	}
 
 	/**
-	 * Expand skill commands (/skill:name args) to their full content.
-	 * Returns the expanded text, or the original text if not a skill command or skill not found.
-	 * Emits errors via extension runner if file read fails.
+	 * 将 skill 命令（/skill:name args）展开为完整内容。
+	 * 如果不是 skill 命令或找不到 skill，则返回原文本。
+	 * 文件读取失败时通过扩展运行器发送错误。
 	 */
 	private _expandSkillCommand(text: string): string {
 		if (!text.startsWith("/skill:")) return text;
@@ -1358,7 +1355,7 @@ export class AgentSession {
 		const args = spaceIndex === -1 ? "" : text.slice(spaceIndex + 1).trim();
 
 		const skill = this.resourceLoader.getSkills().skills.find((s) => s.name === skillName);
-		if (!skill) return text; // Unknown skill, pass through
+		if (!skill) return text; // 未知 skill，原样传递
 
 		try {
 			const content = readFileSync(skill.filePath, "utf-8");
@@ -1366,31 +1363,30 @@ export class AgentSession {
 			const skillBlock = `<skill name="${skill.name}" location="${skill.filePath}">\nReferences are relative to ${skill.baseDir}.\n\n${body}\n</skill>`;
 			return args ? `${skillBlock}\n\n${args}` : skillBlock;
 		} catch (err) {
-			// Emit error like extension commands do
+			// 像扩展命令一样发送错误
 			this._extensionRunner.emitError({
 				extensionPath: skill.filePath,
 				event: "skill_expansion",
 				error: err instanceof Error ? err.message : String(err),
 			});
-			return text; // Return original on error
+			return text; // 出错时返回原文本
 		}
 	}
 
 	/**
-	 * Queue a steering message while the agent is running.
-	 * Delivered after the current assistant turn finishes executing its tool calls,
-	 * before the next LLM call.
-	 * Expands skill commands and prompt templates. Errors on extension commands.
-	 * @param images Optional image attachments to include with the message
-	 * @throws Error if text is an extension command
+	 * 在代理运行期间将 steering 消息加入队列。
+	 * 当前助手轮次完成工具调用执行后、下一次 LLM 调用前投递。
+	 * 展开 skill 命令和提示词模板。遇到扩展命令时报错。
+	 * @param images 消息中包含的可选图像附件
+	 * @throws 文本是扩展命令时抛出 Error
 	 */
 	async steer(text: string, images?: ImageContent[]): Promise<void> {
-		// Check for extension commands (cannot be queued)
+		// 检查扩展命令（不能排队）
 		if (text.startsWith("/")) {
 			this._throwIfExtensionCommand(text);
 		}
 
-		// Expand skill commands and prompt templates
+		// 展开 skill 命令和提示词模板
 		let expandedText = this._expandSkillCommand(text);
 		expandedText = expandPromptTemplate(expandedText, [...this.promptTemplates]);
 
@@ -1398,19 +1394,19 @@ export class AgentSession {
 	}
 
 	/**
-	 * Queue a follow-up message to be processed after the agent finishes.
-	 * Delivered only when agent has no more tool calls or steering messages.
-	 * Expands skill commands and prompt templates. Errors on extension commands.
-	 * @param images Optional image attachments to include with the message
-	 * @throws Error if text is an extension command
+	 * 将代理结束后处理的 follow-up 消息加入队列。
+	 * 仅当代理没有更多工具调用或 steering 消息时投递。
+	 * 展开 skill 命令和提示词模板。遇到扩展命令时报错。
+	 * @param images 消息中包含的可选图像附件
+	 * @throws 文本是扩展命令时抛出 Error
 	 */
 	async followUp(text: string, images?: ImageContent[]): Promise<void> {
-		// Check for extension commands (cannot be queued)
+		// 检查扩展命令（不能排队）
 		if (text.startsWith("/")) {
 			this._throwIfExtensionCommand(text);
 		}
 
-		// Expand skill commands and prompt templates
+		// 展开 skill 命令和提示词模板
 		let expandedText = this._expandSkillCommand(text);
 		expandedText = expandPromptTemplate(expandedText, [...this.promptTemplates]);
 
@@ -1418,7 +1414,7 @@ export class AgentSession {
 	}
 
 	/**
-	 * Internal: Queue a steering message (already expanded, no extension command check).
+	 * 内部方法：将 steering 消息加入队列（已展开，不检查扩展命令）。
 	 */
 	private async _queueSteer(text: string, images?: ImageContent[]): Promise<void> {
 		this._steeringMessages.push(text);
@@ -1435,7 +1431,7 @@ export class AgentSession {
 	}
 
 	/**
-	 * Internal: Queue a follow-up message (already expanded, no extension command check).
+	 * 内部方法：将 follow-up 消息加入队列（已展开，不检查扩展命令）。
 	 */
 	private async _queueFollowUp(text: string, images?: ImageContent[]): Promise<void> {
 		this._followUpMessages.push(text);
@@ -1452,7 +1448,7 @@ export class AgentSession {
 	}
 
 	/**
-	 * Throw an error if the text is an extension command.
+	 * 如果文本是扩展命令，则抛出错误。
 	 */
 	private _throwIfExtensionCommand(text: string): void {
 		const spaceIndex = text.indexOf(" ");
@@ -1467,17 +1463,17 @@ export class AgentSession {
 	}
 
 	/**
-	 * Send a custom message to the session. Creates a CustomMessageEntry.
+	 * 向会话发送自定义消息。创建 CustomMessageEntry。
 	 *
-	 * Handles four cases:
-	 * - Streaming: queues message, processed when loop pulls from queue
-	 * - Streaming + triggerTurn false: appended to state/session once the current turn ends
-	 * - Not streaming + triggerTurn: appends to state/session, starts new turn
-	 * - Not streaming + no trigger: appends to state/session, no turn
+	 * 处理四种情况：
+	 * - 流式处理中：消息排队，在循环从队列中取出时处理
+	 * - 流式处理中 + triggerTurn 为 false：当前轮次结束后追加到状态/会话
+	 * - 未流式处理 + triggerTurn：追加到状态/会话并开始新轮次
+	 * - 未流式处理 + 不触发：追加到状态/会话，不开始轮次
 	 *
-	 * @param message Custom message with customType, content, display, details
-	 * @param options.triggerTurn If true and not streaming, triggers a new LLM turn
-	 * @param options.deliverAs Delivery mode: "steer", "followUp", or "nextTurn"
+	 * @param message 包含 customType、content、display、details 的自定义消息
+	 * @param options.triggerTurn 为 true 且未流式处理时，触发新的 LLM 轮次
+	 * @param options.deliverAs 投递模式："steer"、"followUp" 或 "nextTurn"
 	 */
 	async sendCustomMessage<T = unknown>(
 		message: Pick<CustomMessage<T>, "customType" | "content" | "display" | "details">,
@@ -1486,7 +1482,7 @@ export class AgentSession {
 		const appMessage = {
 			role: "custom" as const,
 			customType: message.customType,
-			// Untyped extensions can pass null/missing content; normalize at ingestion.
+			// 无类型扩展可能传入 null 或缺失的 content；在接收时进行规范化。
 			content: message.content ?? [],
 			display: message.display,
 			details: message.details,
@@ -1503,10 +1499,8 @@ export class AgentSession {
 		} else if (options?.triggerTurn) {
 			await this._runAgentPrompt(appMessage);
 		} else if (this.isStreaming) {
-			// Appending now would put the message between an assistant tool call and its
-			// result, which providers that validate message order reject on replay. Defer
-			// to the end of the turn. Nothing is emitted yet: message events must not
-			// describe messages the session tree does not contain.
+			// 此时追加会将消息置于助手工具调用与其结果之间，验证消息顺序的提供商会在重放时拒绝。
+			// 因此延迟到轮次结束。此时尚不发送任何事件：消息事件不得描述会话树中不存在的消息。
 			this._pendingCustomMessages.push(appMessage);
 		} else {
 			this._appendCustomMessage(appMessage);
@@ -1526,8 +1520,8 @@ export class AgentSession {
 	}
 
 	/**
-	 * Append custom messages queued while the agent was running.
-	 * Called once the current turn's tool results are in agent state and session history.
+	 * 追加代理运行期间排队的自定义消息。
+	 * 当前轮次的工具结果进入代理状态和会话历史后调用。
 	 */
 	private _flushPendingCustomMessages(): void {
 		if (this._pendingCustomMessages.length === 0) return;
@@ -1540,18 +1534,18 @@ export class AgentSession {
 	}
 
 	/**
-	 * Send a user message to the agent. Always triggers a turn.
-	 * When the agent is streaming, use deliverAs to specify how to queue the message.
+	 * 向代理发送用户消息。始终触发一个轮次。
+	 * 代理进行流式处理时，使用 deliverAs 指定消息的排队方式。
 	 *
-	 * @param content User message content (string or content array)
-	 * @param options.deliverAs Delivery mode when streaming: "steer" or "followUp"
-	 * @param options.expandPromptTemplates Whether to dispatch extension commands and expand skill commands and prompt templates. Default: false.
+	 * @param content 用户消息内容（字符串或内容数组）
+	 * @param options.deliverAs 流式处理时的投递模式："steer" 或 "followUp"
+	 * @param options.expandPromptTemplates 是否分派扩展命令并展开 skill 命令和提示词模板。默认值：false。
 	 */
 	async sendUserMessage(
 		content: string | (TextContent | ImageContent)[],
 		options?: { deliverAs?: "steer" | "followUp"; expandPromptTemplates?: boolean },
 	): Promise<void> {
-		// Normalize content to text string + optional images
+		// 将内容规范化为文本字符串和可选图像
 		let text: string;
 		let images: ImageContent[] | undefined;
 
@@ -1580,9 +1574,9 @@ export class AgentSession {
 	}
 
 	/**
-	 * Clear all queued messages and return them.
-	 * Useful for restoring to editor when user aborts.
-	 * @returns Object with steering and followUp arrays
+	 * 清除并返回所有排队消息。
+	 * 适用于用户中止时恢复到编辑器。
+	 * @returns 包含 steering 和 followUp 数组的对象
 	 */
 	clearQueue(): { steering: string[]; followUp: string[] } {
 		const steering = [...this._steeringMessages];
@@ -1594,17 +1588,17 @@ export class AgentSession {
 		return { steering, followUp };
 	}
 
-	/** Number of pending messages (includes both steering and follow-up) */
+	/** 待处理消息数量（同时包括 steering 和 follow-up） */
 	get pendingMessageCount(): number {
 		return this._steeringMessages.length + this._followUpMessages.length;
 	}
 
-	/** Get pending steering messages (read-only) */
+	/** 获取待处理的 steering 消息（只读） */
 	getSteeringMessages(): readonly string[] {
 		return this._steeringMessages;
 	}
 
-	/** Get pending follow-up messages (read-only) */
+	/** 获取待处理的 follow-up 消息（只读） */
 	getFollowUpMessages(): readonly string[] {
 		return this._followUpMessages;
 	}
@@ -1614,7 +1608,7 @@ export class AgentSession {
 	}
 
 	/**
-	 * Abort current operation and wait for agent to become idle.
+	 * 中止当前操作并等待代理进入空闲状态。
 	 */
 	async abort(): Promise<void> {
 		this.abortRetry();
@@ -1632,7 +1626,7 @@ export class AgentSession {
 	}
 
 	// =========================================================================
-	// Model Management
+	// 模型管理
 	// =========================================================================
 
 	private async _emitModelSelect(
@@ -1650,10 +1644,10 @@ export class AgentSession {
 	}
 
 	/**
-	 * Set model directly.
-	 * Validates that auth is configured and saves to the session transcript.
-	 * Persists to global defaults only when options.persist is true.
-	 * @throws Error if no auth is configured for the model
+	 * 直接设置模型。
+	 * 验证已配置认证，并保存到会话记录。
+	 * 仅当 options.persist 为 true 时持久化到全局默认值。
+	 * @throws 模型未配置认证时抛出 Error
 	 */
 	async setModel(model: Model<any>, options: ModelMutationOptions = {}): Promise<void> {
 		if (!(await this._modelRuntime.checkAuth(model.provider))) {
@@ -1669,9 +1663,9 @@ export class AgentSession {
 			this._addPersistedDefaultToNonEmptyScope(model);
 		}
 
-		// Apply thinking level for the new model.
-		// Per-model thinking level overrides take priority over the global default.
-		// Model persistence does not implicitly rewrite the global thinking default.
+		// 应用新模型的思考级别。
+		// 单模型思考级别覆盖项优先于全局默认值。
+		// 模型持久化不会隐式改写全局思考默认值。
 		this.setThinkingLevel(thinkingLevel);
 
 		await this._emitModelSelect(model, previousModel, "set");
@@ -1692,10 +1686,10 @@ export class AgentSession {
 	}
 
 	/**
-	 * Cycle to next/previous model.
-	 * Uses scoped models (from --models flag) if available, otherwise all available models.
-	 * @param direction - "forward" (default) or "backward"
-	 * @returns The new model info, or undefined if only one model available
+	 * 循环切换到下一个/上一个模型。
+	 * 如果有范围限定模型（来自 --models 标志）则使用它们，否则使用所有可用模型。
+	 * @param direction - "forward"（默认）或 "backward"
+	 * @returns 新模型信息；只有一个模型可用时返回 undefined
 	 */
 	async cycleModel(
 		direction: "forward" | "backward" = "forward",
@@ -1728,7 +1722,7 @@ export class AgentSession {
 		const next = scopedModels[nextIndex];
 		const thinkingLevel = this._getThinkingLevelForModelSwitch(next.model, next.thinkingLevel);
 
-		// Apply model
+		// 应用模型
 		this.agent.state.model = next.model;
 		this.sessionManager.appendModelChange(next.model.provider, next.model.id);
 		if (options.persist) {
@@ -1736,11 +1730,11 @@ export class AgentSession {
 			this._addPersistedDefaultToNonEmptyScope(next.model);
 		}
 
-		// Apply thinking level for the new model.
-		// - Explicit scoped model thinking level overrides defaults
-		// - Per-model thinking level overrides take priority over the global default
-		// setThinkingLevel clamps to model capabilities.
-		// Model persistence does not implicitly rewrite the global thinking default.
+		// 应用新模型的思考级别。
+		// - 显式限定模型思考级别会覆盖默认值
+		// - 单模型思考级别覆盖项优先于全局默认值
+		// setThinkingLevel 会限制在模型能力范围内。
+		// 模型持久化不会隐式改写全局思考默认值。
 		this.setThinkingLevel(thinkingLevel);
 
 		await this._emitModelSelect(next.model, currentModel, "cycle");
@@ -1771,8 +1765,8 @@ export class AgentSession {
 			this._addPersistedDefaultToNonEmptyScope(nextModel);
 		}
 
-		// Apply thinking level for the new model.
-		// Model persistence does not implicitly rewrite the global thinking default.
+		// 应用新模型的思考级别。
+		// 模型持久化不会隐式改写全局思考默认值。
 		this.setThinkingLevel(thinkingLevel);
 
 		await this._emitModelSelect(nextModel, currentModel, "cycle");
@@ -1781,20 +1775,20 @@ export class AgentSession {
 	}
 
 	// =========================================================================
-	// Thinking Level Management
+	// 思考级别管理
 	// =========================================================================
 
 	/**
-	 * Set thinking level.
-	 * Clamps to model capabilities based on available thinking levels.
-	 * Saves the clamped level to the session transcript only if the level actually changes.
-	 * Persists the requested level to global defaults only when options.persist is true.
+	 * 设置思考级别。
+	 * 根据可用思考级别限制到模型能力范围内。
+	 * 仅当级别实际发生变化时，才将限制后的级别保存到会话记录。
+	 * 仅当 options.persist 为 true 时，将请求的级别持久化到全局默认值。
 	 */
 	setThinkingLevel(level: ThinkingLevel, options: ModelMutationOptions = {}): void {
 		const availableLevels = this.getAvailableThinkingLevels();
 		const effectiveLevel = availableLevels.includes(level) ? level : this._clampThinkingLevel(level, availableLevels);
 
-		// Only persist if actually changing
+		// 仅在实际发生变化时持久化
 		const previousLevel = this.agent.state.thinkingLevel;
 		const isChanging = effectiveLevel !== previousLevel;
 
@@ -1816,8 +1810,8 @@ export class AgentSession {
 	}
 
 	/**
-	 * Cycle to next thinking level.
-	 * @returns New level, or undefined if model doesn't support thinking
+	 * 循环切换到下一个思考级别。
+	 * @returns 新级别；模型不支持思考时返回 undefined
 	 */
 	cycleThinkingLevel(options: ModelMutationOptions = {}): ThinkingLevel | undefined {
 		if (!this.supportsThinking()) return undefined;
@@ -1832,8 +1826,8 @@ export class AgentSession {
 	}
 
 	/**
-	 * Get available thinking levels for current model.
-	 * The provider will clamp to what the specific model supports internally.
+	 * 获取当前模型可用的思考级别。
+	 * 提供商会在内部限制为具体模型支持的级别。
 	 */
 	getAvailableThinkingLevels(): ThinkingLevel[] {
 		if (!this.model) return [...THINKING_LEVEL_OPTIONS];
@@ -1841,7 +1835,7 @@ export class AgentSession {
 	}
 
 	/**
-	 * Check if current model supports thinking/reasoning.
+	 * 检查当前模型是否支持思考/推理。
 	 */
 	supportsThinking(): boolean {
 		return !!this.model?.reasoning;
@@ -1851,7 +1845,7 @@ export class AgentSession {
 		if (explicitLevel !== undefined) {
 			return explicitLevel;
 		}
-		// Per-model default takes priority when switching to a model that has one
+		// 切换到存在单模型默认值的模型时，该默认值优先
 		if (targetModel) {
 			const perModel = this.settingsManager.getModelThinkingLevel(targetModel.provider, targetModel.id);
 			if (perModel !== undefined) {
@@ -1866,7 +1860,7 @@ export class AgentSession {
 	}
 
 	// =========================================================================
-	// Queue Mode Management
+	// 队列模式管理
 	// =========================================================================
 
 	private syncQueueModesFromSettings(): void {
@@ -1875,8 +1869,8 @@ export class AgentSession {
 	}
 
 	/**
-	 * Set steering message mode.
-	 * Saves to settings.
+	 * 设置 steering 消息模式。
+	 * 保存到设置。
 	 */
 	setSteeringMode(mode: "all" | "one-at-a-time"): void {
 		this.agent.steeringMode = mode;
@@ -1884,8 +1878,8 @@ export class AgentSession {
 	}
 
 	/**
-	 * Set follow-up message mode.
-	 * Saves to settings.
+	 * 设置 follow-up 消息模式。
+	 * 保存到设置。
 	 */
 	setFollowUpMode(mode: "all" | "one-at-a-time"): void {
 		this.agent.followUpMode = mode;
@@ -1893,10 +1887,10 @@ export class AgentSession {
 	}
 
 	// =========================================================================
-	// Compaction
+	// 压缩
 	// =========================================================================
 
-	/** Generate Pi's built-in compaction summary for manual and automatic compaction. */
+	/** 为手动和自动压缩生成 Pi 的内置压缩摘要。 */
 	private async _runDefaultCompaction(
 		preparation: CompactionPreparation,
 		requestModel: Model<any>,
@@ -1919,7 +1913,7 @@ export class AgentSession {
 			env,
 			this.settingsManager.getRetrySettings(),
 			this._summarizationRetryCallbacks({ source: "compaction", reason }),
-			undefined, // sessionId
+			undefined, // 会话 ID
 		);
 	}
 
@@ -1929,19 +1923,16 @@ export class AgentSession {
 	}
 
 	/**
-	 * Manually compact the session context.
+	 * 手动压缩会话上下文。
 	 *
-	 * This is the manual entry point used by `/compact`, RPC, and extensions. It is
-	 * separate from automatic threshold/overflow compaction, which enters through
-	 * `_checkCompaction()` and `_runAutoCompaction()`. After preparation and the
-	 * `session_before_compact` hook, both paths call the lower-level `compact()`
-	 * function imported from `./compaction/index.ts`, unless the hook cancels or
-	 * supplies a custom result.
+	 * 这是 `/compact`、RPC 和扩展使用的手动入口。它与通过 `_checkCompaction()` 和
+	 * `_runAutoCompaction()` 进入的自动阈值/溢出压缩相互独立。完成准备并执行
+	 * `session_before_compact` 钩子后，两条路径都会调用从 `./compaction/index.ts`
+	 * 导入的底层 `compact()` 函数，除非钩子取消操作或提供自定义结果。
 	 *
-	 * Aborts the current agent operation first. Manual compaction never retries or
-	 * continues the interrupted agent turn.
+	 * 首先中止当前代理操作。手动压缩绝不会重试或继续被打断的代理轮次。
 	 *
-	 * @param customInstructions Optional instructions for the compaction summary
+	 * @param customInstructions 压缩摘要的可选指令
 	 */
 	async compact(customInstructions?: string): Promise<CompactionResult> {
 		await this.abort();
@@ -1961,7 +1952,7 @@ export class AgentSession {
 
 			const preparation = prepareCompaction(pathEntries, settings);
 			if (!preparation) {
-				// Check why we can't compact
+				// 检查无法压缩的原因
 				const lastEntry = pathEntries[pathEntries.length - 1];
 				if (lastEntry?.type === "compaction") {
 					throw new Error("Already compacted");
@@ -1999,14 +1990,14 @@ export class AgentSession {
 			let details: unknown;
 
 			if (extensionCompaction) {
-				// Extension provided compaction content
+				// 扩展提供的压缩内容
 				summary = extensionCompaction.summary;
 				firstKeptEntryId = extensionCompaction.firstKeptEntryId;
 				tokensBefore = extensionCompaction.tokensBefore;
 				usage = extensionCompaction.usage;
 				details = extensionCompaction.details;
 			} else {
-				// Shared default summary generator, also used by automatic compaction.
+				// 共享的默认摘要生成器，自动压缩也使用它。
 				const result = await this._runDefaultCompaction(
 					preparation,
 					requestModel,
@@ -2034,7 +2025,7 @@ export class AgentSession {
 			this.agent.state.messages = sessionContext.messages;
 			const estimatedTokensAfter = estimateMessagesTokens(sessionContext.messages);
 
-			// Get the saved compaction entry for the extension event
+			// 获取为扩展事件保存的压缩条目
 			const savedCompactionEntry = newEntries.find((e) => e.type === "compaction" && e.summary === summary) as
 				| CompactionEntry
 				| undefined;
@@ -2057,7 +2048,7 @@ export class AgentSession {
 				usage,
 				details,
 			};
-			// compaction_end listeners may submit queued prompts, so expose idle state before notifying them.
+			// compaction_end 监听器可能提交排队的提示词，因此在通知前先公开空闲状态。
 			this._clearManualCompactionState();
 			this._emit({
 				type: "compaction_end",
@@ -2094,7 +2085,7 @@ export class AgentSession {
 	}
 
 	/**
-	 * Cancel in-progress compaction (manual or auto).
+	 * 取消正在进行的压缩（手动或自动）。
 	 */
 	abortCompaction(): void {
 		this._compactionAbortController?.abort();
@@ -2102,52 +2093,48 @@ export class AgentSession {
 	}
 
 	/**
-	 * Cancel in-progress branch summarization.
+	 * 取消正在进行的分支摘要生成。
 	 */
 	abortBranchSummary(): void {
 		this._branchSummaryAbortController?.abort();
 	}
 
 	/**
-	 * Dispatch automatic compaction after `agent_end` or before prompt submission.
-	 * Manual compaction does not call this method; it enters through `compact()`.
+	 * 在 `agent_end` 后或提交提示词前分派自动压缩。
+	 * 手动压缩不调用此方法，而是通过 `compact()` 进入。
 	 *
-	 * Automatic cases:
-	 * 1. Overflow with retry: a context-overflow error or recoverable length stop;
-	 *    remove the failed assistant message, compact, and retry the turn once.
-	 * 2. Overflow without retry: a successful response exceeded the configured
-	 *    context window; compact but preserve the completed response.
-	 * 3. Threshold without retry: valid or estimated context usage crossed the
-	 *    configured threshold; compact without retrying the completed response.
+	 * 自动处理情形：
+	 * 1. 带重试的溢出：上下文溢出错误或可恢复的长度停止；
+	 *    移除失败的助手消息，压缩后重试该轮次一次。
+	 * 2. 不重试的溢出：成功响应超过配置的上下文窗口；压缩但保留已完成的响应。
+	 * 3. 不重试的阈值压缩：有效或估算的上下文用量超过配置阈值；
+	 *    压缩但不重试已完成的响应。
 	 *
-	 * Each case calls `_runAutoCompaction()`. After preparation and the
-	 * `session_before_compact` hook, that method calls the lower-level `compact()`
-	 * function imported from `./compaction/index.ts`, unless the hook cancels or
-	 * supplies a custom result.
+	 * 每种情况都会调用 `_runAutoCompaction()`。完成准备并执行 `session_before_compact`
+	 * 钩子后，该方法调用从 `./compaction/index.ts` 导入的底层 `compact()` 函数，
+	 * 除非钩子取消操作或提供自定义结果。
 	 *
-	 * @param assistantMessage The assistant message to check
-	 * @param skipAbortedCheck If false, include aborted messages (for pre-prompt check). Default: true
-	 * @returns Whether the post-run loop should call `agent.continue()` for overflow recovery or queued messages
+	 * @param assistantMessage 要检查的助手消息
+	 * @param skipAbortedCheck 为 false 时纳入已中止消息（用于提示词前检查）。默认值：true
+	 * @returns 运行后循环是否应为溢出恢复或排队消息调用 `agent.continue()`
 	 */
 	private async _checkCompaction(assistantMessage: AssistantMessage, skipAbortedCheck = true): Promise<boolean> {
 		const settings = this.settingsManager.getCompactionSettings();
 		if (!settings.enabled) return false;
 
-		// Skip if message was aborted (user cancelled) - unless skipAbortedCheck is false
+		// 消息已中止（用户取消）时跳过，除非 skipAbortedCheck 为 false
 		if (skipAbortedCheck && assistantMessage.stopReason === "aborted") return false;
 
 		const contextWindow = this.model?.contextWindow ?? 0;
 
-		// Skip overflow check if the message came from a different model.
-		// This handles the case where user switched from a smaller-context model (e.g. opus)
-		// to a larger-context model (e.g. codex) - the overflow error from the old model
-		// shouldn't trigger compaction for the new model.
+		// 如果消息来自其他模型，则跳过溢出检查。
+		// 这会处理用户从上下文较小的模型（例如 opus）切换到上下文较大的模型（例如 codex）的情况；
+		// 旧模型的溢出错误不应触发新模型的压缩。
 		const sameModel =
 			this.model && assistantMessage.provider === this.model.provider && assistantMessage.model === this.model.id;
 
-		// Skip compaction checks if this assistant message is older than the latest
-		// compaction boundary. This prevents a stale pre-compaction usage/error
-		// from retriggering compaction on the first prompt after compaction.
+		// 如果此助手消息早于最新压缩边界，则跳过压缩检查。
+		// 这样可避免过期的压缩前用量/错误在压缩后的第一条提示词处再次触发压缩。
 		const compactionEntry = getLatestCompactionEntry(this.sessionManager.getBranch());
 		const assistantIsFromBeforeCompaction =
 			compactionEntry !== null && assistantMessage.timestamp <= new Date(compactionEntry.timestamp).getTime();
@@ -2155,16 +2142,16 @@ export class AgentSession {
 			return false;
 		}
 
-		// Automatic cases 1 and 2: context overflow.
-		// A length stop is recoverable when output ended below the model's original desired limit,
-		// independent of the configured context size or any context-clamped provider request limit.
+		// 自动处理情形 1 和 2：上下文溢出。
+		// 当输出在模型原始期望上限之前结束时，长度停止可恢复；
+		// 这与配置的上下文大小或受上下文限制的提供商请求上限无关。
 		const contextOverflow = sameModel && isContextOverflow(assistantMessage, contextWindow);
 		const recoverableLength = sameModel && isRecoverableLength(assistantMessage, this.model?.maxTokens ?? 0);
 		if (contextOverflow || recoverableLength) {
 			const willRetry = assistantMessage.stopReason !== "stop";
 
-			// Case 2: the response completed successfully. Compact, but do not retry because
-			// agent.continue() cannot continue from a completed assistant response.
+			// 情形 2：响应已成功完成。执行压缩，但不重试，
+			// 因为 agent.continue() 无法从已完成的助手响应继续。
 			if (!willRetry) {
 				return await this._runAutoCompaction("overflow", false);
 			}
@@ -2191,8 +2178,8 @@ export class AgentSession {
 				return false;
 			}
 
-			// Case 1: remove the failed or truncated message from agent state, compact, and
-			// retry once. The message remains in session history but is excluded from retry context.
+			// 情形 1：从代理状态中移除失败或截断的消息，压缩后重试一次。
+			// 该消息保留在会话历史中，但不纳入重试上下文。
 			this._overflowRecoveryAttempted = true;
 			const messages = this.agent.state.messages;
 			if (messages.length > 0 && messages[messages.length - 1].role === "assistant") {
@@ -2201,21 +2188,20 @@ export class AgentSession {
 			return await this._runAutoCompaction("overflow", willRetry);
 		}
 
-		// Case 3: threshold compaction without retry.
-		// For error messages or all-zero usage messages, estimate from the last valid response.
-		// This ensures sessions that hit persistent API errors (e.g. 529) or malformed zero-usage
-		// responses can still compact and do not reset context accounting.
+		// 情形 3：不重试的阈值压缩。
+		// 对错误消息或用量全为零的消息，根据最后一个有效响应进行估算。
+		// 这样可确保遇到持续 API 错误（例如 529）或格式错误的零用量响应的会话仍可压缩，
+		// 且不会重置上下文统计。
 		let contextTokens: number;
 		const directContextTokens = assistantMessage.usage ? calculateContextTokens(assistantMessage.usage) : 0;
 		if (assistantMessage.stopReason === "error" || directContextTokens === 0) {
 			const messages = this.agent.state.messages;
 			const estimate = estimateContextTokens(messages);
-			// Without provider usage, estimate.tokens is the pure message-size estimate.
-			// Only usage-backed estimates need the stale pre-compaction check.
+			// 没有提供商用量时，estimate.tokens 是纯消息大小估算值。
+			// 只有由用量支持的估算才需要过期压缩前检查。
 			if (estimate.lastUsageIndex !== null) {
-				// Verify the usage source is post-compaction. Kept pre-compaction messages
-				// have stale usage reflecting the old (larger) context and would falsely
-				// trigger compaction right after one just finished.
+				// 验证用量来源位于压缩之后。保留的压缩前消息具有反映旧（更大）上下文的过期用量，
+				// 会在刚完成一次压缩后错误地再次触发压缩。
 				const usageMsg = messages[estimate.lastUsageIndex];
 				if (
 					compactionEntry &&
@@ -2236,14 +2222,12 @@ export class AgentSession {
 	}
 
 	/**
-	 * Execute threshold or overflow compaction. Manual compaction uses
-	 * `AgentSession.compact()` instead. Both paths call the lower-level `compact()`
-	 * function imported from `./compaction/index.ts` after preparation and extension
-	 * interception.
+	 * 执行阈值或溢出压缩。手动压缩改用 `AgentSession.compact()`。
+	 * 两条路径都会在准备和扩展拦截后调用从 `./compaction/index.ts` 导入的底层 `compact()` 函数。
 	 *
-	 * @param reason Automatic trigger selected by `_checkCompaction()`
-	 * @param willRetry Whether to continue the interrupted turn after overflow compaction
-	 * @returns Whether the post-run loop should call `agent.continue()`
+	 * @param reason 由 `_checkCompaction()` 选择的自动触发原因
+	 * @param willRetry 溢出压缩后是否继续被打断的轮次
+	 * @returns 运行后循环是否应调用 `agent.continue()`
 	 */
 	private async _runAutoCompaction(reason: "overflow" | "threshold", willRetry: boolean): Promise<boolean> {
 		const settings = this.settingsManager.getCompactionSettings();
@@ -2311,14 +2295,14 @@ export class AgentSession {
 			let details: unknown;
 
 			if (extensionCompaction) {
-				// Extension provided compaction content
+				// 扩展提供的压缩内容
 				summary = extensionCompaction.summary;
 				firstKeptEntryId = extensionCompaction.firstKeptEntryId;
 				tokensBefore = extensionCompaction.tokensBefore;
 				usage = extensionCompaction.usage;
 				details = extensionCompaction.details;
 			} else {
-				// Shared default summary generator, also used by manual compaction.
+				// 共享的默认摘要生成器，手动压缩也使用它。
 				const compactResult = await this._runDefaultCompaction(
 					preparation,
 					requestModel,
@@ -2359,7 +2343,7 @@ export class AgentSession {
 			this.agent.state.messages = sessionContext.messages;
 			const estimatedTokensAfter = estimateMessagesTokens(sessionContext.messages);
 
-			// Get the saved compaction entry for the extension event
+			// 获取为扩展事件保存的压缩条目
 			const savedCompactionEntry = newEntries.find((e) => e.type === "compaction" && e.summary === summary) as
 				| CompactionEntry
 				| undefined;
@@ -2387,18 +2371,18 @@ export class AgentSession {
 			if (willRetry) {
 				const messages = this.agent.state.messages;
 				const lastMsg = messages[messages.length - 1];
-				// The overflow response was persisted on message_end before _checkCompaction() removed it
-				// from agent state. Rebuilding state from the new compaction can restore that kept entry,
-				// leaving an assistant as the final message. agent.continue() rejects that state, so remove
-				// the retriable error or truncated-length response again before continuing the interrupted turn.
+				// 溢出响应已在 message_end 时持久化，之后才由 _checkCompaction() 从代理状态移除。
+				// 根据新压缩重建状态可能恢复该保留条目，使最终消息成为助手消息。
+				// agent.continue() 会拒绝该状态，因此在继续被打断的轮次前，
+				// 再次移除可重试错误或长度截断响应。
 				if (lastMsg?.role === "assistant" && (lastMsg.stopReason === "error" || lastMsg.stopReason === "length")) {
 					this.agent.state.messages = messages.slice(0, -1);
 				}
 				return true;
 			}
 
-			// Auto-compaction can complete while follow-up/steering/custom messages are waiting.
-			// Continue once so queued messages are delivered.
+			// 自动压缩可能在 follow-up、steering 或自定义消息等待期间完成。
+			// 继续一次以投递排队消息。
 			return this.agent.hasQueuedMessages();
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : "compaction failed";
@@ -2431,13 +2415,13 @@ export class AgentSession {
 	}
 
 	/**
-	 * Toggle auto-compaction setting.
+	 * 切换自动压缩设置。
 	 */
 	setAutoCompactionEnabled(enabled: boolean): void {
 		this.settingsManager.setCompactionEnabled(enabled);
 	}
 
-	/** Whether auto-compaction is enabled */
+	/** 是否已启用自动压缩 */
 	get autoCompactionEnabled(): boolean {
 		return this.settingsManager.getCompactionEnabled();
 	}
@@ -2843,24 +2827,23 @@ export class AgentSession {
 	}
 
 	// =========================================================================
-	// Auto-Retry
+	// 自动重试
 	// =========================================================================
 
 	/**
-	 * Check if an error is retryable (overloaded, rate limit, server errors).
-	 * Context overflow errors are NOT retryable (handled by compaction instead).
+	 * 检查错误是否可重试（过载、速率限制、服务器错误）。
+	 * 上下文溢出错误不可重试（改由压缩处理）。
 	 */
 	private _isRetryableError(message: AssistantMessage): boolean {
-		// Context overflow is handled by compaction, not retry.
+		// 上下文溢出由压缩处理，不进行重试。
 		if (isContextOverflow(message, this.model?.contextWindow ?? 0)) return false;
 		return isRetryableAssistantError(message);
 	}
 
 	/**
-	 * Retry policy + callbacks shared by compaction and branch-summary summarization calls.
-	 * Uses the same `settings.retry` budget/backoff as agent-turn retries so a single transient
-	 * stream drop no longer fails the whole operation. `source` carries the context
-	 * the TUI needs to render the retry and recreate the underlying indicator.
+	 * 压缩和分支摘要生成调用共享的重试策略及回调。
+	 * 使用与代理轮次重试相同的 `settings.retry` 预算/退避，使单次临时流中断不再导致
+	 * 整个操作失败。`source` 携带 TUI 渲染重试并重新创建底层指示器所需的上下文。
 	 */
 	private _summarizationRetryCallbacks(
 		source: { source: "branchSummary" } | { source: "compaction"; reason: "manual" | "threshold" | "overflow" },
@@ -2888,8 +2871,8 @@ export class AgentSession {
 	}
 
 	/**
-	 * Prepare a retryable error for continuation with exponential backoff.
-	 * @returns true if the caller should continue the agent, false otherwise
+	 * 准备可重试错误，以使用指数退避继续运行。
+	 * @returns 调用方应继续运行代理时为 true，否则为 false
 	 */
 	private async _prepareRetry(message: AssistantMessage): Promise<boolean> {
 		const settings = this.settingsManager.getRetrySettings();
@@ -2900,7 +2883,7 @@ export class AgentSession {
 		this._retryAttempt++;
 
 		if (this._retryAttempt > settings.maxRetries) {
-			// Preserve the completed attempt count so post-run handling can emit the final failure.
+			// 保留已完成的尝试次数，使运行后处理可以发送最终失败事件。
 			this._retryAttempt--;
 			return false;
 		}
@@ -2915,18 +2898,18 @@ export class AgentSession {
 			errorMessage: message.errorMessage || "Unknown error",
 		});
 
-		// Remove error message from agent state (keep in session for history)
+		// 从代理状态中移除错误消息（保留在会话历史中）
 		const messages = this.agent.state.messages;
 		if (messages.length > 0 && messages[messages.length - 1].role === "assistant") {
 			this.agent.state.messages = messages.slice(0, -1);
 		}
 
-		// Wait with exponential backoff (abortable)
+		// 使用指数退避等待（可中止）
 		this._retryAbortController = new AbortController();
 		try {
 			await sleep(delayMs, this._retryAbortController.signal);
 		} catch {
-			// Aborted during sleep - emit end event so UI can clean up
+			// 等待期间被中止——发送结束事件以便 UI 清理
 			const attempt = this._retryAttempt;
 			this._retryAttempt = 0;
 			this._emit({
@@ -2944,41 +2927,41 @@ export class AgentSession {
 	}
 
 	/**
-	 * Cancel in-progress retry.
+	 * 取消正在进行的重试。
 	 */
 	abortRetry(): void {
 		this._retryAbortController?.abort();
 	}
 
-	/** Whether auto-retry is currently in progress */
+	/** 当前是否正在自动重试 */
 	get isRetrying(): boolean {
 		return this._retryAbortController !== undefined;
 	}
 
-	/** Whether auto-retry is enabled */
+	/** 是否已启用自动重试 */
 	get autoRetryEnabled(): boolean {
 		return this.settingsManager.getRetryEnabled();
 	}
 
 	/**
-	 * Toggle auto-retry setting.
+	 * 切换自动重试设置。
 	 */
 	setAutoRetryEnabled(enabled: boolean): void {
 		this.settingsManager.setRetryEnabled(enabled);
 	}
 
 	// =========================================================================
-	// Bash Execution
+	// Bash 执行
 	// =========================================================================
 
 	/**
-	 * Execute a bash command.
-	 * Adds result to agent context and session.
-	 * @param command The bash command to execute
-	 * @param onChunk Optional streaming callback for output
-	 * @param options.excludeFromContext If true, command output won't be sent to LLM (!! prefix)
-	 * @param options.id Optional identifier included in bash execution update events
-	 * @param options.operations Custom BashOperations for remote execution
+	 * 执行 bash 命令。
+	 * 将结果添加到代理上下文和会话。
+	 * @param command 要执行的 bash 命令
+	 * @param onChunk 输出的可选流式回调
+	 * @param options.excludeFromContext 为 true 时，不向 LLM 发送命令输出（!! 前缀）
+	 * @param options.id bash 执行更新事件中包含的可选标识符
+	 * @param options.operations 用于远程执行的自定义 BashOperations
 	 */
 	async executeBash(
 		command: string,
@@ -2988,7 +2971,7 @@ export class AgentSession {
 		const abortController = new AbortController();
 		this._bashAbortControllers.add(abortController);
 
-		// Apply command prefix if configured (e.g., "shopt -s expand_aliases" for alias support)
+		// 如果已配置，则应用命令前缀（例如用于支持别名的 "shopt -s expand_aliases"）
 		const prefix = this.settingsManager.getShellCommandPrefix();
 		const shellPath = this.settingsManager.getShellPath();
 		const resolvedCommand = prefix ? `${prefix}\n${command}` : command;
@@ -3015,8 +2998,8 @@ export class AgentSession {
 	}
 
 	/**
-	 * Record a bash execution result in session history.
-	 * Used by executeBash and by extensions that handle bash execution themselves.
+	 * 在会话历史中记录 bash 执行结果。
+	 * 由 executeBash 以及自行处理 bash 执行的扩展使用。
 	 */
 	recordBashResult(command: string, result: BashResult, options?: { excludeFromContext?: boolean }): void {
 		const bashMessage: BashExecutionMessage = {
@@ -3031,21 +3014,21 @@ export class AgentSession {
 			excludeFromContext: options?.excludeFromContext,
 		};
 
-		// If agent is streaming, defer adding to avoid breaking tool_use/tool_result ordering
+		// 代理进行流式处理时延迟添加，避免破坏 tool_use/tool_result 顺序
 		if (this.isStreaming) {
-			// Queue for later - will be flushed on agent_end
+			// 加入队列供稍后处理——将在 agent_end 时刷写
 			this._pendingBashMessages.push(bashMessage);
 		} else {
-			// Add to agent state immediately
+			// 立即添加到代理状态
 			this.agent.state.messages.push(bashMessage);
 
-			// Save to session
+			// 保存到会话
 			this.sessionManager.appendMessage(bashMessage);
 		}
 	}
 
 	/**
-	 * Cancel running bash command.
+	 * 取消正在运行的 bash 命令。
 	 */
 	abortBash(): void {
 		for (const abortController of [...this._bashAbortControllers]) {
@@ -3053,28 +3036,28 @@ export class AgentSession {
 		}
 	}
 
-	/** Whether a bash command is currently running */
+	/** 当前是否有 bash 命令正在运行 */
 	get isBashRunning(): boolean {
 		return this._bashAbortControllers.size > 0;
 	}
 
-	/** Whether there are pending bash messages waiting to be flushed */
+	/** 是否有待刷写的 bash 消息 */
 	get hasPendingBashMessages(): boolean {
 		return this._pendingBashMessages.length > 0;
 	}
 
 	/**
-	 * Flush pending bash messages to agent state and session.
-	 * Called after agent turn completes to maintain proper message ordering.
+	 * 将待处理 bash 消息刷写到代理状态和会话。
+	 * 代理轮次完成后调用，以维持正确的消息顺序。
 	 */
 	private _flushPendingBashMessages(): void {
 		if (this._pendingBashMessages.length === 0) return;
 
 		for (const bashMessage of this._pendingBashMessages) {
-			// Add to agent state
+			// 添加到代理状态
 			this.agent.state.messages.push(bashMessage);
 
-			// Save to session
+			// 保存到会话
 			this.sessionManager.appendMessage(bashMessage);
 		}
 
@@ -3082,11 +3065,11 @@ export class AgentSession {
 	}
 
 	// =========================================================================
-	// Session Management
+	// 会话管理
 	// =========================================================================
 
 	/**
-	 * Set a display name for the current session.
+	 * 设置当前会话的显示名称。
 	 */
 	setSessionName(name: string): void {
 		this.sessionManager.appendSessionInfo(name);
@@ -3096,19 +3079,19 @@ export class AgentSession {
 	}
 
 	// =========================================================================
-	// Tree Navigation
+	// 树导航
 	// =========================================================================
 
 	/**
-	 * Navigate to a different node in the session tree.
-	 * Unlike fork() which creates a new session file, this stays in the same file.
+	 * 导航到会话树中的其他节点。
+	 * 与创建新会话文件的 fork() 不同，此操作仍停留在同一文件中。
 	 *
-	 * @param targetId The entry ID to navigate to
-	 * @param options.summarize Whether user wants to summarize abandoned branch
-	 * @param options.customInstructions Custom instructions for summarizer
-	 * @param options.replaceInstructions If true, customInstructions replaces the default prompt
-	 * @param options.label Label to attach to the branch summary entry
-	 * @returns Result with editorText (if user message) and cancelled status
+	 * @param targetId 要导航到的条目 ID
+	 * @param options.summarize 用户是否希望摘要已放弃的分支
+	 * @param options.customInstructions 摘要生成器的自定义指令
+	 * @param options.replaceInstructions 为 true 时，customInstructions 替换默认提示词
+	 * @param options.label 要附加到分支摘要条目的标签
+	 * @returns 包含 editorText（如果是用户消息）和取消状态的结果
 	 */
 	async navigateTree(
 		targetId: string,
@@ -3120,12 +3103,12 @@ export class AgentSession {
 
 		const oldLeafId = this.sessionManager.getLeafId();
 
-		// No-op if already at target
+		// 已位于目标位置时不执行任何操作
 		if (targetId === oldLeafId) {
 			return { cancelled: false };
 		}
 
-		// Model required for summarization
+		// 摘要生成需要模型
 		if (options.summarize && !this.model) {
 			throw new Error("No model available for summarization");
 		}
@@ -3135,14 +3118,14 @@ export class AgentSession {
 			throw new Error(`Entry ${targetId} not found`);
 		}
 
-		// Collect entries to summarize (from old leaf to common ancestor)
+		// 收集要摘要的条目（从旧叶节点到共同祖先）
 		const { entries: entriesToSummarize, commonAncestorId } = collectEntriesForBranchSummary(
 			this.sessionManager,
 			oldLeafId,
 			targetId,
 		);
 
-		// Prepare event data - mutable so extensions can override
+		// 准备事件数据——保持可变，以便扩展覆盖
 		let customInstructions = options.customInstructions;
 		let replaceInstructions = options.replaceInstructions;
 		let label = options.label;
@@ -3158,14 +3141,14 @@ export class AgentSession {
 			label,
 		};
 
-		// Set up abort controller for summarization
+		// 为摘要生成设置中止控制器
 		this._branchSummaryAbortController = new AbortController();
 
 		try {
 			let extensionSummary: { summary: string; details?: unknown; usage?: Usage } | undefined;
 			let fromExtension = false;
 
-			// Emit session_before_tree event
+			// 发送 session_before_tree 事件
 			if (this._extensionRunner.hasHandlers("session_before_tree")) {
 				const result = (await this._extensionRunner.emit({
 					type: "session_before_tree",
@@ -3182,7 +3165,7 @@ export class AgentSession {
 					fromExtension = true;
 				}
 
-				// Allow extensions to override instructions and label
+				// 允许扩展覆盖指令和标签
 				if (result?.customInstructions !== undefined) {
 					customInstructions = result.customInstructions;
 				}
@@ -3194,7 +3177,7 @@ export class AgentSession {
 				}
 			}
 
-			// Run default summarizer if needed
+			// 必要时运行默认摘要生成器
 			let summaryText: string | undefined;
 			let summaryDetails: unknown;
 			let summaryUsage: Usage | undefined;
@@ -3233,28 +3216,28 @@ export class AgentSession {
 				summaryUsage = extensionSummary.usage;
 			}
 
-			// Determine the new leaf position based on target type
+			// 根据目标类型确定新叶节点位置
 			let newLeafId: string | null;
 			let editorText: string | undefined;
 
 			if (targetEntry.type === "message" && targetEntry.message.role === "user") {
-				// User message: leaf = parent (null if root), text goes to editor
+				// 用户消息：叶节点 = 父节点（根节点时为 null），文本进入编辑器
 				newLeafId = targetEntry.parentId;
 				editorText = contentText(targetEntry.message.content, "");
 			} else if (targetEntry.type === "custom_message") {
-				// Custom message: leaf = parent (null if root), text goes to editor
+				// 自定义消息：叶节点 = 父节点（根节点时为 null），文本进入编辑器
 				newLeafId = targetEntry.parentId;
 				editorText = contentText(targetEntry.content, "");
 			} else {
-				// Non-user message: leaf = selected node
+				// 非用户消息：叶节点 = 选定节点
 				newLeafId = targetId;
 			}
 
-			// Switch leaf (with or without summary)
-			// Summary is attached at the navigation target position (newLeafId), not the old branch
+			// 切换叶节点（有无摘要均可）
+			// 摘要附加到导航目标位置（newLeafId），而不是旧分支
 			let summaryEntry: BranchSummaryEntry | undefined;
 			if (summaryText) {
-				// Create summary at target position (can be null for root)
+				// 在目标位置创建摘要（根节点时可以为 null）
 				const summaryId = this.sessionManager.branchWithSummary(
 					newLeafId,
 					summaryText,
@@ -3264,28 +3247,28 @@ export class AgentSession {
 				);
 				summaryEntry = this.sessionManager.getEntry(summaryId) as BranchSummaryEntry;
 
-				// Attach label to the summary entry
+				// 将标签附加到摘要条目
 				if (label) {
 					this.sessionManager.appendLabelChange(summaryId, label);
 				}
 			} else if (newLeafId === null) {
-				// No summary, navigating to root - reset leaf
+				// 没有摘要且导航到根节点——重置叶节点
 				this.sessionManager.resetLeaf();
 			} else {
-				// No summary, navigating to non-root
+				// 没有摘要且导航到非根节点
 				this.sessionManager.branch(newLeafId);
 			}
 
-			// Attach label to target entry when not summarizing (no summary entry to label)
+			// 不生成摘要时，将标签附加到目标条目（没有摘要条目可加标签）
 			if (label && !summaryText) {
 				this.sessionManager.appendLabelChange(targetId, label);
 			}
 
-			// Update agent state
+			// 更新代理状态
 			const sessionContext = this.sessionManager.buildSessionContext();
 			this.agent.state.messages = sessionContext.messages;
 
-			// Emit session_tree event
+			// 发送 session_tree 事件
 			await this._extensionRunner.emit({
 				type: "session_tree",
 				newLeafId: this.sessionManager.getLeafId(),
@@ -3294,7 +3277,7 @@ export class AgentSession {
 				fromExtension: summaryText ? fromExtension : undefined,
 			});
 
-			// Emit to custom tools
+			// 向自定义工具发送
 
 			return { editorText, cancelled: false, summaryEntry };
 		} finally {
@@ -3304,7 +3287,7 @@ export class AgentSession {
 	}
 
 	/**
-	 * Get all user messages from session for fork selector.
+	 * 获取会话中的所有用户消息，供分叉选择器使用。
 	 */
 	getUserMessagesForForking(): Array<{ entryId: string; text: string }> {
 		const entries = this.sessionManager.getEntries();
@@ -3324,9 +3307,8 @@ export class AgentSession {
 	}
 
 	/**
-	 * Get session statistics. Aggregates over ALL session entries (including
-	 * history that was compacted away), so token/cost totals reflect what was
-	 * actually billed across the session.
+	 * 获取会话统计信息。聚合所有会话条目（包括已被压缩掉的历史记录），
+	 * 因此令牌/成本总计反映整个会话的实际计费情况。
 	 */
 	getSessionStats(): SessionStats {
 		let userMessages = 0;
@@ -3387,14 +3369,14 @@ export class AgentSession {
 		const contextWindow = model.contextWindow ?? 0;
 		if (contextWindow <= 0) return undefined;
 
-		// After compaction, the last assistant usage reflects pre-compaction context size.
-		// We can only trust usage from an assistant that responded after the latest compaction.
-		// If no such assistant exists, context token count is unknown until the next LLM response.
+		// 压缩后，最后一条助手用量反映的是压缩前的上下文大小。
+		// 只能信任最新压缩后响应的助手所提供的用量。
+		// 如果没有此类助手，则在下一次 LLM 响应前无法确定上下文令牌数。
 		const branchEntries = this.sessionManager.getBranch();
 		const latestCompaction = getLatestCompactionEntry(branchEntries);
 
 		if (latestCompaction) {
-			// Check if there's a valid assistant usage after the compaction boundary
+			// 检查压缩边界后是否存在有效的助手用量
 			const compactionIndex = branchEntries.lastIndexOf(latestCompaction);
 			let hasPostCompactionUsage = false;
 			for (let i = branchEntries.length - 1; i > compactionIndex; i--) {
@@ -3427,17 +3409,17 @@ export class AgentSession {
 	}
 
 	/**
-	 * Export session to HTML.
-	 * @param outputPath Optional output path (defaults to session directory)
-	 * @param options Optional export presentation settings
-	 * @returns Path to exported file
+	 * 将会话导出为 HTML。
+	 * @param outputPath 可选输出路径（默认为会话目录）
+	 * @param options 可选导出展示设置
+	 * @returns 导出文件的路径
 	 */
 	async exportToHtml(outputPath?: string, options: { themeName?: string } = {}): Promise<string> {
 		const themeName = [options.themeName, this.settingsManager.getTheme()].find(
 			(candidate) => candidate !== undefined && getThemeByName(candidate) !== undefined,
 		);
 
-		// Create tool renderer if we have an extension runner (for custom tool HTML rendering)
+		// 如果有扩展运行器，则创建工具渲染器（用于自定义工具 HTML 渲染）
 		const toolRenderer: ToolHtmlRenderer = createToolHtmlRenderer({
 			getToolDefinition: (name) => this.getToolDefinition(name),
 			theme,
@@ -3452,23 +3434,23 @@ export class AgentSession {
 	}
 
 	/**
-	 * Export the current session branch to a JSONL file.
-	 * Writes the session header followed by all entries on the current branch path.
-	 * @param outputPath Target file path. If omitted, generates a timestamped file in cwd.
-	 * @returns The resolved output file path.
+	 * 将当前会话分支导出到 JSONL 文件。
+	 * 写入会话头部，随后写入当前分支路径上的所有条目。
+	 * @param outputPath 目标文件路径。省略时在 cwd 中生成带时间戳的文件。
+	 * @returns 解析后的输出文件路径。
 	 */
 	exportToJsonl(outputPath?: string): string {
 		return exportSessionToJsonl(this.sessionManager, outputPath);
 	}
 
 	// =========================================================================
-	// Utilities
+	// 工具函数
 	// =========================================================================
 
 	/**
-	 * Get text content of last assistant message.
-	 * Useful for /copy command.
-	 * @returns Text content, or undefined if no assistant message exists
+	 * 获取最后一条助手消息的文本内容。
+	 * 适用于 /copy 命令。
+	 * @returns 文本内容；不存在助手消息时返回 undefined
 	 */
 	getLastAssistantText(): string | undefined {
 		const lastAssistant = this.messages
@@ -3477,7 +3459,7 @@ export class AgentSession {
 			.find((m) => {
 				if (m.role !== "assistant") return false;
 				const msg = m as AssistantMessage;
-				// Skip aborted messages with no content
+				// 跳过没有内容的已中止消息
 				if (msg.stopReason === "aborted" && msg.content.length === 0) return false;
 				return true;
 			});
@@ -3495,7 +3477,7 @@ export class AgentSession {
 	}
 
 	// =========================================================================
-	// Extension System
+	// 扩展系统
 	// =========================================================================
 
 	createReplacedSessionContext(): ReplacedSessionContext {
@@ -3509,14 +3491,14 @@ export class AgentSession {
 	}
 
 	/**
-	 * Check if extensions have handlers for a specific event type.
+	 * 检查扩展是否具有指定事件类型的处理器。
 	 */
 	hasExtensionHandlers(eventType: string): boolean {
 		return this._extensionRunner.hasHandlers(eventType);
 	}
 
 	/**
-	 * Get the extension runner (for setting UI context and error handlers).
+	 * 获取扩展运行器（用于设置 UI 上下文和错误处理器）。
 	 */
 	get extensionRunner(): ExtensionRunner {
 		return this._extensionRunner;

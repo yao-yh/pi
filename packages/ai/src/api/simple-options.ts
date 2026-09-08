@@ -51,7 +51,7 @@ export function buildBaseOptions(
 	};
 }
 
-/** Tokens always left for the answer when a thinking budget shares the response ceiling. */
+/** 思考预算与响应上限共享时，始终为答案保留的令牌数。 */
 export const MIN_ANSWER_TOKENS = 1024;
 
 export const DEFAULT_THINKING_BUDGETS: ThinkingBudgets = {
@@ -71,13 +71,13 @@ export function thinkingBudgetForLevel(reasoningLevel: ThinkingLevel, customBudg
 	return budgets[level]!;
 }
 
-/** Cap a thinking budget so at least MIN_ANSWER_TOKENS remain under a shared response ceiling. */
+/** 限制思考预算，确保共享响应上限内至少保留 MIN_ANSWER_TOKENS。 */
 export function clampThinkingBudgetToAnswerRoom(thinkingBudget: number, ceiling: number): number {
 	return Math.min(thinkingBudget, Math.max(0, ceiling - MIN_ANSWER_TOKENS));
 }
 
 export function adjustMaxTokensForThinking(
-	// Undefined means no explicit caller cap. Use the model cap and fit thinking inside it.
+	// Undefined 表示调用方未设置显式上限。使用模型上限，并让思考预算适配其中。
 	baseMaxTokens: number | undefined,
 	modelMaxTokens: number,
 	reasoningLevel: ThinkingLevel,

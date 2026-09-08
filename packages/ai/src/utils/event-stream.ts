@@ -1,6 +1,6 @@
 import type { AssistantMessage, AssistantMessageEvent } from "../types.ts";
 
-// Generic event stream class for async iteration
+// 用于异步迭代的通用事件流类
 export class EventStream<T, R = T> implements AsyncIterable<T> {
 	private queue: T[] = [];
 	private waiting: ((value: IteratorResult<T>) => void)[] = [];
@@ -26,7 +26,7 @@ export class EventStream<T, R = T> implements AsyncIterable<T> {
 			this.resolveFinalResult(this.extractResult(event));
 		}
 
-		// Deliver to waiting consumer or queue it
+		// 传递给等待中的使用方，否则加入队列
 		const waiter = this.waiting.shift();
 		if (waiter) {
 			waiter({ value: event, done: false });
@@ -40,7 +40,7 @@ export class EventStream<T, R = T> implements AsyncIterable<T> {
 		if (result !== undefined) {
 			this.resolveFinalResult(result);
 		}
-		// Notify all waiting consumers that we're done
+		// 通知所有等待中的使用方已结束
 		while (this.waiting.length > 0) {
 			const waiter = this.waiting.shift()!;
 			waiter({ value: undefined as any, done: true });
@@ -82,7 +82,7 @@ export class AssistantMessageEventStream extends EventStream<AssistantMessageEve
 	}
 }
 
-/** Factory function for AssistantMessageEventStream (for use in extensions) */
+/** AssistantMessageEventStream 工厂函数（供扩展使用） */
 export function createAssistantMessageEventStream(): AssistantMessageEventStream {
 	return new AssistantMessageEventStream();
 }

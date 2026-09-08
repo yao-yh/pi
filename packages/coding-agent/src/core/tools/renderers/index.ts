@@ -1,9 +1,8 @@
 /**
- * Built-in tool renderers, without the tools themselves.
+ * 内置工具渲染器，不包含工具本身。
  *
- * A presentation displays tool calls and results; it does not execute them and does not need their
- * typebox parameter schemas. Importing this instead of `core/tools/index.ts` keeps ~17 MB of module
- * graph out of a process that only renders.
+ * 展示层只显示工具调用和结果，既不执行工具，也不需要其 typebox 参数 schema。
+ * 导入此模块而非 `core/tools/index.ts`，可避免仅负责渲染的进程引入约 17 MB 的模块图。
  */
 
 import type { ToolDefinition } from "../../extensions/types.ts";
@@ -28,7 +27,7 @@ export {
 	writeRenderers,
 };
 
-/** Renderers for every built-in tool, keyed by tool name. */
+/** 所有内置工具的渲染器，以工具名称为键。 */
 export function createAllToolRenderers(): Record<ToolName, ToolRenderers> {
 	return {
 		read: readRenderers,
@@ -43,10 +42,10 @@ export function createAllToolRenderers(): Record<ToolName, ToolRenderers> {
 }
 
 /**
- * Merge built-in renderers into a tool definition that does not supply its own.
+ * 将内置渲染器合并到未提供自定义渲染器的工具定义中。
  *
- * `ToolExecutionComponent` used to do this lookup itself, which forced every presentation to import
- * the tool implementations. Callers do it now, so a process that renders can import renderers alone.
+ * 过去由 `ToolExecutionComponent` 自行查找，导致每个展示层都必须导入工具实现。
+ * 现在改由调用方处理，使渲染进程可以只导入渲染器。
  */
 export function withBuiltInRenderers<TDefinition extends ToolRenderers>(
 	toolName: string,

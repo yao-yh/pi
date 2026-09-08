@@ -1,5 +1,5 @@
 /**
- * The presentation host: find or start the session server, attach to a session, run the view.
+ * 演示宿主：查找或启动会话服务器、附加到会话并运行视图。
  */
 
 import { spawn } from "node:child_process";
@@ -25,9 +25,9 @@ async function ensureServer(transport: Transport, socketPath: string, sessionsRo
 		(await transport.connect()).close();
 		return;
 	} catch {
-		// No server yet; start one.
+		// 尚无服务器，启动一个。
 	}
-	// execArgv is forwarded so a parent running under a TypeScript loader produces children that do too.
+	// 转发 execArgv，使在 TypeScript 加载器下运行的父进程也能创建同样运行方式的子进程。
 	const child = spawn(process.execPath, [...process.execArgv, SERVER_ENTRY, socketPath, sessionsRoot], {
 		detached: true,
 		stdio: "ignore",

@@ -4,9 +4,9 @@ import { createProvider, type Provider } from "../models.ts";
 import { AMAZON_BEDROCK_MODELS } from "./amazon-bedrock.models.ts";
 
 /**
- * Bedrock accepts a bearer token or the AWS SDK's default credential chain.
- * The login flow can store a token/profile choice; resolve also detects ambient
- * AWS credentials without copying them into pi's credential store.
+ * Bedrock 接受 Bearer 令牌或 AWS SDK 默认凭据链。
+ * 登录流程可以存储令牌/配置文件选择；resolve 还会检测环境 AWS 凭据，
+ * 但不会将其复制到 pi 的凭据存储中。
  */
 const bedrockAuth: ApiKeyAuth = {
 	name: "AWS credentials or bearer token",

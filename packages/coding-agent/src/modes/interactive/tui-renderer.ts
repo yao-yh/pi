@@ -14,7 +14,7 @@ export interface InteractiveTuiOptions {
 	readonly fullscreenCopyOnSelect?: boolean;
 }
 
-/** Composition root shared by coding-agent presentations. */
+/** coding-agent 演示端共享的组合根。 */
 export function createInteractiveTui(options: InteractiveTuiOptions & { readonly tuiMode: "fullscreen" }): TuiAltScreen;
 export function createInteractiveTui(options: InteractiveTuiOptions & { readonly tuiMode: "regular" }): TuiMainScreen;
 export function createInteractiveTui(options: InteractiveTuiOptions): TuiMainScreen | TuiAltScreen;
@@ -47,7 +47,7 @@ export function createInteractiveTui(options: InteractiveTuiOptions): TuiMainScr
 	return new TuiMainScreen(terminal, options.showHardwareCursor, options.logDirectory);
 }
 
-/** Stable reference for components while InteractiveMode replaces the active renderer. */
+/** InteractiveMode 替换活动渲染器时，供组件使用的稳定引用。 */
 export function createInteractiveTuiReference(getTui: () => TUI): TUI {
 	return new Proxy({} as TUI, {
 		get: (_target, property) => {

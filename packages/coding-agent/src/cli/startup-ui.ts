@@ -60,8 +60,7 @@ function loadThemes(resources: ResolvedResource[]): Theme[] {
 			}
 			themes.push(loadedTheme);
 		} catch {
-			// Startup prompts should not fail because a theme is broken. The normal
-			// resource loader reports theme diagnostics later in startup.
+			// 启动提示不应因主题损坏而失败。常规资源加载器会在后续启动过程中报告主题诊断。
 		}
 	}
 	return themes;
@@ -113,11 +112,11 @@ async function clearStartupTui(ui: TUI): Promise<void> {
 }
 
 /**
- * First-time setup runs when all of these hold:
- * - this is the official Pi distribution (not a fork/rebrand)
- * - experimental features are enabled (PI_EXPERIMENTAL=1)
- * - the default agent directory is used (no custom agent dir override)
- * - setup was not completed before (settings.json does not exist)
+ * 满足以下所有条件时运行首次设置：
+ * - 当前为官方 Pi 发行版（不是分支或更名版本）
+ * - 已启用实验功能（PI_EXPERIMENTAL=1）
+ * - 使用默认 agent 目录（没有自定义 agent 目录覆盖项）
+ * - 以前未完成设置（settings.json 不存在）
  */
 export function shouldRunFirstTimeSetup(settingsPath: string = getSettingsPath()): boolean {
 	if (
@@ -169,7 +168,7 @@ export async function showStartupSelector<T>(
 	});
 }
 
-/** Show the first-time setup dialog and persist the result */
+/** 显示首次设置对话框并持久化结果。 */
 export async function showFirstTimeSetup(settingsManager: SettingsManager): Promise<void> {
 	const ui = await createStartupTui(settingsManager);
 	return new Promise((resolve) => {

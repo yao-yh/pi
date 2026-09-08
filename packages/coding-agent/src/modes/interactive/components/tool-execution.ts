@@ -15,11 +15,11 @@ import type { ToolDefinition, ToolRenderContext, ToolRenderResultOptions } from 
 import type { Theme } from "../theme/theme.ts";
 
 /**
- * What this component needs from a tool: how to draw it. It neither executes tools nor reads their
- * parameter schemas, so a definition and a bare renderer pair are equally acceptable.
+ * 此组件只需要工具提供其绘制方式。它既不执行工具，也不读取工具的参数 schema，
+ * 因此既可接受完整定义，也可接受一组纯渲染器。
  *
- * The renderer parameters are `any` on purpose: a `ToolDefinition` types them from its schema, and
- * narrowing them here would make those definitions unassignable.
+ * 渲染器参数刻意使用 `any`：`ToolDefinition` 会根据自身 schema 确定其类型，
+ * 若在此处缩窄类型，会导致这些定义无法赋值。
  */
 export interface ToolRenderers {
 	renderShell?: "default" | "self";
@@ -96,9 +96,9 @@ export class ToolExecutionComponent extends Container {
 
 		this.addChild(new Spacer(1));
 
-		// Always create all shell variants. contentBox is used for default renderer-based composition.
-		// selfRenderContainer is used when the tool renders its own framing.
-		// contentText is reserved for generic fallback rendering when no tool definition exists.
+		// 始终创建全部外壳变体。contentBox 用于基于默认渲染器的组合。
+		// 工具自行渲染边框时使用 selfRenderContainer。
+		// 没有工具定义时，contentText 保留用于通用后备渲染。
 		this.contentBox = new Box(1, 1, (text: string) => theme.bg("toolPendingBg", text));
 		this.contentText = new Text("", 1, 1, (text: string) => theme.bg("toolPendingBg", text));
 		this.contentTextRegion = this.createResultRegion(this.contentText);

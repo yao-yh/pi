@@ -17,7 +17,7 @@ function emitOsc52(text: string): boolean {
 	return true;
 }
 
-/** Read plain text from the system clipboard. */
+/** 从系统剪贴板读取纯文本。 */
 export async function readClipboardText(): Promise<string | null> {
 	if (platform() === "linux") {
 		const commands: [string, string[]][] = [];
@@ -41,8 +41,8 @@ export async function readClipboardText(): Promise<string | null> {
 export async function copyToClipboard(text: string): Promise<void> {
 	const p = platform();
 	let copied = false;
-	// Direct writes precede OSC 52 so the terminal cannot race the native writer.
-	// Linux tools retain clipboard selection ownership after this call returns.
+	// 先直接写入，再使用 OSC 52，防止终端与原生写入程序发生竞争。
+	// 此调用返回后，Linux 工具仍会持有剪贴板选择内容的所有权。
 	if (p !== "linux") {
 		try {
 			const clipboard = getNativeClipboard();
@@ -51,7 +51,7 @@ export async function copyToClipboard(text: string): Promise<void> {
 				copied = true;
 			}
 		} catch {
-			// Try platform commands next.
+			// 接下来尝试平台命令。
 		}
 	}
 	if (!copied) {

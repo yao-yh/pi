@@ -68,7 +68,7 @@ export type ServiceUpdatePublisher = (
 	context: Context,
 ) => void | Promise<void>;
 
-/** Hosts one provider for one remote consumer and owns that consumer's subscriptions. */
+/** 为单个远程消费方托管提供方，并管理该消费方的订阅。 */
 export interface RemoteServiceEndpoint {
 	invoke(call: ServiceCall, publish: ServiceUpdatePublisher, context: Context): Promise<JsonValue | undefined>;
 	dispose(): void;
@@ -123,7 +123,7 @@ export class RemoteServiceProvider {
 		registration.singletonShape = shape;
 	}
 
-	/** Disconnect one singleton while preserving active subscriptions and remote facades. */
+	/** 断开一个单例，同时保留活动订阅和远程外观。 */
 	withdraw<T>(service: Service<T>): void {
 		this.#assertActive();
 		this.#assertRemotable(service);
@@ -137,7 +137,7 @@ export class RemoteServiceProvider {
 		this.#emit(registration, { type: "unavailable" });
 	}
 
-	/** Check a singleton replacement without changing the active provider. */
+	/** 在不改变活动提供方的情况下检查单例替代实现。 */
 	validateReplacement<T>(service: Service<T>, implementation: NoInfer<RemoteServiceContract<T>>): void {
 		this.#assertActive();
 		this.#assertRemotable(service);
@@ -147,7 +147,7 @@ export class RemoteServiceProvider {
 		this.#assertSingletonShape(registration, serviceMemberShape(classified.members));
 	}
 
-	/** Replace one singleton without making its stable remote facade unavailable. */
+	/** 替换一个单例，同时保持其稳定远程外观可用。 */
 	replace<T>(service: Service<T>, implementation: NoInfer<RemoteServiceContract<T>>): void {
 		this.#assertActive();
 		this.#assertRemotable(service);

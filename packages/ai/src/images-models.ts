@@ -6,32 +6,29 @@ import type { CreateModelsOptions } from "./models.ts";
 import type { AssistantImages, ImagesApi, ImagesContext, ImagesModel, ImagesOptions, ProviderImages } from "./types.ts";
 
 /**
- * An image-generation provider: the image-side counterpart of `Provider`.
- * Owns id/name metadata, auth, model listing, and generation behavior.
+ * 图像生成提供商：图像侧与 `Provider` 对应的抽象。
+ * 负责 id/name 元数据、身份验证、模型列表和生成行为。
  */
 export interface ImagesProvider {
 	readonly id: string;
 	readonly name: string;
 
 	/**
-	 * Required: at least one of `apiKey`/`oauth`. Same semantics as chat
-	 * providers; `ImagesModels.getAuth()` returns undefined when the provider
-	 * is unconfigured.
+	 * 必填：`apiKey`/`oauth` 至少提供一项。语义与聊天提供商相同；
+	 * 提供商未配置时，`ImagesModels.getAuth()` 返回 undefined。
 	 */
 	readonly auth: ProviderAuth;
 
 	/**
-	 * Current known models, sync. Static providers return their catalog;
-	 * dynamic providers return the list as of the last `refreshModels()`
-	 * (empty before the first). Must not throw; `ImagesModels` treats a
-	 * throwing implementation as having no models.
+	 * 同步返回当前已知模型。静态提供商返回其目录；动态提供商返回上次
+	 * `refreshModels()` 后的列表（首次刷新前为空）。不得抛出异常；
+	 * `ImagesModels` 会将抛出异常的实现视为没有模型。
 	 */
 	getModels(): readonly ImagesModel<ImagesApi>[];
 
 	/**
-	 * Dynamic providers only: fetch and update the model list. May reject
-	 * (network); on rejection the model list stays at its last-known state
-	 * and a later call retries.
+	 * 仅供动态提供商使用：获取并更新模型列表。可能因网络问题被拒绝；
+	 * 拒绝后模型列表保持最近已知状态，后续调用会重试。
 	 */
 	refreshModels?(): Promise<void>;
 
@@ -43,42 +40,40 @@ export interface ImagesProvider {
 }
 
 /**
- * Runtime collection of image-generation providers plus auth application and
- * generation convenience: the image-side counterpart of `Models`.
+ * 图像生成提供商的运行时集合，同时负责应用身份验证并提供便捷生成接口：
+ * 图像侧与 `Models` 对应的抽象。
  */
 export interface ImagesModels {
 	getProviders(): readonly ImagesProvider[];
 	getProvider(id: string): ImagesProvider | undefined;
 
 	/**
-	 * Sync read of last-known models from one provider or all providers.
-	 * Best-effort: a provider whose `getModels()` throws yields no models.
+	 * 同步读取一个或所有提供商最近已知的模型。
+	 * 尽力而为：提供商的 `getModels()` 抛出异常时，不返回其任何模型。
 	 */
 	getModels(provider?: string): readonly ImagesModel<ImagesApi>[];
 
-	/** Sync runtime model lookup against last-known lists. */
+	/** 在最近已知列表中同步查找运行时模型。 */
 	getModel(provider: string, id: string): ImagesModel<ImagesApi> | undefined;
 
 	/**
-	 * Ask dynamic providers to re-fetch their model lists. With a provider id,
-	 * rejects with `ModelsError` ("model_source") on that provider's fetch
-	 * failure; without one, refreshes all providers concurrently best-effort.
-	 * Static providers (no `refreshModels`) are no-ops.
+	 * 要求动态提供商重新获取模型列表。指定提供商 id 时，如果该提供商获取失败，
+	 * 则以 `ModelsError`（"model_source"）拒绝；未指定时，尽力并发刷新所有提供商。
+	 * 静态提供商（没有 `refreshModels`）不执行任何操作。
 	 */
 	refresh(provider?: string): Promise<void>;
 
 	/**
-	 * Resolve request auth by provider id or image model. Same contract as
-	 * `Models.getAuth()`: undefined when unknown/unconfigured, rejects with
-	 * `ModelsError` ("oauth"/"auth") on real failures.
+	 * 按提供商 id 或图像模型解析请求身份验证。契约与 `Models.getAuth()` 相同：
+	 * 未知或未配置时返回 undefined，实际失败时以
+	 * `ModelsError`（"oauth"/"auth"）拒绝。
 	 */
 	getAuth(providerId: string, overrides?: AuthResolutionOverrides): Promise<AuthResult | undefined>;
 	getAuth(model: ImagesModel<ImagesApi>, overrides?: AuthResolutionOverrides): Promise<AuthResult | undefined>;
 
 	/**
-	 * Generate images through the owning provider with auth resolved and
-	 * merged (explicit options win per field). Never rejects; failures are
-	 * returned as an `AssistantImages` with `stopReason: "error"`.
+	 * 解析并合并身份验证后，通过所属提供商生成图像（每个字段均以显式选项优先）。
+	 * 永不拒绝；失败以 `stopReason: "error"` 的 `AssistantImages` 返回。
 	 */
 	generateImages(
 		model: ImagesModel<ImagesApi>,
@@ -88,7 +83,7 @@ export interface ImagesModels {
 }
 
 export interface MutableImagesModels extends ImagesModels {
-	/** Upsert/replace by provider.id. Provider ids are unique. */
+	/** 按 provider.id 插入或替换。提供商 id 唯一。 */
 	setProvider(provider: ImagesProvider): void;
 	deleteProvider(id: string): void;
 	clearProviders(): void;
@@ -140,7 +135,7 @@ class ImagesModelsImpl implements MutableImagesModels {
 			try {
 				models.push(...entry.getModels());
 			} catch {
-				// Best-effort: ill-behaved providers yield no models.
+				// 尽力而为：行为异常的提供商不返回任何模型。
 			}
 		}
 		return models;
@@ -163,8 +158,8 @@ class ImagesModelsImpl implements MutableImagesModels {
 			return;
 		}
 
-		// Cannot reject: the async mapper turns even sync throws from ill-behaved
-		// providers into rejections, and allSettled captures all of them.
+		// 不会拒绝：异步映射器会将行为异常提供商的同步抛出也转为拒绝，
+		// 而 allSettled 会捕获全部拒绝。
 		await Promise.allSettled(Array.from(this.providers.values(), async (entry) => entry.refreshModels?.()));
 	}
 
@@ -203,7 +198,7 @@ class ImagesModelsImpl implements MutableImagesModels {
 
 			const requestModel = auth.baseUrl ? { ...model, baseUrl: auth.baseUrl } : model;
 
-			// Explicit request options win per-field; headers/env merge per key.
+			// 每个字段均以显式请求选项优先；headers/env 按键合并。
 			const apiKey = options?.apiKey ?? auth.apiKey;
 			const headers = auth.headers || options?.headers ? { ...auth.headers, ...options?.headers } : undefined;
 			const env =
@@ -230,24 +225,23 @@ export function createImagesModels(options?: CreateModelsOptions): MutableImages
 
 export interface CreateImagesProviderOptions {
 	id: string;
-	/** Display name. Default: `id`. */
+	/** 显示名称，默认为 `id`。 */
 	name?: string;
-	/** Required — every provider has auth semantics, even ambient/keyless ones. */
+	/** 必填——每个提供商都有身份验证语义，包括环境凭据或无密钥提供商。 */
 	auth: ProviderAuth;
-	/** Initial model list (empty for purely dynamic providers). */
+	/** 初始模型列表（纯动态提供商为空）。 */
 	models: readonly ImagesModel<ImagesApi>[];
 	/**
-	 * Dynamic providers: fetch the current list. Stored on success; concurrent
-	 * calls share one in-flight fetch. May reject: the stored list then stays
-	 * at its last-known state, the rejection propagates to the caller of
-	 * `refreshModels()` (wrapped as ModelsError "model_source" by
-	 * `ImagesModels.refresh(provider)`), and a later call retries.
+	 * 动态提供商：获取当前列表。成功后存储；并发调用共享同一个进行中的获取请求。
+	 * 可能被拒绝：此时已存储列表保持最近已知状态，拒绝会传播给
+	 * `refreshModels()` 的调用方（由 `ImagesModels.refresh(provider)` 包装为
+	 * ModelsError "model_source"），后续调用会重试。
 	 */
 	refreshModels?: () => Promise<readonly ImagesModel<ImagesApi>[]>;
 	api: ProviderImages;
 }
 
-/** Builds an image-generation provider from parts. */
+/** 根据各组成部分构建图像生成提供商。 */
 export function createImagesProvider(input: CreateImagesProviderOptions): ImagesProvider {
 	let models = input.models;
 	let inflightRefresh: Promise<void> | undefined;

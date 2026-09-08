@@ -17,16 +17,16 @@ export interface ServiceSubscription {
 	readonly id: string;
 	readonly target: RpcTarget;
 	readonly snapshot: ServiceSubscriptionSnapshot;
-	/** Begin ordered update delivery after the caller has installed the snapshot. */
+	/** 在调用方安装快照后，开始按顺序投递更新。 */
 	start(): void;
 	dispose(): Promise<void>;
 }
 
 export interface ClientOptions {
 	transportFactory: ByteTransportFactory;
-	/** Logical server identity expected at the physical endpoint. */
+	/** 物理端点预期对应的逻辑服务器标识。 */
 	serverId: string;
 	maxFrameLength?: number;
-	/** Reports subscriber failures without allowing them to corrupt client state. */
+	/** 报告订阅方故障，同时防止其破坏客户端状态。 */
 	onListenerError?: ListenerErrorHandler;
 }

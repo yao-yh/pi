@@ -11,7 +11,7 @@ function loadNodeOs(): typeof NodeOs | null {
 	return (process as ProcessWithOsBuiltinModule).getBuiltinModule?.("node:os") ?? null;
 }
 
-// Keep runtime OS loading browser-safe. A top-level runtime import of node:os breaks browser/Vite builds.
+// 保持运行时 OS 加载对浏览器安全；在顶层运行时导入 node:os 会破坏浏览器/Vite 构建。
 const nodeOs = loadNodeOs();
 
 export function getPiUserAgent(): string {

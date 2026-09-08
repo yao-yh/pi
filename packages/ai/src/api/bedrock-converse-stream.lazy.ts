@@ -2,10 +2,8 @@ import type { ProviderStreams } from "../types.ts";
 import { lazyApi } from "./lazy.ts";
 
 /**
- * Loads the bedrock implementation through a variable specifier so bundlers
- * (browser smoke, Bun compile) cannot follow the import into the Node-only
- * AWS SDK. The `.ts`/`.js` rewrite keeps the trick working from both source
- * and built output.
+ * 通过变量说明符加载 Bedrock 实现，使打包器（浏览器 smoke、Bun 编译）无法沿着
+ * 导入进入仅限 Node 的 AWS SDK。重写 `.ts`/`.js` 可让此方式同时适用于源码和构建产物。
  */
 const importNodeOnlyApi = (specifier: string): Promise<unknown> => {
 	const runtimeSpecifier = import.meta.url.endsWith(".js") ? specifier.replace(/\.ts$/, ".js") : specifier;
@@ -15,9 +13,8 @@ const importNodeOnlyApi = (specifier: string): Promise<unknown> => {
 let bedrockModuleOverride: ProviderStreams | undefined;
 
 /**
- * Overrides the dynamically imported bedrock implementation. Used by the Bun
- * binary build, where the variable-specifier import cannot be bundled; the
- * build registers a statically imported module instead.
+ * 覆盖动态导入的 Bedrock 实现。用于无法打包变量说明符导入的 Bun 二进制构建；
+ * 该构建会改为注册静态导入的模块。
  */
 export function setBedrockProviderModule(module: ProviderStreams): void {
 	bedrockModuleOverride = module;

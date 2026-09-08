@@ -47,9 +47,8 @@ import { zaiCodingCnProvider } from "./zai-coding-cn.ts";
 
 export { radiusProvider };
 
-/** Providers present in the generated catalog. `KnownProvider` additionally
- * includes purely dynamic providers (e.g. "radius") that have no static
- * catalog entry. */
+/** 生成目录中存在的提供商。`KnownProvider` 还包括没有静态目录条目的
+ * 纯动态提供商（例如 "radius"）。 */
 export type BuiltinProvider = keyof typeof MODELS;
 
 type BuiltinModelApi<
@@ -57,7 +56,7 @@ type BuiltinModelApi<
 	TModelId extends keyof (typeof MODELS)[TProvider],
 > = (typeof MODELS)[TProvider][TModelId] extends { api: infer TApi } ? (TApi extends Api ? TApi : never) : never;
 
-/** Typed read of the generated built-in catalog. */
+/** 以类型化方式读取生成的内置目录。 */
 export function getBuiltinModel<TProvider extends BuiltinProvider, TModelId extends keyof (typeof MODELS)[TProvider]>(
 	provider: TProvider,
 	modelId: TModelId,
@@ -70,7 +69,7 @@ export function getBuiltinProviders(): BuiltinProvider[] {
 	return Object.keys(MODELS) as BuiltinProvider[];
 }
 
-/** Generation timestamp shared by all built-in provider catalogs. */
+/** 所有内置提供商目录共享的生成时间戳。 */
 export function getBuiltinModelDataGeneratedAt(): number | undefined {
 	const generatedAt = Date.parse(modelDataManifest.generatedAt);
 	return Number.isNaN(generatedAt) ? undefined : generatedAt;
@@ -85,7 +84,7 @@ export function getBuiltinModels<TProvider extends BuiltinProvider>(
 		: [];
 }
 
-/** All built-in providers, freshly constructed. */
+/** 所有新构建的内置提供商。 */
 export function builtinProviders(): Provider[] {
 	return [
 		amazonBedrockProvider(),
@@ -131,7 +130,7 @@ export function builtinProviders(): Provider[] {
 	];
 }
 
-/** A `Models` collection with every built-in provider registered. */
+/** 已注册所有内置提供商的 `Models` 集合。 */
 export function builtinModels(options?: CreateModelsOptions): MutableModels {
 	const models = createModels(options);
 	for (const provider of builtinProviders()) {
@@ -140,12 +139,12 @@ export function builtinModels(options?: CreateModelsOptions): MutableModels {
 	return models;
 }
 
-/** All built-in image-generation providers, freshly constructed. */
+/** 所有新构建的内置图像生成提供商。 */
 export function builtinImagesProviders(): ImagesProvider[] {
 	return [openrouterImagesProvider()];
 }
 
-/** An `ImagesModels` collection with every built-in image-generation provider registered. */
+/** 已注册所有内置图像生成提供商的 `ImagesModels` 集合。 */
 export function builtinImagesModels(options?: CreateModelsOptions): MutableImagesModels {
 	const models = createImagesModels(options);
 	for (const provider of builtinImagesProviders()) {

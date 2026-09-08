@@ -1,4 +1,4 @@
-/** Session worker process entry: `node worker/entry.ts <sessionsRoot> <cwd> [sessionId]`. */
+/** Session 工作进程入口：`node worker/entry.ts <sessionsRoot> <cwd> [sessionId]`。 */
 
 import { runSessionWorker } from "./run.ts";
 

@@ -1,24 +1,24 @@
 /**
- * Shared command execution utilities for extensions and custom tools.
+ * 扩展和自定义工具共享的命令执行工具函数。
  */
 
 import { spawn } from "node:child_process";
 import { waitForChildProcess } from "../utils/child-process.ts";
 
 /**
- * Options for executing shell commands.
+ * 执行 shell 命令的选项。
  */
 export interface ExecOptions {
-	/** AbortSignal to cancel the command */
+	/** 用于取消命令的 AbortSignal */
 	signal?: AbortSignal;
-	/** Timeout in milliseconds */
+	/** 超时时间，单位为毫秒 */
 	timeout?: number;
-	/** Working directory */
+	/** 工作目录 */
 	cwd?: string;
 }
 
 /**
- * Result of executing a shell command.
+ * shell 命令的执行结果。
  */
 export interface ExecResult {
 	stdout: string;
@@ -28,8 +28,8 @@ export interface ExecResult {
 }
 
 /**
- * Execute a shell command and return stdout/stderr/code.
- * Supports timeout and abort signal.
+ * 执行 shell 命令并返回 stdout、stderr 和退出码。
+ * 支持超时和中止信号。
  */
 export async function execCommand(
 	command: string,
@@ -53,7 +53,7 @@ export async function execCommand(
 			if (!killed) {
 				killed = true;
 				proc.kill("SIGTERM");
-				// Force kill after 5 seconds if SIGTERM doesn't work
+				// 如果 SIGTERM 无效，则在 5 秒后强制终止
 				setTimeout(() => {
 					if (!proc.killed) {
 						proc.kill("SIGKILL");
@@ -62,7 +62,7 @@ export async function execCommand(
 			}
 		};
 
-		// Handle abort signal
+		// 处理中止信号
 		if (options?.signal) {
 			if (options.signal.aborted) {
 				killProcess();
@@ -71,7 +71,7 @@ export async function execCommand(
 			}
 		}
 
-		// Handle timeout
+		// 处理超时
 		if (options?.timeout && options.timeout > 0) {
 			timeoutId = setTimeout(() => {
 				killProcess();
@@ -86,8 +86,7 @@ export async function execCommand(
 			stderr += data.toString();
 		});
 
-		// Wait for process termination without hanging on inherited stdio handles
-		// held open by detached descendants.
+		// 等待进程终止，避免因脱离的后代进程保持继承的 stdio 句柄而挂起。
 		waitForChildProcess(proc)
 			.then((code) => {
 				if (timeoutId) clearTimeout(timeoutId);

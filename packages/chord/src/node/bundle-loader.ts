@@ -22,17 +22,17 @@ export type FacetBundleExternalResolver = (specifier: string) => string | URL | 
 export interface FacetBundleLoaderOptions {
 	readonly manifestPath: string | URL;
 	readonly entry: string;
-	/** Verify the entry's SHA-256 integrity before evaluating it. Defaults to true. */
+	/** 在执行入口前验证其 SHA-256 完整性。默认为 true。 */
 	readonly verifyIntegrity?: boolean;
-	/** Resolve host-provided external imports when the bundle is outside the host's package tree. */
+	/** 当 bundle 位于宿主包目录树之外时，解析由宿主提供的外部导入。 */
 	readonly resolveExternal?: FacetBundleExternalResolver;
 }
 
 export interface FacetBundleArtifactLoaderOptions {
 	readonly artifact: unknown;
-	/** Resolve host-provided external imports against the receiving application. */
+	/** 根据接收方应用解析由宿主提供的外部导入。 */
 	readonly resolveExternal?: FacetBundleExternalResolver;
-	/** Parent directory for materialized module generations. Defaults to the operating system temp directory. */
+	/** 物化模块各代文件所用的父目录。默认为操作系统临时目录。 */
 	readonly temporaryDirectory?: string;
 }
 
@@ -40,7 +40,7 @@ interface CommonJsModule {
 	exports: unknown;
 }
 
-/** Read and validate a versioned facet bundle manifest. */
+/** 读取并验证带版本的切面 bundle 清单。 */
 export async function readFacetBundleManifest(path: string | URL): Promise<FacetBundleManifest> {
 	const manifestPath = toFilePath(path);
 	let parsed: unknown;
@@ -52,7 +52,7 @@ export async function readFacetBundleManifest(path: string | URL): Promise<Facet
 	return validateManifest(parsed, manifestPath);
 }
 
-/** Read and verify one transportable entry from a facet bundle on disk. */
+/** 从磁盘上的切面 bundle 中读取并验证一个可传输入口。 */
 export async function readFacetBundleArtifact(options: {
 	readonly manifestPath: string | URL;
 	readonly entry: string;
@@ -80,7 +80,7 @@ export async function readFacetBundleArtifact(options: {
 	});
 }
 
-/** Materialize a transported artifact and create a fresh VM-compiled CommonJS generation for each load. */
+/** 物化传输来的制品，并在每次加载时创建一代全新的 VM 编译 CommonJS 模块。 */
 export function createFacetBundleArtifactLoader(options: FacetBundleArtifactLoaderOptions): FacetLoader {
 	const artifact = validateArtifact(options.artifact);
 	const temporaryParent = resolve(options.temporaryDirectory ?? tmpdir());
@@ -130,7 +130,7 @@ export function createFacetBundleArtifactLoader(options: FacetBundleArtifactLoad
 	};
 }
 
-/** Create a reusable loader for one opaque entry in a facet bundle manifest. */
+/** 为切面 bundle 清单中的一个不透明入口创建可复用加载器。 */
 export function createFacetBundleLoader(options: FacetBundleLoaderOptions): FacetLoader {
 	if (options.entry.length === 0) throw new TypeError("Facet bundle entry name must not be empty");
 	const manifestPath = toFilePath(options.manifestPath);

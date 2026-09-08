@@ -1,4 +1,4 @@
-// NEVER convert to top-level imports - breaks browser/Vite builds
+// 切勿改为顶层导入，否则会破坏浏览器/Vite 构建
 let _existsSync: typeof import("node:fs").existsSync | null = null;
 let _homedir: typeof import("node:os").homedir | null = null;
 let _join: typeof import("node:path").join | null = null;
@@ -10,7 +10,7 @@ const NODE_FS_SPECIFIER = "node:" + "fs";
 const NODE_OS_SPECIFIER = "node:" + "os";
 const NODE_PATH_SPECIFIER = "node:" + "path";
 
-// Eagerly load in Node.js/Bun environment only
+// 仅在 Node.js/Bun 环境中预先加载
 if (typeof process !== "undefined" && (process.versions?.node || process.versions?.bun)) {
 	dynamicImport(NODE_FS_SPECIFIER).then((m) => {
 		_existsSync = (m as typeof import("node:fs")).existsSync;
@@ -39,24 +39,24 @@ function hasVertexAdcCredentials(env?: ProviderEnv): boolean {
 	}
 
 	if (cachedVertexAdcCredentialsExists === null) {
-		// If node modules haven't loaded yet (async import race at startup),
-		// return false WITHOUT caching so the next call retries once they're ready.
-		// Only cache false permanently in a browser environment where fs is never available.
+		// 如果 Node 模块尚未加载（启动时发生异步导入竞争），
+		// 返回 false 但不缓存，以便模块就绪后下次调用可以重试。
+		// 仅在永远无法使用 fs 的浏览器环境中永久缓存 false。
 		if (!_existsSync || !_homedir || !_join) {
 			const isNode = typeof process !== "undefined" && (process.versions?.node || process.versions?.bun);
 			if (!isNode) {
-				// Definitively in a browser — safe to cache false permanently
+				// 已确定处于浏览器环境，可以安全地永久缓存 false
 				cachedVertexAdcCredentialsExists = false;
 			}
 			return false;
 		}
 
-		// Check GOOGLE_APPLICATION_CREDENTIALS env var first (standard way)
+		// 优先检查 GOOGLE_APPLICATION_CREDENTIALS 环境变量（标准方式）
 		const gacPath = getProviderEnvValue("GOOGLE_APPLICATION_CREDENTIALS", env);
 		if (gacPath) {
 			cachedVertexAdcCredentialsExists = _existsSync(gacPath);
 		} else {
-			// Fall back to default ADC path (lazy evaluation)
+			// 回退到默认 ADC 路径（延迟求值）
 			cachedVertexAdcCredentialsExists = _existsSync(
 				_join(_homedir(), ".config", "gcloud", "application_default_credentials.json"),
 			);
@@ -70,8 +70,8 @@ function getApiKeyEnvVars(provider: string): readonly string[] | undefined {
 		return ["COPILOT_GITHUB_TOKEN"];
 	}
 
-	// ANTHROPIC_AUTH_TOKEN participates in env discovery/status, but
-	// getEnvApiKey() skips it because requests must pass it as Authorization: Bearer.
+	// ANTHROPIC_AUTH_TOKEN 参与环境变量发现和状态判断，但
+	// getEnvApiKey() 会跳过它，因为请求必须通过 Authorization: Bearer 传递该值。
 	if (provider === "anthropic") {
 		return [ANTHROPIC_AUTH_TOKEN_ENV, ANTHROPIC_OAUTH_TOKEN_ENV, ANTHROPIC_API_KEY_ENV];
 	}
@@ -120,11 +120,10 @@ function getApiKeyEnvVars(provider: string): readonly string[] | undefined {
 }
 
 /**
- * Find configured environment variables that can provide an API key for a provider.
+ * 查找已配置且能为提供商提供 API 密钥的环境变量。
  *
- * This only reports actual API key variables. It intentionally excludes ambient
- * credential sources such as AWS profiles, AWS IAM credentials, and Google
- * Application Default Credentials.
+ * 此函数只报告实际的 API 密钥变量，并特意排除 AWS 配置文件、AWS IAM 凭据和
+ * Google 应用默认凭据等环境凭据来源。
  */
 export function findEnvKeys(provider: KnownProvider, env?: ProviderEnv): string[] | undefined;
 export function findEnvKeys(provider: string, env?: ProviderEnv): string[] | undefined;
@@ -137,9 +136,9 @@ export function findEnvKeys(provider: string, env?: ProviderEnv): string[] | und
 }
 
 /**
- * Get API key for provider from known environment variables, e.g. OPENAI_API_KEY.
+ * 从已知环境变量（例如 OPENAI_API_KEY）中获取提供商的 API 密钥。
  *
- * Will not return API keys for providers that require OAuth tokens.
+ * 不会返回需要 OAuth 令牌的提供商 API 密钥。
  */
 export function getEnvApiKey(provider: KnownProvider, env?: ProviderEnv): string | undefined;
 export function getEnvApiKey(provider: string, env?: ProviderEnv): string | undefined;
@@ -150,8 +149,8 @@ export function getEnvApiKey(provider: string, env?: ProviderEnv): string | unde
 		if (apiKeyEnv) return getProviderEnvValue(apiKeyEnv, env);
 	}
 
-	// Vertex AI supports either an explicit API key or Application Default Credentials.
-	// Auth is configured via `gcloud auth application-default login`.
+	// Vertex AI 支持显式 API 密钥或应用默认凭据。
+	// 通过 `gcloud auth application-default login` 配置身份验证。
 	if (provider === "google-vertex") {
 		const hasCredentials = hasVertexAdcCredentials(env);
 		const hasProject = !!(
@@ -165,13 +164,13 @@ export function getEnvApiKey(provider: string, env?: ProviderEnv): string | unde
 	}
 
 	if (provider === "amazon-bedrock") {
-		// Amazon Bedrock supports multiple credential sources:
-		// 1. AWS_PROFILE - named profile from ~/.aws/credentials
-		// 2. AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY - standard IAM keys
-		// 3. AWS_BEARER_TOKEN_BEDROCK - Bedrock bearer token
-		// 4. AWS_CONTAINER_CREDENTIALS_RELATIVE_URI - ECS task roles
-		// 5. AWS_CONTAINER_CREDENTIALS_FULL_URI - ECS task roles (full URI)
-		// 6. AWS_WEB_IDENTITY_TOKEN_FILE - IRSA (IAM Roles for Service Accounts)
+		// Amazon Bedrock 支持多种凭据来源：
+		// 1. AWS_PROFILE - ~/.aws/credentials 中的命名配置文件
+		// 2. AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY - 标准 IAM 密钥
+		// 3. AWS_BEARER_TOKEN_BEDROCK - Bedrock Bearer 令牌
+		// 4. AWS_CONTAINER_CREDENTIALS_RELATIVE_URI - ECS 任务角色
+		// 5. AWS_CONTAINER_CREDENTIALS_FULL_URI - ECS 任务角色（完整 URI）
+		// 6. AWS_WEB_IDENTITY_TOKEN_FILE - IRSA（IAM 服务账户角色）
 		if (
 			getProviderEnvValue("AWS_PROFILE", env) ||
 			(getProviderEnvValue("AWS_ACCESS_KEY_ID", env) && getProviderEnvValue("AWS_SECRET_ACCESS_KEY", env)) ||

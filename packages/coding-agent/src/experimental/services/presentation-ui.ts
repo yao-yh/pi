@@ -6,7 +6,7 @@ export interface PresentationSelectItem {
 	readonly description?: string;
 }
 
-/** Narrow process-local UI capabilities available to presentation facets. */
+/** 呈现层切面可用的受限进程本地 UI 能力。 */
 export interface PresentationUI {
 	select(
 		title: string,

@@ -1,10 +1,10 @@
-/** Result of a prepared SQLite statement execution. */
+/** SQLite 预处理语句的执行结果。 */
 export interface SqliteRunResult {
 	changes: number;
 	lastInsertRowid?: number;
 }
 
-/** Prepared SQLite statement capability used by the SQLite session backend. */
+/** SQLite 会话后端使用的预处理语句能力。 */
 export interface SqliteStatement {
 	run(...params: unknown[]): SqliteRunResult;
 	get<TRow extends object>(...params: unknown[]): TRow | undefined;
@@ -12,20 +12,20 @@ export interface SqliteStatement {
 	iterate<TRow extends object>(...params: unknown[]): Iterable<TRow>;
 }
 
-/** SQLite database capability used by the SQLite session backend. */
+/** SQLite 会话后端使用的数据库能力。 */
 export interface SqliteDatabase {
 	exec(sql: string): void;
 	prepare(sql: string): SqliteStatement;
-	/** Runs a synchronous write transaction. The callback must not return a promise. */
+	/** 运行同步写事务。回调不得返回 Promise。 */
 	transaction<T>(callback: () => T): T;
 	close(): void;
 }
 
 export interface SqliteDatabaseFactory {
-	/** Open a writable database, creating it when absent. */
+	/** 打开可写数据库；数据库不存在时创建。 */
 	open(path: string): Promise<SqliteDatabase>;
-	/** Open a writable database without creating it. */
+	/** 打开可写数据库，但不创建不存在的数据库。 */
 	openExisting(path: string): Promise<SqliteDatabase>;
-	/** Open an existing database read-only. */
+	/** 以只读方式打开现有数据库。 */
 	openReadOnly(path: string): Promise<SqliteDatabase>;
 }

@@ -59,14 +59,14 @@ export function createContextKey<T>(description: string): ContextKey<T> {
 	return Object.freeze({ token: Symbol(description) });
 }
 
-/** Derive a context containing one additional or replaced value. */
+/** 派生一个包含新增值或替换值的上下文。 */
 export function withContextValue<T>(key: ContextKey<T>, value: T, parent: Context): Context {
 	return new ContextValue(parent, key, value);
 }
 
 /**
- * Derive a context cancelled by either the parent signal or the supplied signal.
- * The parent context remains unchanged.
+ * 派生一个可由父级信号或所提供信号取消的上下文。
+ * 父级上下文本身保持不变。
  */
 export function withAbortSignal(signal: AbortSignal, context: Context): Context {
 	const parentSignal = context.abortSignal;
@@ -74,12 +74,12 @@ export function withAbortSignal(signal: AbortSignal, context: Context): Context 
 	return withContextValue(ABORT_SIGNAL_CONTEXT_KEY, combined, context);
 }
 
-/** Derive a context retaining all values except caller cancellation. Intended for mandatory cleanup only. */
+/** 派生一个保留全部值但不继承调用方取消状态的上下文。仅用于必须执行的清理。 */
 export function withoutAbortSignal(context: Context): Context {
 	return withContextValue(ABORT_SIGNAL_CONTEXT_KEY, undefined, context);
 }
 
-/** Derive an independently cancellable child context. */
+/** 派生一个可独立取消的子上下文。 */
 export function withCancel(context: Context): {
 	readonly context: Context;
 	readonly cancel: (reason?: unknown) => void;
@@ -92,8 +92,8 @@ export function withCancel(context: Context): {
 }
 
 /**
- * Observe a promise until it settles or the invocation is cancelled.
- * Cancellation rejects only this waiter; it does not cancel the underlying promise.
+ * 观察 Promise，直至其完成或本次调用被取消。
+ * 取消只会拒绝当前等待方，不会取消底层 Promise。
  */
 export function awaitWithContext<T>(promise: Promise<T>, context: Context): Promise<T> {
 	const signal = context.abortSignal;

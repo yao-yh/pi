@@ -1,9 +1,9 @@
 /**
- * Session worker: one process per session.
+ * 会话 worker：每个会话对应一个进程。
  *
- * It owns every live object — storage, harness, lane, model runtime — and publishes them only as the
- * `Lane` and `Models` services. It speaks JSON over its stdio pipes to the server that spawned it,
- * and can call server services (`Sessions`) over the same peer.
+ * 它持有所有活动对象——存储、harness、lane 和模型运行时——并且只将其发布为 `Lane` 和
+ * `Models` 服务。它通过 stdio 管道与生成它的服务器交换 JSON，也可以通过同一个 peer
+ * 调用服务器服务（`Sessions`）。
  */
 
 import {
@@ -48,7 +48,7 @@ async function openSession(
 	return repo.open(metadata, context);
 }
 
-/** Run one session worker until its stdio closes. `sessionId` undefined creates a new session. */
+/** 运行一个会话 worker 直至其 stdio 关闭。`sessionId` 为 undefined 时创建新会话。 */
 export async function runSessionWorker(options: {
 	sessionsRoot: string;
 	sessionId?: string;
@@ -92,8 +92,8 @@ export async function runSessionWorker(options: {
 	peer.provide(Models, models);
 	peer.provide(Worker, { describe: async () => ({ sessionId: session.metadata.id }) });
 
-	// Creation restores durable operation state without starting effects. Once services are reachable,
-	// install a new process-local drive for every operation left open by the previous worker.
+	// 创建过程会恢复持久操作状态，但不会启动副作用。服务可访问后，
+	// 为上一 worker 遗留的每个未结束操作安装新的进程本地驱动器。
 	const recoveries = open.map(async (operation) => {
 		try {
 			const restoredLane = operation.lane === lane.name ? lane : await harness.lane(operation.lane, context);

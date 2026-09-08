@@ -1,13 +1,13 @@
 import type { Message } from "../types.ts";
 
-// Copilot expects X-Initiator to indicate whether the request is user-initiated
-// or agent-initiated (e.g. follow-up after assistant/tool messages).
+// Copilot 要求使用 X-Initiator 指示请求由用户还是智能体发起
+// （例如助手/工具消息之后的后续请求）。
 export function inferCopilotInitiator(messages: Message[]): "user" | "agent" {
 	const last = messages[messages.length - 1];
 	return last && last.role !== "user" ? "agent" : "user";
 }
 
-// Copilot requires Copilot-Vision-Request header when sending images
+// 发送图像时，Copilot 要求提供 Copilot-Vision-Request 请求头
 export function hasCopilotVisionInput(messages: Message[]): boolean {
 	return messages.some((msg) => {
 		if (msg.role === "user" && Array.isArray(msg.content)) {

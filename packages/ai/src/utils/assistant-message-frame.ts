@@ -2,8 +2,7 @@ import type { AssistantMessage, AssistantMessageEvent, TextContent, ThinkingCont
 import { parseStreamingJson } from "./json-parse.ts";
 
 /**
- * Compact, replayable assistant-message progress. Terminal settlement is
- * intentionally excluded and must be persisted separately.
+ * 紧凑且可重放的助手消息进度。有意排除终止结算，必须单独持久化。
  */
 export type AssistantMessageFrame =
 	| { type: "start"; partial: AssistantMessage }
@@ -132,9 +131,8 @@ function isJsonPrefix(snapshot: unknown, current: unknown): boolean {
 }
 
 /**
- * Encodes one assistant stream. `partial` remains a shared live accumulator;
- * the encoder uses per-block offsets to avoid replaying deltas already visible
- * when an older queued event is consumed.
+ * 编码单个助手流。`partial` 保持为共享实时累积对象；编码器使用各块偏移，
+ * 避免消费较早的队列事件时重放已经可见的增量。
  */
 export class AssistantMessageFrameEncoder {
 	private started = false;
@@ -246,9 +244,8 @@ export class AssistantMessageFrameEncoder {
 				state.catchupJson += event.delta;
 				const argumentsValue = parseStreamingJson<ToolCall["arguments"]>(state.catchupJson);
 				if (serializedArguments(argumentsValue) !== state.snapshotArguments) {
-					// Legacy grammar calls include the initial input in toolcall_start, but their
-					// JSON delta stream still begins at an empty input. Its parsed arguments can
-					// therefore extend, rather than exactly reproduce, the start snapshot.
+					// 旧版语法调用在 toolcall_start 中包含初始输入，但其 JSON 增量流仍从空输入开始。
+					// 因此解析后的参数可能扩展起始快照，而不是完全复现它。
 					const snapshotArguments = parseStreamingJson<ToolCall["arguments"]>(state.snapshotArguments);
 					if (!isJsonPrefix(snapshotArguments, argumentsValue)) return undefined;
 				}
@@ -366,8 +363,7 @@ function activeBlock(
 }
 
 /**
- * Replay compact frames without mutating them. Returns `undefined` when the
- * iterable contains no start frame.
+ * 在不修改紧凑帧的情况下重放。可迭代对象不包含起始帧时返回 `undefined`。
  */
 export function reduceAssistantMessageFrames(frames: Iterable<AssistantMessageFrame>): AssistantMessage | undefined {
 	let message: AssistantMessage | undefined;

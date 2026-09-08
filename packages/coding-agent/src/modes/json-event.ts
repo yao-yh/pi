@@ -14,7 +14,7 @@ type JsonMessageUpdateEvent = {
 	assistantMessageEvent: ToJsonAssistantMessageEvent<MessageUpdateEvent["assistantMessageEvent"]>;
 };
 
-/** Session event shape emitted by the JSON and RPC stdout protocols. */
+/** JSON 和 RPC 标准输出协议发出的会话事件结构。 */
 export type JsonAgentSessionEvent = Exclude<AgentSessionEvent, { type: "message_update" }> | JsonMessageUpdateEvent;
 
 function toJsonAssistantMessageEvent(
@@ -38,10 +38,9 @@ function toJsonAssistantMessageEvent(
 }
 
 /**
- * Remove cumulative assistant snapshots from streaming wire events.
- * `message_start` provides the initial message, deltas build it, and
- * `message_end` provides the final authoritative message. Cumulative usage,
- * tool-call ids, and tool names remain available because their size is constant.
+ * 从流式线路事件中移除累积的助手快照。
+ * `message_start` 提供初始消息，增量逐步构建消息，`message_end` 提供最终权威消息。
+ * 累积用量、工具调用 ID 和工具名称仍然可用，因为它们的大小固定。
  */
 export function toJsonEvent(event: MessageUpdateEvent): JsonMessageUpdateEvent;
 export function toJsonEvent(event: AgentSessionEvent): JsonAgentSessionEvent;

@@ -20,11 +20,11 @@ export interface InputOptions {
 }
 
 /**
- * Input component - single-line text input with horizontal scrolling
+ * Input 组件——支持水平滚动的单行文本输入。
  */
 export class Input implements Component, Focusable {
 	private value: string = "";
-	private cursor: number = 0; // Cursor position in the value
+	private cursor: number = 0; // 光标在值中的位置
 	private readonly prompt: string;
 	private readonly placeholder: string;
 	private readonly placeholderStyle: (text: string) => string;
@@ -32,18 +32,18 @@ export class Input implements Component, Focusable {
 	public onSubmit?: (value: string) => void;
 	public onEscape?: () => void;
 
-	/** Focusable interface - set by TUI when focus changes */
+	/** Focusable 接口——焦点变化时由 TUI 设置。 */
 	focused: boolean = false;
 
-	// Bracketed paste mode buffering
+	// 括号粘贴模式缓冲
 	private pasteBuffer: string = "";
 	private isInPaste: boolean = false;
 
-	// Kill ring for Emacs-style kill/yank operations
+	// 用于 Emacs 风格 kill/yank 操作的 kill ring
 	private killRing = new KillRing();
 	private lastAction: "kill" | "yank" | "type-word" | null = null;
 
-	// Undo support
+	// 撤销支持
 	private undoStack = new UndoStack<InputState>();
 
 	constructor(options: InputOptions = {}) {
@@ -62,35 +62,35 @@ export class Input implements Component, Focusable {
 	}
 
 	handleInput(data: string): void {
-		// Handle bracketed paste mode
-		// Start of paste: \x1b[200~
-		// End of paste: \x1b[201~
+		// 处理括号粘贴模式。
+		// 粘贴开始：\x1b[200~
+		// 粘贴结束：\x1b[201~
 
-		// Check if we're starting a bracketed paste
+		// 检查是否开始括号粘贴。
 		if (data.includes("\x1b[200~")) {
 			this.isInPaste = true;
 			this.pasteBuffer = "";
 			data = data.replace("\x1b[200~", "");
 		}
 
-		// If we're in a paste, buffer the data
+		// 处于粘贴状态时缓冲数据。
 		if (this.isInPaste) {
-			// Check if this chunk contains the end marker
+			// 检查当前数据块是否包含结束标记。
 			this.pasteBuffer += data;
 
 			const endIndex = this.pasteBuffer.indexOf("\x1b[201~");
 			if (endIndex !== -1) {
-				// Extract the pasted content
+				// 提取粘贴内容。
 				const pasteContent = this.pasteBuffer.substring(0, endIndex);
 
-				// Process the complete paste
+				// 处理完整粘贴内容。
 				this.handlePaste(pasteContent);
 
-				// Reset paste state
+				// 重置粘贴状态。
 				this.isInPaste = false;
 
-				// Handle any remaining input after the paste marker
-				const remaining = this.pasteBuffer.substring(endIndex + 6); // 6 = length of \x1b[201~
+				// 处理粘贴标记之后的剩余输入。
+				const remaining = this.pasteBuffer.substring(endIndex + 6); // 6 是 \x1b[201~ 的长度
 				this.pasteBuffer = "";
 				if (remaining) {
 					this.handleInput(remaining);
@@ -101,25 +101,25 @@ export class Input implements Component, Focusable {
 
 		const kb = getKeybindings();
 
-		// Escape/Cancel
+		// Escape/取消
 		if (kb.matches(data, "tui.select.cancel")) {
 			if (this.onEscape) this.onEscape();
 			return;
 		}
 
-		// Undo
+		// 撤销
 		if (kb.matches(data, "tui.editor.undo")) {
 			this.undo();
 			return;
 		}
 
-		// Submit
+		// 提交
 		if (kb.matches(data, "tui.input.submit") || data === "\n") {
 			if (this.onSubmit) this.onSubmit(this.value);
 			return;
 		}
 
-		// Deletion
+		// 删除
 		if (kb.matches(data, "tui.editor.deleteCharBackward")) {
 			this.handleBackspace();
 			return;
@@ -150,7 +150,7 @@ export class Input implements Component, Focusable {
 			return;
 		}
 
-		// Kill ring actions
+		// Kill ring 操作
 		if (kb.matches(data, "tui.editor.yank")) {
 			this.yank();
 			return;
@@ -160,7 +160,7 @@ export class Input implements Component, Focusable {
 			return;
 		}
 
-		// Cursor movement
+		// 光标移动
 		if (kb.matches(data, "tui.editor.cursorLeft")) {
 			this.lastAction = null;
 			if (this.cursor > 0) {
@@ -205,18 +205,17 @@ export class Input implements Component, Focusable {
 			return;
 		}
 
-		// Kitty CSI-u printable character (e.g. \x1b[97u for 'a').
-		// Terminals with Kitty protocol flag 1 (disambiguate) send CSI-u for all keys,
-		// including plain printable characters. Decode before the control-char check
-		// since CSI-u sequences contain \x1b which would be rejected.
+		// Kitty CSI-u 可打印字符（例如表示 'a' 的 \x1b[97u）。
+		// 启用 Kitty 协议标志 1（disambiguate）的终端会为所有按键发送 CSI-u，
+		// 包括普通可打印字符。CSI-u 序列包含会被拒绝的 \x1b，因此需在控制字符检查前解码。
 		const kittyPrintable = decodeKittyPrintable(data);
 		if (kittyPrintable !== undefined) {
 			this.insertCharacter(kittyPrintable);
 			return;
 		}
 
-		// Regular character input - accept printable characters including Unicode,
-		// but reject control characters (C0: 0x00-0x1F, DEL: 0x7F, C1: 0x80-0x9F)
+		// 普通字符输入：接受包括 Unicode 在内的可打印字符，
+		// 但拒绝控制字符（C0：0x00-0x1F，DEL：0x7F，C1：0x80-0x9F）。
 		const hasControlChars = [...data].some((ch) => {
 			const code = ch.charCodeAt(0);
 			return code < 32 || code === 0x7f || (code >= 0x80 && code <= 0x9f);
@@ -245,7 +244,7 @@ export class Input implements Component, Focusable {
 	}
 
 	private insertCharacter(char: string): void {
-		// Undo coalescing: consecutive word chars coalesce into one undo unit
+		// 撤销合并：连续单词字符合并为一个撤销单元。
 		if (isWhitespaceChar(char) || this.lastAction !== "type-word") {
 			this.pushUndo();
 		}
@@ -302,7 +301,7 @@ export class Input implements Component, Focusable {
 	private deleteWordBackwards(): void {
 		if (this.cursor === 0) return;
 
-		// Save lastAction before cursor movement (moveWordBackwards resets it)
+		// 在移动光标前保存 lastAction，因为 moveWordBackwards 会将其重置。
 		const wasKill = this.lastAction === "kill";
 
 		this.pushUndo();
@@ -323,7 +322,7 @@ export class Input implements Component, Focusable {
 	private deleteWordForward(): void {
 		if (this.cursor >= this.value.length) return;
 
-		// Save lastAction before cursor movement (moveWordForwards resets it)
+		// 在移动光标前保存 lastAction，因为 moveWordForwards 会将其重置。
 		const wasKill = this.lastAction === "kill";
 
 		this.pushUndo();
@@ -356,12 +355,12 @@ export class Input implements Component, Focusable {
 
 		this.pushUndo();
 
-		// Delete the previously yanked text (still at end of ring before rotation)
+		// 删除此前 yank 的文本；旋转前该文本仍位于 ring 末尾。
 		const prevText = this.killRing.peek() || "";
 		this.value = this.value.slice(0, this.cursor - prevText.length) + this.value.slice(this.cursor);
 		this.cursor -= prevText.length;
 
-		// Rotate and insert new entry
+		// 旋转并插入新条目。
 		this.killRing.rotate();
 		const text = this.killRing.peek() || "";
 		this.value = this.value.slice(0, this.cursor) + text + this.value.slice(this.cursor);
@@ -397,20 +396,20 @@ export class Input implements Component, Focusable {
 		this.lastAction = null;
 		this.pushUndo();
 
-		// Clean the pasted text - remove newlines and carriage returns
+		// 清理粘贴文本：移除换行符和回车符。
 		const cleanText = pastedText.replace(/\r\n/g, "").replace(/\r/g, "").replace(/\n/g, "").replace(/\t/g, "    ");
 
-		// Insert at cursor position
+		// 在光标位置插入。
 		this.value = this.value.slice(0, this.cursor) + cleanText + this.value.slice(this.cursor);
 		this.cursor += cleanText.length;
 	}
 
 	invalidate(): void {
-		// No cached state to invalidate currently
+		// 当前没有需要失效的缓存状态。
 	}
 
 	render(width: number): string[] {
-		// Calculate visible window
+		// 计算可见窗口。
 		const availableWidth = width - visibleWidth(this.prompt);
 
 		if (availableWidth <= 0) {
@@ -435,11 +434,11 @@ export class Input implements Component, Focusable {
 		const totalWidth = visibleWidth(this.value);
 
 		if (totalWidth < availableWidth) {
-			// Everything fits (leave room for cursor at end)
+			// 全部内容均可容纳，并为末尾光标留出空间。
 			visibleText = this.value;
 		} else {
-			// Need horizontal scrolling
-			// Reserve one column for cursor if it's at the end
+			// 需要水平滚动。
+			// 光标位于末尾时为其保留一列。
 			const scrollWidth = this.cursor === this.value.length ? availableWidth - 1 : availableWidth;
 			const cursorCol = visibleWidth(this.value.slice(0, this.cursor));
 
@@ -448,13 +447,13 @@ export class Input implements Component, Focusable {
 				let startCol = 0;
 
 				if (cursorCol < halfWidth) {
-					// Cursor near start
+					// 光标靠近开头。
 					startCol = 0;
 				} else if (cursorCol > totalWidth - halfWidth) {
-					// Cursor near end
+					// 光标靠近末尾。
 					startCol = Math.max(0, totalWidth - scrollWidth);
 				} else {
-					// Cursor in middle
+					// 光标位于中间。
 					startCol = Math.max(0, cursorCol - halfWidth);
 				}
 
@@ -468,23 +467,23 @@ export class Input implements Component, Focusable {
 			}
 		}
 
-		// Build line with fake cursor
-		// Insert cursor character at cursor position
+		// 构建带模拟光标的行。
+		// 在光标位置插入光标字符。
 		const graphemes = [...segmenter.segment(visibleText.slice(cursorDisplay))];
 		const cursorGrapheme = graphemes[0];
 
 		const beforeCursor = visibleText.slice(0, cursorDisplay);
-		const atCursor = cursorGrapheme?.segment ?? " "; // Character at cursor, or space if at end
+		const atCursor = cursorGrapheme?.segment ?? " "; // 光标处的字符，位于末尾时为空格
 		const afterCursor = visibleText.slice(cursorDisplay + atCursor.length);
 
-		// Hardware cursor marker (zero-width, emitted before fake cursor for IME positioning)
+		// 硬件光标标记（零宽，在模拟光标前发出，用于 IME 定位）。
 		const marker = this.focused ? CURSOR_MARKER : "";
 
-		// Use inverse video to show cursor
-		const cursorChar = `\x1b[7m${atCursor}\x1b[27m`; // ESC[7m = reverse video, ESC[27m = normal
+		// 使用反显显示光标。
+		const cursorChar = `\x1b[7m${atCursor}\x1b[27m`; // ESC[7m 表示反显，ESC[27m 表示正常显示
 		const textWithCursor = beforeCursor + marker + cursorChar + afterCursor;
 
-		// Calculate visual width
+		// 计算可视宽度。
 		const visualLength = visibleWidth(textWithCursor);
 		const padding = " ".repeat(Math.max(0, availableWidth - visualLength));
 		const line = this.prompt + textWithCursor + padding;

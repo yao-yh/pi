@@ -1,18 +1,18 @@
 /**
- * Theme JSON validation, kept out of `theme.ts` on purpose.
+ * 主题 JSON 验证，有意与 `theme.ts` 分离。
  *
- * Validating user-authored theme files needs typebox, which costs ~17 MB of module graph to import.
- * Palette lookup does not, so a presentation that only uses built-in themes should never pay for it.
- * `interactive-mode.ts` installs this validator; anything that does not simply skips validation, as
- * built-in themes already do.
+ * 验证用户编写的主题文件需要 typebox，导入后会增加约 17 MB 的模块图。
+ * 调色板查找不需要它，因此只使用内置主题的演示端不应承担这项成本。
+ * `interactive-mode.ts` 会安装此验证器；未安装它的组件直接跳过验证，
+ * 与内置主题的现有做法一致。
  */
 
 import { type Static, Type } from "typebox";
 import { Compile } from "typebox/compile";
 
 const ColorValueSchema = Type.Union([
-	Type.String(), // hex "#ff0000", var ref "primary", or empty ""
-	Type.Integer({ minimum: 0, maximum: 255 }), // 256-color index
+	Type.String(), // 十六进制值 "#ff0000"、变量引用 "primary" 或空字符串 ""
+	Type.Integer({ minimum: 0, maximum: 255 }), // 256 色索引
 ]);
 
 const ThemeJsonSchema = Type.Object({
@@ -20,7 +20,7 @@ const ThemeJsonSchema = Type.Object({
 	name: Type.String(),
 	vars: Type.Optional(Type.Record(Type.String(), ColorValueSchema)),
 	colors: Type.Object({
-		// Core UI (11 colors)
+		// 核心 UI（11 种颜色）
 		accent: ColorValueSchema,
 		border: ColorValueSchema,
 		borderAccent: ColorValueSchema,
@@ -32,10 +32,10 @@ const ThemeJsonSchema = Type.Object({
 		dim: ColorValueSchema,
 		text: ColorValueSchema,
 		thinkingText: ColorValueSchema,
-		// Scrollbar (2 optional colors)
+		// 滚动条（2 种可选颜色）
 		scrollbarTrack: Type.Optional(ColorValueSchema),
 		scrollbarThumb: Type.Optional(ColorValueSchema),
-		// Backgrounds & Content Text (11 required, 2 optional)
+		// 背景和内容文本（11 种必需颜色，2 种可选颜色）
 		selectedBg: ColorValueSchema,
 		searchMatchBg: Type.Optional(ColorValueSchema),
 		searchMatchText: Type.Optional(ColorValueSchema),
@@ -49,7 +49,7 @@ const ThemeJsonSchema = Type.Object({
 		toolErrorBg: ColorValueSchema,
 		toolTitle: ColorValueSchema,
 		toolOutput: ColorValueSchema,
-		// Markdown (10 colors)
+		// Markdown（10 种颜色）
 		mdHeading: ColorValueSchema,
 		mdLink: ColorValueSchema,
 		mdLinkUrl: ColorValueSchema,
@@ -60,11 +60,11 @@ const ThemeJsonSchema = Type.Object({
 		mdQuoteBorder: ColorValueSchema,
 		mdHr: ColorValueSchema,
 		mdListBullet: ColorValueSchema,
-		// Tool Diffs (3 colors)
+		// 工具差异（3 种颜色）
 		toolDiffAdded: ColorValueSchema,
 		toolDiffRemoved: ColorValueSchema,
 		toolDiffContext: ColorValueSchema,
-		// Syntax Highlighting (9 colors)
+		// 语法高亮（9 种颜色）
 		syntaxComment: ColorValueSchema,
 		syntaxKeyword: ColorValueSchema,
 		syntaxFunction: ColorValueSchema,
@@ -74,7 +74,7 @@ const ThemeJsonSchema = Type.Object({
 		syntaxType: ColorValueSchema,
 		syntaxOperator: ColorValueSchema,
 		syntaxPunctuation: ColorValueSchema,
-		// Thinking Level Borders (6 colors)
+		// 思考级别边框（6 种颜色）
 		thinkingOff: ColorValueSchema,
 		thinkingMinimal: ColorValueSchema,
 		thinkingLow: ColorValueSchema,
@@ -82,7 +82,7 @@ const ThemeJsonSchema = Type.Object({
 		thinkingHigh: ColorValueSchema,
 		thinkingXhigh: ColorValueSchema,
 		thinkingMax: Type.Optional(ColorValueSchema),
-		// Bash Mode (1 color)
+		// Bash 模式（1 种颜色）
 		bashMode: ColorValueSchema,
 	}),
 	export: Type.Optional(
@@ -99,7 +99,7 @@ const compiledThemeSchema = Compile(ThemeJsonSchema);
 export type ThemeColorValue = Static<typeof ColorValueSchema>;
 export type ValidatedThemeJson = Static<typeof ThemeJsonSchema>;
 
-/** Validate one theme document, throwing a message that names the offending tokens. */
+/** 验证一个主题文档；失败时抛出包含问题令牌名称的消息。 */
 export function validateThemeJson(label: string, json: unknown): ValidatedThemeJson {
 	if (!compiledThemeSchema.Check(json)) {
 		const errors = Array.from(compiledThemeSchema.Errors(json));

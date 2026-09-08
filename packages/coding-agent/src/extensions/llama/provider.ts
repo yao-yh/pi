@@ -27,9 +27,9 @@ async function resolveServerUrl(
 
 function modelIsSelectable(model: LlamaModelInfo, routerAutoload: boolean): boolean {
 	if (model.status.value === "loaded") return true;
-	// llama.cpp reports idle-slept models as "sleeping"; requests wake them automatically.
+	// llama.cpp 将空闲休眠的模型报告为 "sleeping"；请求会自动唤醒它们。
 	if (model.status.value === "sleeping") return true;
-	// Unloaded presets are routable only when llama.cpp router autoload can load them on first use.
+	// 仅当 llama.cpp 路由器的自动加载功能可在首次使用时加载预设，未加载的预设才可路由。
 	return routerAutoload && model.status.value === "unloaded" && !model.status.failed && model.source === "preset";
 }
 

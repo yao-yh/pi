@@ -1,7 +1,7 @@
 /**
- * Fuzzy matching utilities.
- * Matches if all query characters appear in order (not necessarily consecutive).
- * Lower score = better match.
+ * 模糊匹配工具。
+ * 查询中的所有字符按顺序出现（不必连续）即视为匹配。
+ * 分数越低，匹配越好。
  */
 
 export interface FuzzyMatch {
@@ -31,24 +31,24 @@ export function fuzzyMatch(query: string, text: string): FuzzyMatch {
 			if (textLower[i] === normalizedQuery[queryIndex]) {
 				const isWordBoundary = i === 0 || /[\s\-_./:]/.test(textLower[i - 1]!);
 
-				// Reward consecutive matches
+				// 奖励连续匹配。
 				if (lastMatchIndex === i - 1) {
 					consecutiveMatches++;
 					score -= consecutiveMatches * 5;
 				} else {
 					consecutiveMatches = 0;
-					// Penalize gaps
+					// 惩罚字符间隔。
 					if (lastMatchIndex >= 0) {
 						score += (i - lastMatchIndex - 1) * 2;
 					}
 				}
 
-				// Reward word boundary matches
+				// 奖励单词边界匹配。
 				if (isWordBoundary) {
 					score -= 10;
 				}
 
-				// Slight penalty for later matches
+				// 对位置靠后的匹配施加轻微惩罚。
 				score += i * 0.1;
 
 				lastMatchIndex = i;
@@ -93,8 +93,8 @@ export function fuzzyMatch(query: string, text: string): FuzzyMatch {
 }
 
 /**
- * Filter and sort items by fuzzy match quality (best matches first).
- * Supports whitespace- and slash-separated tokens: all tokens must match.
+ * 按模糊匹配质量筛选并排序各项（最佳匹配优先）。
+ * 支持以空白和斜杠分隔的词元，所有词元都必须匹配。
  */
 export function fuzzyFilter<T>(items: T[], query: string, getText: (item: T) => string): T[] {
 	if (!query.trim()) {

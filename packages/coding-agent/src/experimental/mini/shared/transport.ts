@@ -1,9 +1,8 @@
 /**
- * Pluggable transport: newline-delimited JSON over any duplex pair.
+ * 可插拔传输：通过任意双工通道传输以换行符分隔的 JSON。
  *
- * `Connection` is the shared abstraction and every host uses it. `Transport` is only for hops that
- * have an address to negotiate: the unix socket between presentations and the server. A spawned
- * worker needs none, because the pipes exist before it does.
+ * `Connection` 是所有宿主共同使用的抽象。`Transport` 仅用于需要协商地址的跃点：
+ * 即演示端与服务器之间的 Unix 套接字。生成的 worker 不需要它，因为管道在 worker 之前已存在。
  */
 
 import { rm } from "node:fs/promises";
@@ -25,7 +24,7 @@ export interface Transport {
 	connect(): Promise<Connection>;
 }
 
-/** Frame JSON messages as one line each over a readable/writable pair. */
+/** 在可读写通道对上，将每条 JSON 消息封装为一行。 */
 export function jsonConnection(
 	input: NodeJS.ReadableStream,
 	output: NodeJS.WritableStream,
@@ -75,8 +74,8 @@ function socketConnection(socket: Socket): Connection {
 }
 
 /**
- * A spawned child is connected at birth, so there is no address to dial and no `Transport`: the
- * parent reads the child's stdout and writes its stdin, and the child sees the same pipes reversed.
+ * 生成的子进程在创建时已连接，因此无需拨号地址，也无需 `Transport`：
+ * 父进程读取子进程的 stdout 并写入其 stdin，子进程则以相反方向看到同一组管道。
  */
 export function childConnection(child: {
 	stdin: NodeJS.WritableStream | null;
@@ -87,7 +86,7 @@ export function childConnection(child: {
 	return jsonConnection(child.stdout, child.stdin, () => child.kill());
 }
 
-/** The child's own view of the pipes its parent created. */
+/** 子进程自身对父进程所创建管道的视图。 */
 export function parentConnection(): Connection {
 	return jsonConnection(process.stdin, process.stdout, () => process.stdin.pause());
 }

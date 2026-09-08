@@ -17,7 +17,7 @@ function userMessageText(message: AgentMessage): string {
 		.join("");
 }
 
-/** Snapshot-driven transcript used by the service-only experimental presentation. */
+/** 仅使用服务的实验性演示端所用的快照驱动对话记录。 */
 export class ExperimentalChatView {
 	static readonly #renderers: Record<string, ToolRenderers> = createAllToolRenderers();
 

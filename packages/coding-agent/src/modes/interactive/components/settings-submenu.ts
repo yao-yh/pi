@@ -18,15 +18,15 @@ const SUBMENU_SELECT_LIST_LAYOUT: SelectListLayoutOptions = {
 };
 
 export interface SelectSubmenuOptions {
-	/** Enable type-to-search fuzzy filtering. */
+	/** 启用输入搜索式模糊过滤。 */
 	searchable?: boolean;
-	/** Override the select list layout (column widths). */
+	/** 覆盖选择列表布局（列宽）。 */
 	layout?: SelectListLayoutOptions;
 }
 
 /**
- * Single-step submenu that shows a titled select list.
- * With `searchable: true`, typing filters the list using fuzzy matching.
+ * 显示带标题选择列表的单步骤子菜单。
+ * 设置 `searchable: true` 后，输入内容会通过模糊匹配过滤列表。
  */
 export class SelectSubmenu extends Container {
 	private selectList: SelectList;
@@ -56,16 +56,16 @@ export class SelectSubmenu extends Container {
 		this.onCancelCb = onCancel;
 		this.onSelectionChangeCb = onSelectionChange;
 
-		// Title
+		// 标题
 		this.addChild(new Text(theme.bold(theme.fg("accent", title)), 0, 0));
 
-		// Description
+		// 描述
 		if (description) {
 			this.addChild(new Spacer(1));
 			this.addChild(new Text(theme.fg("muted", description), 0, 0));
 		}
 
-		// Search input
+		// 搜索输入框
 		if (submenuOptions?.searchable) {
 			this.addChild(new Spacer(1));
 			this.searchInput = new Input();
@@ -75,15 +75,15 @@ export class SelectSubmenu extends Container {
 			this.addChild(this.searchInput);
 		}
 
-		// Spacer
+		// 间隔
 		this.addChild(new Spacer(1));
 
-		// Select list
+		// 选择列表
 		this.selectList = this.buildSelectList(options, currentValue);
 		this.listChildIndex = this.children.length;
 		this.addChild(this.selectList);
 
-		// Hint
+		// 提示
 		this.addChild(new Spacer(1));
 		const hint = submenuOptions?.searchable
 			? "  Type to filter \u00b7 Enter to select \u00b7 Esc to go back"
@@ -138,42 +138,42 @@ export class SelectSubmenu extends Container {
 }
 
 // ============================================================================
-// SteppedSubmenu — reusable multi-step selector
+// SteppedSubmenu——可复用的多步骤选择器
 // ============================================================================
 
-/** One step in a {@link SteppedSubmenu}. */
+/** {@link SteppedSubmenu} 中的一个步骤。 */
 export interface SteppedSubmenuStep {
-	/** Unique key \u2014 the selected value is stored in the result context under this key. */
+	/** 唯一键——选中的值会以此键存入结果上下文。 */
 	key: string;
-	/** Title shown at the top of the step. Receives prior selections. */
+	/** 显示在步骤顶部的标题。接收之前的选择结果。 */
 	title: string | ((context: Record<string, string>) => string);
-	/** Description shown below the title. Receives prior selections. */
+	/** 显示在标题下方的描述。接收之前的选择结果。 */
 	description: string | ((context: Record<string, string>) => string);
-	/** Build the option list for this step. Called fresh each time the step is shown. */
+	/** 构建此步骤的选项列表。每次显示该步骤时重新调用。 */
 	options: (context: Record<string, string>) => SelectItem[];
-	/** Optionally pre-select a value when entering this step. */
+	/** 进入此步骤时可选择预选一个值。 */
 	preselect?: (context: Record<string, string>) => string | undefined;
-	/** Enable type-to-search fuzzy filtering for this step. */
+	/** 为此步骤启用输入搜索式模糊过滤。 */
 	searchable?: boolean;
-	/** Override the select list layout (column widths) for this step. */
+	/** 覆盖此步骤的选择列表布局（列宽）。 */
 	layout?: SelectListLayoutOptions;
 }
 
 interface SteppedSubmenuOptions {
-	/** Start at this step index (0-based), skipping earlier steps. Requires initialContext for skipped keys. */
+	/** 从此步骤索引（从 0 开始）启动并跳过之前步骤。被跳过的键必须由 initialContext 提供。 */
 	startAtStep?: number;
-	/** Pre-fill selections for skipped steps. */
+	/** 预填充被跳过步骤的选择结果。 */
 	initialContext?: Record<string, string>;
-	/** After completing the last step, loop back to step 0 instead of closing. */
+	/** 完成最后一步后循环回步骤 0，而不是关闭。 */
 	loop?: boolean;
 }
 
 /**
- * Generic N-step submenu built on top of {@link SelectSubmenu}.
+ * 基于 {@link SelectSubmenu} 构建的通用 N 步子菜单。
  *
- * Each step's options can depend on prior selections via the shared context.
- * Esc goes back one step; Esc at step 0 cancels.
- * With `loop: true`, completing the final step invokes `onComplete` then returns to step 0.
+ * 每个步骤的选项都可以通过共享上下文依赖之前的选择结果。
+ * Esc 返回上一步；在步骤 0 按 Esc 则取消。
+ * 设置 `loop: true` 后，完成最后一步会调用 `onComplete`，然后返回步骤 0。
  */
 export class SteppedSubmenu extends Container {
 	private readonly steps: SteppedSubmenuStep[];
@@ -217,10 +217,10 @@ export class SteppedSubmenu extends Container {
 				this.context[step.key] = value;
 
 				if (stepIndex < total - 1) {
-					// Advance to next step
+					// 前进到下一步
 					this.activeComponent = this.buildStep(stepIndex + 1);
 				} else {
-					// Final step \u2014 deliver result
+					// 最后一步——交付结果
 					this.onComplete({ ...this.context });
 
 					if (this.opts.loop) {

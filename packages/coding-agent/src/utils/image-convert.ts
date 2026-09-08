@@ -4,7 +4,7 @@ import { loadPhoton } from "./photon.ts";
 export async function convertImageBytesToPng(bytes: Uint8Array): Promise<Uint8Array | null> {
 	const photon = await loadPhoton();
 	if (!photon) {
-		// Photon not available, can't convert
+		// Photon 不可用，无法转换
 		return null;
 	}
 
@@ -18,20 +18,20 @@ export async function convertImageBytesToPng(bytes: Uint8Array): Promise<Uint8Ar
 			image.free();
 		}
 	} catch {
-		// Conversion failed
+		// 转换失败
 		return null;
 	}
 }
 
 /**
- * Convert image to PNG format for terminal display.
- * Kitty graphics protocol requires PNG format (f=100).
+ * 将图像转换为 PNG 格式，以供终端显示。
+ * Kitty 图形协议要求使用 PNG 格式（f=100）。
  */
 export async function convertToPng(
 	base64Data: string,
 	mimeType: string,
 ): Promise<{ data: string; mimeType: string } | null> {
-	// Already PNG, no conversion needed
+	// 已是 PNG，无需转换
 	if (mimeType === "image/png") {
 		return { data: base64Data, mimeType };
 	}

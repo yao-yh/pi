@@ -25,16 +25,16 @@ export interface ImageRenderOptions {
 	maxWidthCells?: number;
 	maxHeightCells?: number;
 	preserveAspectRatio?: boolean;
-	/** Kitty image ID. If provided, reuses/replaces existing image with this ID. */
+	/** Kitty 图像 ID。提供后会用此 ID 复用或替换现有图像。 */
 	imageId?: number;
-	/** Whether Kitty should apply its default cursor movement after placement. */
+	/** Kitty 在放置图像后是否应用默认光标移动。 */
 	moveCursor?: boolean;
 }
 
 let cachedCapabilities: TerminalCapabilities | null = null;
 let capabilityOverrides: Partial<TerminalCapabilities> = {};
 
-// Default cell dimensions - updated by TUI when terminal responds to query
+// 默认单元格尺寸；终端响应查询时由 TUI 更新。
 let cellDimensions: CellDimensions = { widthPx: 9, heightPx: 18 };
 
 export function getCellDimensions(): CellDimensions {
@@ -46,9 +46,9 @@ export function setCellDimensions(dims: CellDimensions): void {
 }
 
 /**
- * Checks whether the attached tmux client forwards OSC 8 hyperlinks to the
- * outer terminal. tmux only re-emits them when its `client_termfeatures` lists
- * `hyperlinks`, and strips them otherwise. On any error fallbacks `false`.
+ * 检查已连接的 tmux 客户端是否向外层终端转发 OSC 8 超链接。
+ * 只有 `client_termfeatures` 包含 `hyperlinks` 时，tmux 才会重新发出这些链接，
+ * 否则会将其移除。发生任何错误时回退为 `false`。
  */
 function probeTmuxHyperlinks(): boolean {
 	try {
@@ -74,13 +74,13 @@ function detectCapabilitiesFromEnvironment(tmuxForwardsHyperlink: () => boolean)
 	const hasTrueColorHint = colorTerm === "truecolor" || colorTerm === "24bit";
 	const isWindowsConsole = process.platform === "win32";
 
-	// Emit OSC 8 hyperlinks only when tmux confirms it forwards.
-	// Image protocols are unreliable under tmux, so leave `images: null`.
+	// 仅在 tmux 确认会转发时发出 OSC 8 超链接。
+	// 图像协议在 tmux 下不可靠，因此保持 `images: null`。
 	if (process.env.TMUX || term.startsWith("tmux")) {
 		return { images: null, trueColor: hasTrueColorHint, hyperlinks: tmuxForwardsHyperlink() };
 	}
 
-	// screen does not forward OSC 8 hyperlinks, so keep them off there.
+	// screen 不转发 OSC 8 超链接，因此在该环境下保持禁用。
 	if (term.startsWith("screen")) {
 		return { images: null, trueColor: hasTrueColorHint, hyperlinks: false };
 	}
@@ -97,7 +97,7 @@ function detectCapabilitiesFromEnvironment(tmuxForwardsHyperlink: () => boolean)
 		return { images: "kitty", trueColor: true, hyperlinks: true };
 	}
 
-	// Warp supports the Kitty graphics protocol and OSC 8 hyperlinks.
+	// Warp 支持 Kitty 图形协议和 OSC 8 超链接。
 	if (termProgram === "warpterminal" || process.env.WARP_SESSION_ID || process.env.WARP_TERMINAL_SESSION_UUID) {
 		return { images: "kitty", trueColor: true, hyperlinks: true };
 	}
@@ -118,17 +118,15 @@ function detectCapabilitiesFromEnvironment(tmuxForwardsHyperlink: () => boolean)
 		return { images: null, trueColor: true, hyperlinks: false };
 	}
 
-	// Windows Terminal does not always set WT_SESSION, for example when it hosts
-	// a cmd.exe launched directly from Win+R. Modern Windows consoles support
-	// truecolor; keep hyperlinks off unless we positively detected support above.
+	// Windows Terminal 不一定设置 WT_SESSION，例如托管从 Win+R 直接启动的 cmd.exe 时。
+	// 现代 Windows 控制台支持真彩色；除非上方明确检测到支持，否则保持禁用超链接。
 	if (isWindowsConsole) {
 		return { images: null, trueColor: true, hyperlinks: false };
 	}
 
-	// Unknown terminal: be conservative. OSC 8 is rendered invisibly as "just
-	// text" on terminals that swallow it, which means the URL disappears from
-	// the rendered output. Default to the legacy `text (url)` behavior unless we
-	// have positively identified a hyperlink-capable terminal above.
+	// 未知终端采用保守策略。在吞掉 OSC 8 的终端上，它会被不可见地渲染为“纯文本”，
+	// 导致 URL 从渲染输出中消失。除非上方已明确识别出支持超链接的终端，
+	// 否则默认使用传统的 `text (url)` 行为。
 	return { images: null, trueColor: hasTrueColorHint, hyperlinks: false };
 }
 
@@ -172,7 +170,7 @@ export function resetCapabilitiesCache(): void {
 	cachedCapabilities = null;
 }
 
-/** Override selected auto-detected capabilities. */
+/** 覆盖选定的自动检测能力。 */
 export function setCapabilityOverrides(overrides: Partial<TerminalCapabilities>): void {
 	if (
 		capabilityOverrides.images === overrides.images &&
@@ -185,7 +183,7 @@ export function setCapabilityOverrides(overrides: Partial<TerminalCapabilities>)
 	cachedCapabilities = null;
 }
 
-/** Override the cached capabilities. Useful in tests to exercise both code paths. */
+/** 覆盖缓存的能力。便于测试两条代码路径。 */
 export function setCapabilities(caps: TerminalCapabilities): void {
 	cachedCapabilities = caps;
 }
@@ -194,21 +192,20 @@ const KITTY_PREFIX = "\x1b_G";
 const ITERM2_PREFIX = "\x1b]1337;File=";
 
 export function isImageLine(line: string): boolean {
-	// Fast path: sequence at line start (single-row images)
+	// 快速路径：序列位于行首（单行图像）。
 	if (line.startsWith(KITTY_PREFIX) || line.startsWith(ITERM2_PREFIX)) {
 		return true;
 	}
-	// Slow path: sequence elsewhere (multi-row images have cursor-up prefix)
+	// 慢速路径：序列位于其他位置（多行图像带有光标上移前缀）。
 	return line.includes(KITTY_PREFIX) || line.includes(ITERM2_PREFIX);
 }
 
 /**
- * Generate a random image ID for Kitty graphics protocol.
- * Uses random IDs to avoid collisions between different module instances
- * (e.g., main app vs extensions).
+ * 为 Kitty 图形协议生成随机图像 ID。
+ * 使用随机 ID 避免不同模块实例之间发生冲突，例如主应用与扩展。
  */
 export function allocateImageId(): number {
-	// Use random ID in range [1, 0xffffffff] to avoid collisions
+	// 使用 [1, 0xffffffff] 范围内的随机 ID 以避免冲突。
 	return Math.floor(Math.random() * 0xfffffffe) + 1;
 }
 
@@ -218,7 +215,7 @@ export function encodeKitty(
 		columns?: number;
 		rows?: number;
 		imageId?: number;
-		/** Whether Kitty should apply its default cursor movement after placement. Default: true. */
+		/** Kitty 在放置图像后是否应用默认光标移动。默认为 true。 */
 		moveCursor?: boolean;
 	} = {},
 ): string {
@@ -259,22 +256,22 @@ export function encodeKitty(
 }
 
 /**
- * Delete a Kitty graphics image by ID.
- * Uses uppercase 'I' to also free the image data.
+ * 按 ID 删除 Kitty 图形图像。
+ * 使用大写 'I'，同时释放图像数据。
  */
 export function deleteKittyImage(imageId: number): string {
 	return `\x1b_Ga=d,d=I,i=${imageId},q=2\x1b\\`;
 }
 
 /**
- * Delete all visible Kitty graphics images.
- * Uses uppercase 'A' to also free the image data.
+ * 删除所有可见 Kitty 图形图像。
+ * 使用大写 'A'，同时释放图像数据。
  */
 export function deleteAllKittyImages(): string {
 	return "\x1b_Ga=d,d=A,q=2\x1b\\";
 }
 
-/** Delete all visible Kitty placements while retaining their uploaded image data. */
+/** 删除所有可见 Kitty 放置项，但保留已上传的图像数据。 */
 export function deleteAllKittyPlacements(): string {
 	return "\x1b_Ga=d,d=a,q=2\x1b\\";
 }
@@ -383,7 +380,7 @@ const KITTY_PLACEMENT_CONTROL_KEYS = new Set([
 	"V",
 ]);
 
-/** Build a placement-only command for an image line emitted by {@link renderImage}. */
+/** 为 {@link renderImage} 发出的图像行构建仅放置命令。 */
 export function getKittyImagePlacement(line: string): KittyImagePlacement | undefined {
 	const match = /\x1b_G([^;]*);/.exec(line);
 	const metadata = getRegisteredKittyImageMetadata(line);
@@ -653,20 +650,18 @@ export function renderImage(
 }
 
 /**
- * Wrap text in an OSC 8 hyperlink sequence.
- * The text is rendered as a clickable hyperlink in terminals that support OSC 8
- * (Ghostty, Kitty, WezTerm, iTerm2, VSCode, and others).
- * In terminals that do not support OSC 8, the escape sequences are ignored
- * and only the plain text is displayed.
+ * 使用 OSC 8 超链接序列包裹文本。
+ * 在支持 OSC 8 的终端（Ghostty、Kitty、WezTerm、iTerm2、VSCode 等）中，
+ * 文本会渲染为可点击的超链接。不支持 OSC 8 的终端会忽略转义序列，只显示纯文本。
  *
- * @param text - The visible text to display
- * @param url - The URL to link to
+ * @param text - 要显示的可见文本
+ * @param url - 链接目标 URL
  */
 export function hyperlink(text: string, url: string): string {
 	return `\x1b]8;;${url}\x1b\\${text}\x1b]8;;\x1b\\`;
 }
 
-/** Shorten home-prefixed absolute paths to ~/... for compact display. */
+/** 将以主目录开头的绝对路径缩短为 ~/...，以便紧凑显示。 */
 function shortenImagePath(filename: string): string {
 	const home = homedir();
 	if (home && (filename === home || filename.startsWith(`${home}/`) || filename.startsWith(`${home}\\`))) {
@@ -676,9 +671,9 @@ function shortenImagePath(filename: string): string {
 }
 
 /**
- * Text fallback when the terminal cannot render inline images.
- * Absolute paths are shown shortened (~/...) and, when OSC 8 hyperlinks are
- * available, linked to file:// so the full path remains openable.
+ * 终端无法渲染内联图像时使用的文本回退。
+ * 绝对路径会以缩短形式（~/...）显示；OSC 8 超链接可用时，
+ * 还会链接到 file://，使完整路径仍可打开。
  */
 export function imageFallback(mimeType: string, dimensions?: ImageDimensions, filename?: string): string {
 	const parts: string[] = [];

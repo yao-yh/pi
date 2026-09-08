@@ -1,8 +1,8 @@
-// Core session management
+// 核心会话管理
 
 export { type Args, parseArgs } from "./cli/args.ts";
 
-// Config paths
+// 配置路径
 export {
 	CONFIG_DIR_NAME,
 	getAgentDir,
@@ -24,7 +24,7 @@ export {
 	type SessionStats,
 } from "./core/agent-session.ts";
 export { readStoredCredential } from "./core/auth-storage.ts";
-// Compaction
+// 压缩
 export {
 	type BranchPreparation,
 	type BranchSummaryResult,
@@ -49,7 +49,7 @@ export {
 	shouldCompact,
 } from "./core/compaction/index.ts";
 export { createEventBus, type EventBus, type EventBusController } from "./core/event-bus.ts";
-// Extension system
+// 扩展系统
 export type {
 	AgentEndEvent,
 	AgentSettledEvent,
@@ -170,7 +170,7 @@ export {
 	wrapRegisteredTool,
 	wrapRegisteredTools,
 } from "./core/extensions/index.ts";
-// Footer data provider (git branch + extension statuses - data not otherwise available to extensions)
+// 页脚数据提供程序（git 分支和扩展状态，这些数据无法通过其他方式提供给扩展）
 export type { ReadonlyFooterDataProvider } from "./core/footer-data-provider.ts";
 export { convertToLlm } from "./core/messages.ts";
 export { ModelRegistry } from "./core/model-registry.ts";
@@ -200,7 +200,7 @@ export type {
 export { DefaultPackageManager } from "./core/package-manager.ts";
 export type { ResourceCollision, ResourceDiagnostic, ResourceLoader } from "./core/resource-loader.ts";
 export { DefaultResourceLoader, loadProjectContextFiles } from "./core/resource-loader.ts";
-// SDK for programmatic usage
+// 用于编程调用的 SDK
 export {
 	AgentSessionRuntime,
 	type AgentSessionRuntimeDiagnostic,
@@ -211,13 +211,13 @@ export {
 	type CreateAgentSessionRuntimeFactory,
 	type CreateAgentSessionRuntimeResult,
 	type CreateAgentSessionServicesOptions,
-	// Factory
+	// 工厂函数
 	createAgentSession,
 	createAgentSessionFromServices,
 	createAgentSessionRuntime,
 	createAgentSessionServices,
 	createBashTool,
-	// Tool factories (for custom cwd)
+	// 工具工厂函数（用于自定义 cwd）
 	createCodingTools,
 	createEditTool,
 	createFindTool,
@@ -266,7 +266,7 @@ export {
 	type SettingsManagerCreateOptions,
 	type TuiMode,
 } from "./core/settings-manager.ts";
-// Skills
+// 技能
 export {
 	formatSkillsForPrompt,
 	type LoadSkillsFromDirOptions,
@@ -278,7 +278,7 @@ export {
 } from "./core/skills.ts";
 export { createSyntheticSourceInfo } from "./core/source-info.ts";
 export { type EditDiffResult, generateDiffString, generateUnifiedPatch } from "./core/tools/edit-diff.ts";
-// Tools
+// 工具
 export {
 	type BashOperations,
 	type BashSpawnContext,
@@ -343,9 +343,9 @@ export {
 	type ProjectTrustStoreEntry,
 	type ProjectTrustUpdate,
 } from "./core/trust-manager.ts";
-// Main entry point
+// 主入口点
 export { type MainOptions, main } from "./main.ts";
-// Run modes for programmatic SDK usage
+// 用于 SDK 编程调用的运行模式
 export {
 	InteractiveMode,
 	type InteractiveModeOptions,
@@ -363,7 +363,7 @@ export {
 	runPrintMode,
 	runRpcMode,
 } from "./modes/index.ts";
-// UI components for extensions
+// 供扩展使用的 UI 组件
 export {
 	ArminComponent,
 	AssistantMessageComponent,
@@ -403,7 +403,7 @@ export {
 	UserMessageSelectorComponent,
 	type VisualTruncateResult,
 } from "./modes/interactive/components/index.ts";
-// Theme utilities for custom tools and extensions
+// 供自定义工具和扩展使用的主题工具函数
 export {
 	getLanguageFromPath,
 	getMarkdownTheme,
@@ -414,11 +414,11 @@ export {
 	Theme,
 	type ThemeColor,
 } from "./modes/interactive/theme/theme.ts";
-// Clipboard utilities
+// 剪贴板工具函数
 export { copyToClipboard } from "./utils/clipboard.ts";
 export { parseFrontmatter, stripFrontmatter } from "./utils/frontmatter.ts";
 export { convertToPng } from "./utils/image-convert.ts";
 export { formatDimensionNote, type ResizedImage, resizeImage } from "./utils/image-resize.ts";
 export { detectSupportedImageMimeTypeFromFile } from "./utils/mime.ts";
-// Shell utilities
+// Shell 工具函数
 export { getPowerShellConfig, getShellConfig } from "./utils/shell.ts";

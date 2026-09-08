@@ -48,8 +48,8 @@ function buildSearchCorpus(lines: readonly string[]): SearchCorpus {
 		const line = stripTerminalSequences(lines[row] ?? "");
 		let column = 0;
 
-		// Rendered transcripts are overwhelmingly ASCII. Index complete non-space
-		// runs at once instead of segmenting and allocating one mapping per cell.
+		// 渲染后的记录绝大部分为 ASCII。一次索引完整的非空格连续片段，
+		// 避免逐单元格分段并分配映射。
 		if (PRINTABLE_ASCII.test(line)) {
 			let index = 0;
 			while (index < line.length) {
@@ -152,7 +152,7 @@ export interface AltScreenSearchResult {
 	changed: boolean;
 }
 
-/** Cache the searchable corpus and matches while rendered transcript lines remain unchanged. */
+/** 在渲染后的记录行保持不变时，缓存可搜索语料和匹配项。 */
 export class AltScreenSearchIndex {
 	private sourceLines: string[] | undefined;
 	private corpus: SearchCorpus | undefined;

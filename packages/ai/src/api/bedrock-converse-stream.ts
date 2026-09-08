@@ -71,32 +71,32 @@ export interface BedrockOptions extends StreamOptions {
 	region?: string;
 	profile?: string;
 	toolChoice?: "auto" | "any" | "none" | { type: "tool"; name: string };
-	/* See https://docs.aws.amazon.com/bedrock/latest/userguide/inference-reasoning.html for supported models. */
+	/* 支持的模型参见 https://docs.aws.amazon.com/bedrock/latest/userguide/inference-reasoning.html。 */
 	reasoning?: ThinkingLevel;
-	/* Custom token budgets per thinking level. Overrides default budgets. */
+	/* 各思考级别的自定义令牌预算，覆盖默认预算。 */
 	thinkingBudgets?: ThinkingBudgets;
-	/* Only supported by Claude 4.x models, see https://docs.aws.amazon.com/bedrock/latest/userguide/claude-messages-extended-thinking.html#claude-messages-extended-thinking-tool-use-interleaved */
+	/* 仅 Claude 4.x 模型支持，参见 https://docs.aws.amazon.com/bedrock/latest/userguide/claude-messages-extended-thinking.html#claude-messages-extended-thinking-tool-use-interleaved */
 	interleavedThinking?: boolean;
 	/**
-	 * Controls how Claude's thinking content is returned in responses.
-	 * - "summarized": Thinking blocks contain summarized thinking text (default here).
-	 * - "omitted": Thinking content is redacted but the signature still travels back
-	 *   for multi-turn continuity, reducing time-to-first-text-token.
+	 * 控制 Claude 的思考内容如何在响应中返回。
+	 * - "summarized"：思考块包含思考摘要文本（此处默认值）。
+	 * - "omitted"：思考内容被遮盖，但签名仍会回传以保持多轮连续性，
+	 *   从而缩短首个文本令牌的等待时间。
 	 *
-	 * Note: Anthropic's API default for Claude Opus 4.8 and Mythos Preview is
-	 * "omitted". We default to "summarized" here to keep behavior consistent with
-	 * older Claude 4 models. Only applies to Claude models on Bedrock.
+	 * 注意：Anthropic API 对 Claude Opus 4.8 和 Mythos Preview 的默认值为 "omitted"。
+	 * 此处默认为 "summarized"，以保持与较早 Claude 4 模型的行为一致。
+	 * 仅适用于 Bedrock 上的 Claude 模型。
 	 */
 	thinkingDisplay?: BedrockThinkingDisplay;
-	/** Key-value pairs attached to the inference request for cost allocation tagging.
-	 * Keys: max 64 chars, no `aws:` prefix. Values: max 256 chars. Max 50 pairs.
-	 * Tags appear in AWS Cost Explorer split cost allocation data.
+	/** 附加到推理请求、用于成本分配标签的键值对。
+	 * 键最多 64 个字符，且不能以 `aws:` 开头；值最多 256 个字符；最多 50 对。
+	 * 标签会出现在 AWS Cost Explorer 的拆分成本分配数据中。
 	 * @see https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_ConverseStream.html */
 	requestMetadata?: Record<string, string>;
-	/** Bearer token for Bedrock API key authentication.
-	 * When set, bypasses SigV4 signing and sends Authorization: Bearer <token> instead.
-	 * Requires `bedrock:CallWithBearerToken` IAM permission on the token's identity.
-	 * Set via AWS_BEARER_TOKEN_BEDROCK env var or pass directly.
+	/** 用于 Bedrock API 密钥身份验证的 Bearer 令牌。
+	 * 设置后跳过 SigV4 签名，改为发送 Authorization: Bearer <token>。
+	 * 令牌身份需要 `bedrock:CallWithBearerToken` IAM 权限。
+	 * 可通过 AWS_BEARER_TOKEN_BEDROCK 环境变量设置或直接传入。
 	 * @see https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazonbedrock.html */
 	bearerToken?: string;
 }
@@ -104,13 +104,13 @@ export interface BedrockOptions extends StreamOptions {
 type Block = (TextContent | ThinkingContent | ToolCall) & {
 	index?: number;
 	partialJson?: string;
-	/** Scratch buffer for encrypted reasoning deltas, joined into `thinkingSignature`. */
+	/** 加密推理增量的暂存缓冲区，最终合并到 `thinkingSignature`。 */
 	redactedChunks?: Uint8Array[];
 };
 
 const EMPTY_TEXT_PLACEHOLDER = "<empty>";
 
-/** Matches the placeholder the Anthropic API path uses for redacted thinking. */
+/** 与 Anthropic API 路径用于已遮盖思考内容的占位符保持一致。 */
 const REDACTED_THINKING_PLACEHOLDER = "[Reasoning redacted]";
 
 export const stream: StreamFunction<"bedrock-converse-stream", BedrockOptions> = (
@@ -141,11 +141,10 @@ export const stream: StreamFunction<"bedrock-converse-stream", BedrockOptions> =
 
 		const blocks = output.content as Block[];
 
-		// A profile explicitly configured through pi's auth flow (the `profile`
-		// option or scoped `AWS_PROFILE` on the stored credential's env) must win
-		// over ambient AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY. The SDK default
-		// chain already prefers a configured profile over env keys, but only when
-		// `credentials` is not set on the client config. See #6957.
+		// 通过 pi 身份验证流程显式配置的配置文件（`profile` 选项，或存储凭据 env 中
+		// 有范围限制的 `AWS_PROFILE`）必须优先于环境中的 AWS_ACCESS_KEY_ID/
+		// AWS_SECRET_ACCESS_KEY。SDK 默认链已优先使用配置文件而不是环境密钥，
+		// 但仅在客户端配置未设置 `credentials` 时如此。参见 #6957。
 		const optionsProfile = options.profile || options.env?.AWS_PROFILE;
 		const config: BedrockRuntimeClientConfig = {
 			profile: optionsProfile || getProviderEnvValue("AWS_PROFILE", options.env),
@@ -159,14 +158,14 @@ export const stream: StreamFunction<"bedrock-converse-stream", BedrockOptions> =
 			hasAmbientConfiguredProfile,
 		);
 
-		// Only pin standard AWS Bedrock runtime endpoints when no region or ambient AWS_PROFILE is configured.
-		// This preserves custom endpoints (VPC/proxy) from #3402 without forcing built-in
-		// catalog defaults such as us-east-1 to override AWS_REGION/AWS_PROFILE.
+		// 仅在未配置区域或环境 AWS_PROFILE 时固定标准 AWS Bedrock 运行时端点。
+		// 这样既保留 #3402 中的自定义端点（VPC/代理），也不会强制 us-east-1 等
+		// 内置目录默认值覆盖 AWS_REGION/AWS_PROFILE。
 		if (useExplicitEndpoint) {
 			config.endpoint = model.baseUrl;
 		}
 
-		// Resolve bearer token for Bedrock API key auth.
+		// 解析用于 Bedrock API 密钥身份验证的 Bearer 令牌。
 		const skipAuth = getProviderEnvValue("AWS_BEDROCK_SKIP_AUTH", options.env) === "1";
 		const bearerToken =
 			options.bearerToken ||
@@ -175,11 +174,11 @@ export const stream: StreamFunction<"bedrock-converse-stream", BedrockOptions> =
 			undefined;
 		const useBearerToken = bearerToken !== undefined && !skipAuth;
 
-		// in Node.js/Bun environment only
+		// 仅在 Node.js/Bun 环境中
 		if (typeof process !== "undefined" && (process.versions?.node || process.versions?.bun)) {
-			// Region resolution: ARN-embedded > explicit option > env vars > SDK default chain.
-			// When the model ID is an inference profile ARN, extract the region from it.
-			// This avoids conflicts with AWS_REGION set for other services.
+			// 区域解析优先级：ARN 内嵌值 > 显式选项 > 环境变量 > SDK 默认链。
+			// 模型 ID 为推理配置文件 ARN 时，从中提取区域。
+			// 这样可避免与为其他服务设置的 AWS_REGION 冲突。
 			const arnRegionMatch = model.id.match(/^arn:aws(?:-[a-z0-9-]+)?:bedrock:([a-z0-9-]+):/);
 			if (arnRegionMatch) {
 				config.region = arnRegionMatch[1];
@@ -191,7 +190,7 @@ export const stream: StreamFunction<"bedrock-converse-stream", BedrockOptions> =
 				config.region = "us-east-1";
 			}
 
-			// Support proxies that don't need authentication
+			// 支持无需身份验证的代理
 			if (skipAuth) {
 				config.credentials = {
 					accessKeyId: "dummy-access-key",
@@ -206,20 +205,18 @@ export const stream: StreamFunction<"bedrock-converse-stream", BedrockOptions> =
 
 			const proxyUrl = resolveHttpProxyUrlForTarget(model.baseUrl, options.env);
 			if (proxyUrl) {
-				// Bedrock runtime uses NodeHttp2Handler by default since v3.798.0, which is based
-				// on `http2` module and has no support for http agent.
-				// Use NodeHttpHandler to support HTTP(S) proxy agents.
+				// 从 v3.798.0 起，Bedrock 运行时默认使用基于 `http2` 模块且不支持 HTTP Agent 的
+				// NodeHttp2Handler。改用 NodeHttpHandler 以支持 HTTP(S) 代理 Agent。
 				config.requestHandler = new NodeHttpHandler({
 					httpAgent: new HttpProxyAgent(proxyUrl),
 					httpsAgent: new HttpsProxyAgent(proxyUrl) as unknown as HttpsAgent,
 				});
 			} else if (getProviderEnvValue("AWS_BEDROCK_FORCE_HTTP1", options.env) === "1") {
-				// Some custom endpoints require HTTP/1.1 instead of HTTP/2
+				// 某些自定义端点要求使用 HTTP/1.1 而非 HTTP/2
 				config.requestHandler = new NodeHttpHandler();
 			}
 		} else {
-			// Non-Node environment (browser): fall back to us-east-1 since
-			// there's no config file resolution available.
+			// 非 Node 环境（浏览器）无法解析配置文件，因此回退到 us-east-1。
 			config.region =
 				configuredRegion || (endpointRegion && useExplicitEndpoint ? endpointRegion : undefined) || "us-east-1";
 		}
@@ -229,8 +226,8 @@ export const stream: StreamFunction<"bedrock-converse-stream", BedrockOptions> =
 			config.authSchemePreference = ["httpBearerAuth"];
 		}
 
-		// Kept outside the try so the catch can still correlate a mid-stream failure:
-		// exceptions delivered as stream events carry no HTTP metadata of their own.
+		// 保留在 try 外部，使 catch 仍能关联流中途失败：
+		// 通过流事件传递的异常自身不携带 HTTP 元数据。
 		let responseRequestId: string | undefined;
 
 		try {
@@ -321,7 +318,7 @@ export const stream: StreamFunction<"bedrock-converse-stream", BedrockOptions> =
 				throw new Error(output.errorMessage || "An unknown error occurred");
 			}
 
-			// A stream can settle without stopping every block, so finalize here too.
+			// 流可能在未停止每个块的情况下结束，因此也在此处完成所有块。
 			for (const block of output.content) finalizeStreamingBlock(block as Block);
 			stream.push({ type: "done", reason: output.stopReason, message: output });
 			stream.end();
@@ -343,10 +340,9 @@ export const stream: StreamFunction<"bedrock-converse-stream", BedrockOptions> =
 };
 
 /**
- * Human-readable prefixes for Bedrock SDK exception names.
- * The downstream retry logic in agent-session matches patterns like
- * `server.?error` and `service.?unavailable`, so we preserve the legacy
- * prefix format rather than using the raw SDK exception name.
+ * Bedrock SDK 异常名称的可读前缀。
+ * agent-session 中的下游重试逻辑会匹配 `server.?error` 和
+ * `service.?unavailable` 等模式，因此保留旧版前缀格式，不直接使用 SDK 异常原名。
  */
 const BEDROCK_ERROR_PREFIXES: Record<string, string> = {
 	InternalServerException: "Internal server error",
@@ -357,24 +353,22 @@ const BEDROCK_ERROR_PREFIXES: Record<string, string> = {
 };
 
 /**
- * Some models reject the account/profile's configured Bedrock data retention mode
- * (e.g. "data retention mode 'default' is not available for this model"). Point
- * users at the AWS docs explaining how to configure a supported mode.
+ * 某些模型会拒绝账户/配置文件中配置的 Bedrock 数据保留模式
+ * （例如 "data retention mode 'default' is not available for this model"）。
+ * 向用户提供说明如何配置受支持模式的 AWS 文档。
  */
 const BEDROCK_DATA_RETENTION_DOCS_URL = "https://docs.aws.amazon.com/bedrock/latest/userguide/data-retention.html";
 
 /**
- * Format a Bedrock error with a human-readable prefix.
- * AWS SDK exceptions (both from `client.send()` and from stream event items)
- * extend BedrockRuntimeServiceException. We map the `.name` to a stable
- * human-readable prefix so downstream consumers (retry logic, context-overflow
- * detection) can distinguish error categories via simple string matching.
+ * 使用可读前缀格式化 Bedrock 错误。
+ * AWS SDK 异常（来自 `client.send()` 或流事件条目）均扩展
+ * BedrockRuntimeServiceException。将 `.name` 映射为稳定的可读前缀，使下游使用方
+ * （重试逻辑、上下文溢出检测）可通过简单字符串匹配区分错误类别。
  */
 function formatBedrockError(error: unknown): string {
 	const norm = normalizeProviderError(error);
-	// Surface the raw HTTP body (with status) when the SDK did not fold it into
-	// the message; otherwise fall back to the message. This is what stops a
-	// gateway 403 from collapsing to `Unknown: UnknownError`.
+	// SDK 未将原始 HTTP 正文合并到消息时，显示带状态的正文；否则回退到消息。
+	// 这样可避免网关 403 被折叠为 `Unknown: UnknownError`。
 	const core =
 		!norm.messageCarriesBody && norm.status !== undefined && norm.body !== undefined
 			? `${norm.status}: ${norm.body}`
@@ -391,7 +385,7 @@ function formatBedrockError(error: unknown): string {
 
 type SdkErrorMetadata = { $metadata?: { httpStatusCode?: unknown; requestId?: unknown } };
 
-/** Over-long header values are dropped rather than truncated: a truncated request id is not a request id. */
+/** 过长的请求头值会被丢弃而不是截断：截断后的请求 id 已不再是有效请求 id。 */
 const MAX_BEDROCK_DIAGNOSTIC_VALUE_CHARS = 200;
 
 function normalizeDiagnosticValue(value: unknown): string | undefined {
@@ -402,9 +396,9 @@ function normalizeDiagnosticValue(value: unknown): string | undefined {
 }
 
 /**
- * The SDK puts the modeled code on `error.name` for service exceptions and unmodeled stream errors alike, so
- * do not narrow to `BedrockRuntimeServiceException`. Modeled Bedrock errors all end in `Exception`, unlike
- * transport names such as `TimeoutError`.
+ * SDK 对服务异常和未建模流错误都将建模代码放在 `error.name` 上，因此不要缩小为
+ * `BedrockRuntimeServiceException`。与 `TimeoutError` 等传输名称不同，已建模的
+ * Bedrock 错误都以 `Exception` 结尾。
  */
 function extractBedrockErrorCode(error: unknown): string | undefined {
 	if (!(error instanceof Error) || !error.name.endsWith("Exception")) return undefined;
@@ -412,9 +406,10 @@ function extractBedrockErrorCode(error: unknown): string | undefined {
 }
 
 /**
- * Structured metadata alongside `errorMessage`, which stays byte-identical because `isRetryableAssistantError`
- * matches against it. Unknown fields are omitted, never guessed: a modeled mid-stream exception reaches us as
- * a bare object literal, leaving only `fallbackRequestId`. `details` only, as the throw is not always `Error`.
+ * 与 `errorMessage` 并列的结构化元数据。由于 `isRetryableAssistantError` 会匹配
+ * `errorMessage`，因此其字节保持完全一致。省略未知字段，绝不猜测：已建模的流中途异常
+ * 会以普通对象字面量到达，只留下 `fallbackRequestId`。只记录 `details`，因为抛出值
+ * 不一定是 `Error`。
  */
 function appendBedrockFailureDiagnostic(
 	output: AssistantMessage,
@@ -438,10 +433,10 @@ function appendBedrockFailureDiagnostic(
 }
 
 /**
- * Header keys that must never be overwritten by caller-supplied headers.
- * `host` and `x-amz-*` participate in the SigV4 canonical request; `authorization`
- * is owned by SigV4 or the bearer-token path (config.token + authSchemePreference).
- * Compared case-insensitively (caller key is lower-cased before lookup).
+ * 调用方提供的请求头绝不能覆盖的请求头键。
+ * `host` 和 `x-amz-*` 参与 SigV4 规范请求；`authorization` 由 SigV4 或
+ * Bearer 令牌路径（config.token + authSchemePreference）负责。
+ * 比较时不区分大小写（查找前将调用方的键转为小写）。
  */
 const RESERVED_HEADER_EXACT = new Set(["authorization", "host"]);
 
@@ -451,11 +446,10 @@ function isReservedHeader(key: string): boolean {
 }
 
 /**
- * Attach caller-supplied headers to the outgoing Bedrock request via a Smithy
- * `build`-step middleware. The `build` step runs after request serialisation but
- * before SigV4 signing, so injected headers are covered by the signature. Reserved
- * SigV4 / auth headers (`x-amz-*`, `authorization`, `host`) are silently skipped;
- * all other caller headers override any existing same-named header on the request.
+ * 通过 Smithy `build` 阶段中间件将调用方提供的请求头附加到发出的 Bedrock 请求。
+ * `build` 阶段在请求序列化之后、SigV4 签名之前运行，因此注入的请求头会纳入签名。
+ * 静默跳过保留的 SigV4/身份验证请求头（`x-amz-*`、`authorization`、`host`）；
+ * 其他调用方请求头会覆盖请求中已有的同名请求头。
  */
 function addCustomHeadersMiddleware(client: BedrockRuntimeClient, headers: Record<string, string>): void {
 	const middleware: BuildMiddleware<object, MetadataBearer> = (next) => async (args) => {
@@ -485,10 +479,9 @@ function toProviderResponse(response: unknown): ProviderResponse | undefined {
 }
 
 /**
- * Bedrock's modeled `$metadata` only preserves selected HTTP metadata (for example
- * requestId), so custom gateway headers are otherwise lost before callers see
- * `onResponse`. Capture the raw Smithy HTTP response at the deserialize step,
- * after the SDK receives the response but before the event stream is consumed.
+ * Bedrock 建模的 `$metadata` 只保留选定的 HTTP 元数据（例如 requestId），否则自定义
+ * 网关请求头会在调用方看到 `onResponse` 前丢失。在反序列化阶段捕获原始 Smithy HTTP
+ * 响应，此时 SDK 已收到响应但尚未消费事件流。
  */
 function addResponseHeadersMiddleware(
 	client: BedrockRuntimeClient,
@@ -530,8 +523,8 @@ export const streamSimple: StreamFunction<"bedrock-converse-stream", SimpleStrea
 			} satisfies BedrockOptions);
 		}
 
-		// Undefined means the caller did not request an output cap; let the helper use the model cap.
-		// Do not coerce to 0 here, or the thinking budget would become the entire maxTokens value.
+		// Undefined 表示调用方未要求输出上限；让辅助函数使用模型上限。
+		// 此处不要强制转换为 0，否则思考预算会占据整个 maxTokens 值。
 		const adjusted = adjustMaxTokensForThinking(
 			base.maxTokens,
 			model.maxTokens,
@@ -594,7 +587,7 @@ function handleContentBlockDelta(
 	let block = blocks[index];
 
 	if (delta?.text !== undefined) {
-		// If no text block exists yet, create one, as `handleContentBlockStart` is not sent for text blocks
+		// 尚无文本块时创建一个，因为文本块不会发送 `handleContentBlockStart`
 		if (!block) {
 			const newBlock: Block = { type: "text", text: "", index: contentBlockIndex };
 			output.content.push(newBlock);
@@ -632,16 +625,16 @@ function handleContentBlockDelta(
 					partial: output,
 				});
 			}
-			// `thinkingSignature` holds either an Anthropic signature or an opaque redacted
-			// payload, never both: mixing them would corrupt whichever arrived first.
+			// `thinkingSignature` 只保存 Anthropic 签名或不透明的已遮盖载荷之一，
+			// 绝不同时保存；混合会破坏先到达的内容。
 			if (delta.reasoningContent.signature && !thinkingBlock.redacted) {
 				thinkingBlock.thinkingSignature =
 					(thinkingBlock.thinkingSignature || "") + delta.reasoningContent.signature;
 			}
 			if (delta.reasoningContent.redactedContent?.length) {
-				// Encrypted reasoning from non-Anthropic models on Bedrock (e.g. OpenAI GPT-5.6).
-				// The payload is opaque, so keep it verbatim in `thinkingSignature` the way the
-				// Anthropic path stores redacted thinking, and replay it on the next turn.
+				// Bedrock 上非 Anthropic 模型的加密推理（例如 OpenAI GPT-5.6）。
+				// 载荷不透明，因此像 Anthropic 路径存储已遮盖思考一样将其原样保存在
+				// `thinkingSignature` 中，并在下一轮重放。
 				if (!thinkingBlock.redacted) {
 					thinkingBlock.redacted = true;
 					thinkingBlock.thinkingSignature = "";
@@ -661,9 +654,8 @@ function handleContentBlockDelta(
 }
 
 /**
- * Encodes buffered encrypted reasoning into `thinkingSignature` and drops the scratch
- * buffer, which must never reach a persisted message: `Uint8Array` serializes to an
- * index-keyed object roughly ten times the size of the base64 payload.
+ * 将缓冲的加密推理编码到 `thinkingSignature` 并丢弃暂存缓冲区；暂存缓冲区绝不能进入
+ * 持久化消息，因为 `Uint8Array` 会序列化为以索引为键的对象，大小约为 base64 载荷的十倍。
  */
 function flushRedactedContent(block: Block): void {
 	if (block.type !== "thinking" || !block.redactedChunks) return;
@@ -672,12 +664,12 @@ function flushRedactedContent(block: Block): void {
 }
 
 /**
- * Strips every streaming scratch field. Runs from the terminal paths as well as
- * `contentBlockStop`, because a stream can settle without stopping each block.
+ * 移除所有流式暂存字段。除 `contentBlockStop` 外，终止路径也会调用，
+ * 因为流可能在未停止每个块的情况下结束。
  */
 function finalizeStreamingBlock(block: Block): void {
 	delete block.index;
-	// partialJson is only a streaming scratch buffer; never persist it.
+	// partialJson 仅作为流式暂存缓冲区，绝不持久化。
 	delete block.partialJson;
 	flushRedactedContent(block);
 }
@@ -718,8 +710,7 @@ function handleContentBlockStop(
 			break;
 		case "toolCall":
 			block.arguments = parseStreamingJson(block.partialJson);
-			// Finalize in-place and strip the scratch buffer so replay only
-			// carries parsed arguments.
+			// 就地完成并移除暂存缓冲区，使重放只携带已解析参数。
 			delete (block as Block).partialJson;
 			stream.push({ type: "toolcall_end", contentIndex: index, toolCall: block, partial: output });
 			break;
@@ -727,9 +718,8 @@ function handleContentBlockStop(
 }
 
 /**
- * Check if the model supports adaptive thinking (Opus 4.6+, Sonnet 4.6).
- * Checks both model ID and model name to support application inference profiles
- * whose ARNs don't contain the model name.
+ * 检查模型是否支持自适应思考（Opus 4.6+、Sonnet 4.6）。
+ * 同时检查模型 ID 和模型名称，以支持 ARN 不含模型名称的应用推理配置文件。
  */
 function getModelMatchCandidates(modelId: string, modelName?: string): string[] {
 	const values = modelName ? [modelId, modelName] : [modelId];
@@ -788,8 +778,8 @@ function mapThinkingLevelToEffort(
 }
 
 /**
- * Resolve cache retention preference.
- * Defaults to "short" and uses PI_CACHE_RETENTION for backward compatibility.
+ * 解析缓存保留偏好。
+ * 默认为 "short"，并使用 PI_CACHE_RETENTION 保持向后兼容。
  */
 function resolveCacheRetention(cacheRetention?: CacheRetention, env?: ProviderEnv): CacheRetention {
 	if (cacheRetention) {
@@ -802,9 +792,8 @@ function resolveCacheRetention(cacheRetention?: CacheRetention, env?: ProviderEn
 }
 
 /**
- * Check if the model is an Anthropic Claude model on Bedrock.
- * Checks both model ID and model name to support application inference profiles
- * whose ARNs don't contain the model name.
+ * 检查模型是否为 Bedrock 上的 Anthropic Claude 模型。
+ * 同时检查模型 ID 和模型名称，以支持 ARN 不含模型名称的应用推理配置文件。
  */
 function isAnthropicClaudeModel(model: Model<"bedrock-converse-stream">): boolean {
 	const id = model.id.toLowerCase();
@@ -819,30 +808,28 @@ function isAnthropicClaudeModel(model: Model<"bedrock-converse-stream">): boolea
 }
 
 /**
- * Check if the model supports prompt caching.
- * Supported: Claude 3.5 Haiku, Claude 3.7 Sonnet, Claude 4.x models, Claude 5 models
+ * 检查模型是否支持提示词缓存。
+ * 支持：Claude 3.5 Haiku、Claude 3.7 Sonnet、Claude 4.x 模型、Claude 5 模型
  *
- * For base models and system-defined inference profiles the model ID / ARN
- * contains the model name, so we can decide locally.
+ * 基础模型和系统定义的推理配置文件，其模型 ID/ARN 包含模型名称，因此可以在本地判断。
  *
- * For application inference profiles (whose ARNs don't contain the model name),
- * also checks model.name which is user-controlled via models.json or registerProvider.
- * As a last resort, set AWS_BEDROCK_FORCE_CACHE=1 to enable cache points.
- * Amazon Nova models have automatic caching and don't need explicit cache points.
+ * 对于 ARN 不含模型名称的应用推理配置文件，还会检查由用户通过 models.json 或
+ * registerProvider 控制的 model.name。最后可设置 AWS_BEDROCK_FORCE_CACHE=1 强制
+ * 启用缓存点。Amazon Nova 模型具有自动缓存，不需要显式缓存点。
  */
 function supportsPromptCaching(model: Model<"bedrock-converse-stream">, env?: ProviderEnv): boolean {
 	const candidates = getModelMatchCandidates(model.id, model.name);
 
 	const hasClaudeRef = candidates.some((s) => s.includes("claude"));
 	if (!hasClaudeRef) {
-		// Application inference profiles don't contain the model name in the ARN.
-		// Allow users to force cache points via environment variable.
+		// 应用推理配置文件的 ARN 不包含模型名称。
+		// 允许用户通过环境变量强制启用缓存点。
 		if (getProviderEnvValue("AWS_BEDROCK_FORCE_CACHE", env) === "1") return true;
 		return false;
 	}
-	// Claude 5 models (fable-5, opus-5, sonnet-5)
+	// Claude 5 模型（fable-5、opus-5、sonnet-5）
 	if (candidates.some((s) => s.includes("fable-5") || s.includes("opus-5") || s.includes("sonnet-5"))) return true;
-	// Claude 4.x models (opus-4, sonnet-4, haiku-4)
+	// Claude 4.x 模型（opus-4、sonnet-4、haiku-4）
 	if (candidates.some((s) => s.includes("-4-"))) return true;
 	// Claude 3.7 Sonnet
 	if (candidates.some((s) => s.includes("claude-3-7-sonnet"))) return true;
@@ -852,12 +839,12 @@ function supportsPromptCaching(model: Model<"bedrock-converse-stream">, env?: Pr
 }
 
 /**
- * Check if the model supports thinking signatures in reasoningContent.
- * Only Anthropic Claude models support the signature field.
- * Other models (OpenAI, Qwen, Minimax, Moonshot, etc.) reject it with:
+ * 检查模型是否支持 reasoningContent 中的思考签名。
+ * 只有 Anthropic Claude 模型支持 signature 字段。
+ * 其他模型（OpenAI、Qwen、Minimax、Moonshot 等）会拒绝该字段并返回：
  * "This model doesn't support the reasoningContent.reasoningText.signature field"
  *
- * Checks both model ID and model name to support application inference profiles.
+ * 同时检查模型 ID 和模型名称，以支持应用推理配置文件。
  */
 function supportsThinkingSignature(model: Model<"bedrock-converse-stream">): boolean {
 	return isAnthropicClaudeModel(model);
@@ -873,7 +860,7 @@ function buildSystemPrompt(
 
 	const blocks: SystemContentBlock[] = [{ text: sanitizeSurrogates(systemPrompt) }];
 
-	// Add cache point for supported Claude models when caching is enabled
+	// 启用缓存时，为支持的 Claude 模型添加缓存点
 	if (cacheRetention !== "none" && supportsPromptCaching(model, env)) {
 		blocks.push({
 			cachePoint: { type: CachePointType.DEFAULT, ...(cacheRetention === "long" ? { ttl: CacheTTL.ONE_HOUR } : {}) },
@@ -966,8 +953,8 @@ function convertMessages(
 				break;
 			}
 			case "assistant": {
-				// Skip assistant messages with empty content (e.g., from aborted requests)
-				// Bedrock rejects messages with empty content arrays
+				// 跳过内容为空的助手消息（例如来自已中止的请求）
+				// Bedrock 会拒绝内容数组为空的消息
 				if (m.content.length === 0) {
 					continue;
 				}
@@ -975,7 +962,7 @@ function convertMessages(
 				for (const c of m.content) {
 					switch (c.type) {
 						case "text": {
-							// Skip empty text blocks
+							// 跳过空文本块
 							const textBlock = createNonBlankTextBlock(c.text);
 							if (!textBlock) continue;
 							contentBlocks.push(textBlock);
@@ -987,8 +974,8 @@ function convertMessages(
 							});
 							break;
 						case "thinking": {
-							// Encrypted reasoning is opaque: replay the stored payload as the
-							// `redactedContent` member instead of lowering it to reasoning text.
+							// 加密推理是不透明内容：将存储的载荷作为 `redactedContent` 成员重放，
+							// 而不是降级为推理文本。
 							if (c.redacted) {
 								const redactedContent = decodeRedactedContent(c.thinkingSignature);
 								if (redactedContent?.length) {
@@ -996,16 +983,15 @@ function convertMessages(
 								}
 								continue;
 							}
-							// Skip empty thinking blocks
+							// 跳过空思考块
 							const thinking = sanitizeSurrogates(c.thinking);
 							if (thinking.trim().length === 0) continue;
-							// Only Anthropic models support the signature field in reasoningText.
-							// For other models, we omit the signature to avoid errors like:
+							// 只有 Anthropic 模型支持 reasoningText 中的 signature 字段。
+							// 对其他模型省略签名，以避免如下错误：
 							// "This model doesn't support the reasoningContent.reasoningText.signature field"
 							if (supportsThinkingSignature(model)) {
-								// Signatures arrive after thinking deltas. If a partial or externally
-								// persisted message lacks a signature, Bedrock rejects the replayed
-								// reasoning block. Fall back to plain text, matching Anthropic.
+								// 签名在思考增量之后到达。如果部分消息或外部持久化消息缺少签名，
+								// Bedrock 会拒绝重放的推理块。回退到纯文本，与 Anthropic 保持一致。
 								if (!c.thinkingSignature || c.thinkingSignature.trim().length === 0) {
 									contentBlocks.push({ text: thinking });
 								} else {
@@ -1031,7 +1017,7 @@ function convertMessages(
 							continue;
 					}
 				}
-				// Skip if all content blocks were filtered out
+				// 如果所有内容块都被过滤，则跳过
 				if (contentBlocks.length === 0) {
 					continue;
 				}
@@ -1042,11 +1028,11 @@ function convertMessages(
 				break;
 			}
 			case "toolResult": {
-				// Collect all consecutive toolResult messages into a single user message
-				// Bedrock requires all tool results to be in one message
+				// 将所有连续的 toolResult 消息收集到一条用户消息中
+				// Bedrock 要求所有工具结果位于同一条消息中
 				const toolResults: ContentBlock.ToolResultMember[] = [];
 
-				// Add current tool result with all content blocks combined
+				// 添加当前工具结果，并合并所有内容块
 				toolResults.push({
 					toolResult: {
 						toolUseId: m.toolCallId,
@@ -1055,7 +1041,7 @@ function convertMessages(
 					},
 				});
 
-				// Look ahead for consecutive toolResult messages
+				// 向前查找连续的 toolResult 消息
 				let j = i + 1;
 				while (j < transformedMessages.length && transformedMessages[j].role === "toolResult") {
 					const nextMsg = transformedMessages[j] as ToolResultMessage;
@@ -1069,7 +1055,7 @@ function convertMessages(
 					j++;
 				}
 
-				// Skip the messages we've already processed
+				// 跳过已经处理的消息
 				i = j - 1;
 
 				result.push({
@@ -1083,7 +1069,7 @@ function convertMessages(
 		}
 	}
 
-	// Add cache point to the last user message for supported Claude models when caching is enabled
+	// 启用缓存时，在支持的 Claude 模型最后一条用户消息中添加缓存点
 	if (cacheRetention !== "none" && supportsPromptCaching(model, env) && result.length > 0) {
 		const lastMessage = result[result.length - 1];
 		if (lastMessage.role === ConversationRole.USER && lastMessage.content) {
@@ -1222,8 +1208,8 @@ function buildAdditionalModelRequestFields(
 	}
 
 	if (isAnthropicClaudeModel(model)) {
-		// GovCloud Bedrock currently rejects the Claude thinking.display field.
-		// Omit it there until the GovCloud Converse schema catches up.
+		// GovCloud Bedrock 当前会拒绝 Claude thinking.display 字段。
+		// 在 GovCloud Converse Schema 支持前省略该字段。
 		const display = isGovCloudBedrockTarget(model, options) ? undefined : (options.thinkingDisplay ?? "summarized");
 		const result: Record<string, any> = supportsAdaptiveThinking(model.id, model.name)
 			? {
@@ -1236,11 +1222,11 @@ function buildAdditionalModelRequestFields(
 						low: 2048,
 						medium: 8192,
 						high: 16384,
-						xhigh: 16384, // Budget-based Claude clamps extended levels to high
+						xhigh: 16384, // 基于预算的 Claude 会将扩展级别限制为 high
 						max: 16384,
 					};
 
-					// Custom budgets only cover token-based levels through high.
+					// 自定义预算只覆盖截至 high 的基于令牌级别。
 					const level = options.reasoning === "xhigh" || options.reasoning === "max" ? "high" : options.reasoning;
 					const budget = options.thinkingBudgets?.[level] ?? defaultBudgets[options.reasoning];
 
@@ -1296,10 +1282,8 @@ function base64ToBytes(data: string): Uint8Array {
 }
 
 /**
- * Decodes a stored redacted payload. The AWS SDK hands the blob over as bytes, but a
- * persisted session carries it as base64. A hand-edited or externally produced session
- * can hold a signature that is not base64; drop that block instead of failing the
- * whole request.
+ * 解码已存储的遮盖载荷。AWS SDK 以字节形式提供 Blob，但持久化会话以 base64 携带。
+ * 手工编辑或外部生成的会话可能包含非 base64 签名；此时丢弃该块，而不是让整个请求失败。
  */
 function decodeRedactedContent(signature: string | undefined): Uint8Array | undefined {
 	if (!signature) return undefined;
@@ -1311,9 +1295,8 @@ function decodeRedactedContent(signature: string | undefined): Uint8Array | unde
 }
 
 function bytesToBase64(chunks: Uint8Array[]): string {
-	// Encrypted reasoning runs to tens of KB, so build the binary string in slices
-	// rather than one concatenation per byte. The window stays under the engine's
-	// argument-count limit for spread calls.
+	// 加密推理可达数十 KB，因此分片构建二进制字符串，而不是逐字节连接。
+	// 窗口大小保持在引擎对展开调用的参数数量限制以内。
 	const WINDOW = 0x8000;
 	let binary = "";
 	for (const chunk of chunks) {

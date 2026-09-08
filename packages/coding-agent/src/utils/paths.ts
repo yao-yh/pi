@@ -7,23 +7,22 @@ import { spawnProcessSync } from "./child-process.ts";
 const UNICODE_SPACES = /[\u00A0\u2000-\u200A\u202F\u205F\u3000]/g;
 
 export interface PathInputOptions {
-	/** Trim leading/trailing whitespace before normalization. */
+	/** 在规范化前移除首尾空白。 */
 	trim?: boolean;
-	/** Expand leading `~` to a home directory. Defaults to true. */
+	/** 将开头的 `~` 展开为主目录。默认值为 true。 */
 	expandTilde?: boolean;
-	/** Home directory used for `~` expansion. Defaults to `os.homedir()`. */
+	/** 展开 `~` 时使用的主目录。默认值为 `os.homedir()`。 */
 	homeDir?: string;
-	/** Strip a leading `@`, used for CLI @file paths. */
+	/** 移除开头的 `@`，用于 CLI 的 @file 路径。 */
 	stripAtPrefix?: boolean;
-	/** Normalize unicode space variants to regular spaces. */
+	/** 将 Unicode 空格变体规范化为普通空格。 */
 	normalizeUnicodeSpaces?: boolean;
 }
 
 /**
- * Resolve a path to its canonical (real) form, following symlinks.
- * Falls back to the raw path if resolution fails (e.g. the target does
- * not exist yet), so that callers never crash on missing filesystem
- * entries.
+ * 沿符号链接将路径解析为其规范（真实）形式。
+ * 如果解析失败（例如目标尚不存在），则回退到原始路径，
+ * 避免调用方因缺少文件系统条目而崩溃。
  */
 export function canonicalizePath(path: string): string {
 	try {
@@ -43,13 +42,12 @@ export function getFileRevision(path: string): string | undefined {
 }
 
 /**
- * Returns true if the value is NOT a package source (npm:, git:, etc.)
- * or a remote URL protocol. Bare names, relative paths, and file: URLs
- * are considered local.
+ * 当值既不是包来源（npm:、git: 等），也不是远程 URL 协议时返回 true。
+ * 裸名称、相对路径和 file: URL 均视为本地路径。
  */
 export function isLocalPath(value: string): boolean {
 	const trimmed = value.trim();
-	// Known non-local prefixes. file: URLs are local paths and are intentionally resolved by resolvePath().
+	// 已知的非本地前缀。file: URL 属于本地路径，有意交由 resolvePath() 解析。
 	if (
 		trimmed.startsWith("npm:") ||
 		trimmed.startsWith("git:") ||
@@ -63,7 +61,7 @@ export function isLocalPath(value: string): boolean {
 	return true;
 }
 
-/** Convert Git Bash, MSYS, Cygwin, and WSL drive paths to a form native Windows APIs accept. */
+/** 将 Git Bash、MSYS、Cygwin 和 WSL 的驱动器路径转换为 Windows 原生 API 可接受的形式。 */
 export function normalizeWindowsShellPath(filePath: string): string {
 	if (!filePath.startsWith("/") || filePath.startsWith("//") || filePath.includes("\\")) return filePath;
 	const match = filePath.match(/^\/(?:mnt\/|cygdrive\/)?([a-z])(?:\/(.*))?$/i);

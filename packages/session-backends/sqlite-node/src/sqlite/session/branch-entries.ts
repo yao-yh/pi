@@ -154,7 +154,7 @@ function createDivergentBranchForEntry(db: SqliteDatabase, sessionId: string, en
 	const segmentsNewestFirst = readBranchSegmentsNewestFirst(db, sessionId, entry.parentId);
 	const compaction = readNewestCompactionBoundary(db, sessionId, segmentsNewestFirst);
 	const branchId = entry.id;
-	// A null base means this segment stores its own root-through-parent prefix.
+	// base 为 null 表示当前分段自行存储从根到父项的前缀。
 	sql`INSERT INTO branch_meta (session_id, branch_id, tip_entry_id, tip_seq, base_branch_id, base_seq)
 		VALUES (${sessionId}, ${branchId}, ${entry.id}, ${entry.seq}, ${compaction?.branchId ?? null}, ${compaction?.seq ?? null})`.run(
 		db,

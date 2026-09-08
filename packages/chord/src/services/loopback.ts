@@ -1,7 +1,7 @@
 import type { RemoteServiceTransport } from "../types.ts";
 import type { RemoteServiceProvider } from "./provider.ts";
 
-/** Connects a provider to a binding without changing remote service semantics. */
+/** 在不改变远程服务语义的情况下，将提供方连接到绑定。 */
 export function createLoopbackServiceTransport(provider: RemoteServiceProvider): RemoteServiceTransport {
 	return {
 		invoke: (call, context) => provider.invoke(call, context),

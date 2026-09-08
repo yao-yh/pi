@@ -87,7 +87,7 @@ const selectTheme = {
 	noMatch: (text: string) => theme.fg("warning", text),
 };
 
-/** Service-only presentation driven by a replicated main-lane snapshot. */
+/** 由复制的主 lane 快照驱动、仅使用服务的演示端。 */
 export class ExperimentalClientTui implements Component {
 	readonly #ui: TUI;
 	readonly #requestRender: () => void;

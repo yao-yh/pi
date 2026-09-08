@@ -1,8 +1,8 @@
 /**
- * Tool wrappers for extension-registered tools.
+ * 扩展注册工具的包装器。
  *
- * These wrappers only adapt tool execution so extension tools receive the runner context.
- * Tool call and tool result interception is handled by AgentSession via agent-core hooks.
+ * 这些包装器仅调整工具执行方式，使扩展工具能够接收运行器上下文。
+ * 工具调用和工具结果的拦截由 AgentSession 通过 agent-core 钩子处理。
  */
 
 import type { AgentTool } from "@earendil-works/pi-agent-core";
@@ -11,8 +11,8 @@ import type { ExtensionRunner } from "./runner.ts";
 import type { RegisteredTool } from "./types.ts";
 
 /**
- * Wrap a RegisteredTool into an AgentTool.
- * Uses the runner's createContext() for consistent context across tools and event handlers.
+ * 将 RegisteredTool 包装为 AgentTool。
+ * 使用运行器的 createContext()，确保工具和事件处理程序使用一致的上下文。
  */
 export function wrapRegisteredTool(registeredTool: RegisteredTool, runner: ExtensionRunner): AgentTool {
 	const tool = wrapToolDefinition(registeredTool.definition, () => runner.createContext());
@@ -37,8 +37,8 @@ export function wrapRegisteredTool(registeredTool: RegisteredTool, runner: Exten
 }
 
 /**
- * Wrap all registered tools into AgentTools.
- * Uses the runner's createContext() for consistent context across tools and event handlers.
+ * 将所有已注册工具包装为 AgentTool。
+ * 使用运行器的 createContext()，确保工具和事件处理程序使用一致的上下文。
  */
 export function wrapRegisteredTools(registeredTools: RegisteredTool[], runner: ExtensionRunner): AgentTool[] {
 	return registeredTools.map((tool) => wrapRegisteredTool(tool, runner));

@@ -1,4 +1,4 @@
-/** Server process entry: `node server/entry.ts <socketPath> <sessionsRoot>`. Spawned detached by the CLI. */
+/** 服务器进程入口：`node server/entry.ts <socketPath> <sessionsRoot>`。由 CLI 以分离方式创建。 */
 
 import { socketTransport } from "../shared/transport.ts";
 import { runServer } from "./run.ts";

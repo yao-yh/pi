@@ -45,11 +45,11 @@ export interface ClientRuntime {
 }
 
 export interface OpenClientRuntimeOptions {
-	/** Directory searched when --connect is omitted. Defaults to PI_SERVER_DIR or ~/.pi/server. */
+	/** 省略 --connect 时搜索的目录。默认使用 PI_SERVER_DIR 或 ~/.pi/server。 */
 	readonly directory?: string;
 }
 
-/** Open live server/session service namespaces for one experimental presentation. */
+/** 为一个实验性演示端打开活动的服务器和会话服务命名空间。 */
 export async function openClientRuntime(
 	command: ClientCommand,
 	options: OpenClientRuntimeOptions = {},
@@ -182,7 +182,7 @@ export async function openClientRuntime(
 	}
 }
 
-/** Acquire and connect the built-in service facades used by the non-interactive client. */
+/** 获取并连接非交互客户端使用的内置服务门面。 */
 export async function activateBuiltinClientServices(
 	server: ClientRuntimeServer,
 ): Promise<ActivatedClientRuntimeServer> {

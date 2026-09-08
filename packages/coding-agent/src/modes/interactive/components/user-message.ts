@@ -8,7 +8,7 @@ const OSC133_ZONE_END = "\x1b]133;B\x07";
 const OSC133_ZONE_FINAL = "\x1b]133;C\x07";
 
 /**
- * Component that renders a user message
+ * 渲染用户消息的组件。
  */
 export class UserMessageComponent extends Container {
 	private text: string;

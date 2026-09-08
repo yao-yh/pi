@@ -15,7 +15,7 @@ export interface SessionRow {
 }
 
 export interface SqliteSessionMetadata extends SessionMetadata {
-	/** SQLite container/shard path containing this session. */
+	/** 包含当前会话的 SQLite 容器或分片路径。 */
 	path: string;
 }
 

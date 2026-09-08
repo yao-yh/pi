@@ -1,13 +1,13 @@
 import type { AssistantMessage, Context, ImageContent, Message, TextContent, Tool, Usage } from "../types.ts";
 
 export interface ContextUsageEstimate {
-	/** Estimated total context tokens. */
+	/** 估算的上下文令牌总数。 */
 	tokens: number;
-	/** Tokens reported by the most recent applicable assistant usage block. */
+	/** 最近一个适用助手用量块报告的令牌数。 */
 	usageTokens: number;
-	/** Estimated tokens after the most recent applicable assistant usage block. */
+	/** 最近一个适用助手用量块之后的估算令牌数。 */
 	trailingTokens: number;
-	/** Index of the applicable message that provided usage, or null when none exists. */
+	/** 提供适用用量的消息索引；不存在时为 null。 */
 	lastUsageIndex: number | null;
 }
 
@@ -68,8 +68,8 @@ function getLastAssistantUsageInfo(messages: readonly Message[]): { usage: Usage
 		const message = messages[i];
 		if (message.role === "assistant") {
 			const assistant = message as AssistantMessage;
-			// A newer prefix message was inserted after this response (for example, a
-			// compaction summary), so its usage cannot describe the current prefix.
+			// 此响应之后插入了更新的前缀消息（例如压缩摘要），
+			// 因此该响应的用量无法描述当前前缀。
 			const usageAppliesToPrefix = assistant.timestamp >= latestPrefixTimestamp;
 			if (
 				usageAppliesToPrefix &&

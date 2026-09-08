@@ -1,8 +1,8 @@
 /**
- * Main entry point for the coding agent CLI.
+ * coding agent CLI 的主入口点。
  *
- * This file handles CLI argument parsing and translates them into
- * createAgentSession() options. The SDK does the heavy lifting.
+ * 此文件处理 CLI 参数解析，并将参数转换为 createAgentSession() 选项。
+ * 主要工作由 SDK 完成。
  */
 
 import { createInterface } from "node:readline";
@@ -73,11 +73,11 @@ import { cleanupWindowsSelfUpdateQuarantine } from "./utils/windows-self-update.
 const EXTENSION_LOAD_FAILURE_HINT = `Hint: Start without extensions using "${APP_NAME} -ne".`;
 
 /**
- * Read all content from piped stdin.
- * Returns undefined if stdin is a TTY (interactive terminal).
+ * 读取通过管道传入 stdin 的全部内容。
+ * 如果 stdin 是 TTY（交互式终端），则返回 undefined。
  */
 async function readPipedStdin(): Promise<string | undefined> {
-	// If stdin is a TTY, we're running interactively - don't read stdin
+	// stdin 是 TTY 时表示处于交互式运行状态，不要读取 stdin
 	if (process.stdin.isTTY) {
 		return undefined;
 	}
@@ -228,16 +228,16 @@ async function prepareInitialMessage(
 	});
 }
 
-/** Result from resolving a session argument */
+/** 会话参数的解析结果。 */
 type ResolvedSession =
-	| { type: "path"; path: string } // Direct file path
-	| { type: "local"; path: string } // Found in current project
-	| { type: "global"; path: string; cwd: string } // Found in different project
-	| { type: "not_found"; arg: string }; // Not found anywhere
+	| { type: "path"; path: string } // 直接文件路径
+	| { type: "local"; path: string } // 在当前项目中找到
+	| { type: "global"; path: string; cwd: string } // 在其他项目中找到
+	| { type: "not_found"; arg: string }; // 所有位置均未找到
 
 /**
- * Resolve a session argument to a file path.
- * If it looks like a path, use as-is. Otherwise try to match as session ID prefix.
+ * 将会话参数解析为文件路径。
+ * 如果参数看起来像路径，则直接使用；否则尝试将其作为会话 ID 前缀匹配。
  */
 async function findLocalSessionByExactId(
 	sessionId: string,
@@ -250,12 +250,12 @@ async function findLocalSessionByExactId(
 }
 
 async function resolveSessionPath(sessionArg: string, cwd: string, sessionDir?: string): Promise<ResolvedSession> {
-	// If it looks like a file path, resolve it before handing it to the session manager.
+	// 如果参数看起来像文件路径，则先解析路径，再交给会话管理器。
 	if (sessionArg.includes("/") || sessionArg.includes("\\") || sessionArg.endsWith(".jsonl")) {
 		return { type: "path", path: resolvePath(sessionArg, cwd) };
 	}
 
-	// Try to match as session ID in current project first
+	// 首先尝试在当前项目中将其作为会话 ID 匹配
 	const localSessions = await SessionManager.list(cwd, sessionDir);
 	const localMatch =
 		localSessions.find((s) => s.id === sessionArg) ?? localSessions.find((s) => s.id.startsWith(sessionArg));
@@ -264,7 +264,7 @@ async function resolveSessionPath(sessionArg: string, cwd: string, sessionDir?: 
 		return { type: "local", path: localMatch.path };
 	}
 
-	// Try global search across all projects
+	// 尝试跨所有项目进行全局搜索
 	const allSessions = await SessionManager.listAll(sessionDir);
 	const globalMatch =
 		allSessions.find((s) => s.id === sessionArg) ?? allSessions.find((s) => s.id.startsWith(sessionArg));
@@ -273,11 +273,11 @@ async function resolveSessionPath(sessionArg: string, cwd: string, sessionDir?: 
 		return { type: "global", path: globalMatch.path, cwd: globalMatch.cwd };
 	}
 
-	// Not found anywhere
+	// 所有位置均未找到
 	return { type: "not_found", arg: sessionArg };
 }
 
-/** Prompt user for yes/no confirmation */
+/** 提示用户进行是/否确认。 */
 async function promptConfirm(message: string): Promise<boolean> {
 	return new Promise((resolve) => {
 		const rl = createInterface({
@@ -458,9 +458,9 @@ function buildSessionOptions(
 	const diagnostics: AgentSessionRuntimeDiagnostic[] = [];
 	let cliThinkingFromModel = false;
 
-	// Model from CLI
-	// - supports --provider <name> --model <pattern>
-	// - supports --model <provider>/<pattern>
+	// 来自 CLI 的模型
+	// - 支持 --provider <name> --model <pattern>
+	// - 支持 --model <provider>/<pattern>
 	if (parsed.model) {
 		const resolved = resolveCliModel({
 			cliProvider: parsed.provider,
@@ -476,8 +476,8 @@ function buildSessionOptions(
 		}
 		if (resolved.model) {
 			options.model = resolved.model;
-			// Allow "--model <pattern>:<thinking>" as a shorthand.
-			// Explicit --thinking still takes precedence (applied later).
+			// 允许使用 "--model <pattern>:<thinking>" 简写形式。
+			// 显式指定的 --thinking 仍然优先（稍后应用）。
 			if (!parsed.thinking && resolved.thinkingLevel) {
 				options.thinkingLevel = resolved.thinkingLevel;
 				cliThinkingFromModel = true;
@@ -486,7 +486,7 @@ function buildSessionOptions(
 	}
 
 	if (!options.model && scopedModels.length > 0 && !hasExistingSession) {
-		// Check if saved default is in scoped models - use it if so, otherwise first scoped model
+		// 检查保存的默认模型是否位于限定模型中；如果是则使用它，否则使用第一个限定模型
 		const savedProvider = settingsManager.getDefaultProvider();
 		const savedModelId = settingsManager.getDefaultModel();
 		const savedModel = savedProvider && savedModelId ? modelRuntime.getModel(savedProvider, savedModelId) : undefined;
@@ -494,27 +494,27 @@ function buildSessionOptions(
 
 		if (savedInScope) {
 			options.model = savedInScope.model;
-			// Use thinking level from scoped model config if explicitly set
+			// 如果限定模型配置显式设置了思考级别，则使用该级别
 			if (!parsed.thinking && savedInScope.thinkingLevel) {
 				options.thinkingLevel = savedInScope.thinkingLevel;
 			}
 		} else {
 			options.model = scopedModels[0].model;
-			// Use thinking level from first scoped model if explicitly set
+			// 如果第一个限定模型显式设置了思考级别，则使用该级别
 			if (!parsed.thinking && scopedModels[0].thinkingLevel) {
 				options.thinkingLevel = scopedModels[0].thinkingLevel;
 			}
 		}
 	}
 
-	// Thinking level from CLI (takes precedence over scoped model thinking levels set above)
+	// 来自 CLI 的思考级别（优先于上面设置的限定模型思考级别）
 	if (parsed.thinking) {
 		options.thinkingLevel = parsed.thinking;
 	}
 
-	// Scoped models for Ctrl+P cycling
-	// Keep thinking level undefined when not explicitly set in the model pattern.
-	// Undefined means "inherit current session thinking level" during cycling.
+	// 用于 Ctrl+P 循环切换的限定模型
+	// 模型模式中未显式设置思考级别时，保持其为 undefined。
+	// 循环切换期间，undefined 表示“继承当前会话的思考级别”。
 	if (scopedModels.length > 0) {
 		options.scopedModels = scopedModels.map((sm) => ({
 			model: sm.model,
@@ -522,10 +522,10 @@ function buildSessionOptions(
 		}));
 	}
 
-	// API key from CLI - set as a non-persistent runtime override
-	// (handled by caller before createAgentSession)
+	// 来自 CLI 的 API 密钥，设置为非持久化的运行时覆盖项
+	// （由调用方在 createAgentSession 前处理）
 
-	// Tools
+	// 工具
 	if (parsed.noTools) {
 		options.noTools = "all";
 	} else if (parsed.noBuiltinTools) {
@@ -586,9 +586,9 @@ export async function main(args: string[], options?: MainOptions) {
 	if (await handlePackageCommand(args, { extensionFactories })) {
 		const exitCode = process.exitCode ?? 0;
 		if (process.platform === "win32" && exitCode === 0 && args[0] === "update") {
-			// We normally prefer process.exit(0) for package commands so bad extensions cannot keep
-			// one-shot commands alive. On Windows, Node can assert after fetch() if process.exit(0)
-			// runs during teardown; let successful `pi update` drain naturally instead.
+			// 对包命令通常优先使用 process.exit(0)，防止异常扩展让一次性命令持续运行。
+			// 在 Windows 上，如果清理期间执行 process.exit(0)，Node 可能在 fetch() 后触发断言；
+			// 因此让成功的 `pi update` 自然排空并退出。
 			// https://github.com/nodejs/node/issues/56645
 			return;
 		}
@@ -645,15 +645,15 @@ export async function main(args: string[], options?: MainOptions) {
 	validateForkFlags(parsed);
 	validateSessionIdFlags(parsed);
 
-	// Run migrations (pass cwd for project-local migrations)
+	// 运行迁移（传入 cwd 以处理项目本地迁移）
 	const { migratedAuthProviders: migratedProviders, deprecationWarnings } = runMigrations(cwd);
 	time("runMigrations");
 
 	const startupSettingsManager = SettingsManager.create(cwd, agentDir);
 	const startupSettingsDiagnostics = collectSettingsDiagnostics(startupSettingsManager);
 
-	// Experimental first-time setup: theme choice and analytics opt-in.
-	// Runs before any runtime services are created so the chosen settings apply everywhere.
+	// 实验性首次设置：选择主题并决定是否启用分析数据收集。
+	// 在创建任何运行时服务前执行，确保所选设置应用到所有位置。
 	if (appMode === "interactive" && !parsed.help && parsed.listModels === undefined && shouldRunFirstTimeSetup()) {
 		await showFirstTimeSetup(startupSettingsManager);
 		time("firstTimeSetup");
@@ -663,11 +663,10 @@ export async function main(args: string[], options?: MainOptions) {
 		startupSettingsManager.applyOverrides({ theme: parsed.useTheme });
 	}
 
-	// Decide the final runtime cwd before creating cwd-bound runtime services.
-	// --session and --resume may select a session from another project, so project-local
-	// settings, resources, provider registrations, and models must be resolved only after
-	// the target session cwd is known. The startup-cwd settings manager is used only for
-	// sessionDir lookup during session selection.
+	// 创建绑定 cwd 的运行时服务前，先确定最终运行时 cwd。
+	// --session 和 --resume 可能选择其他项目的会话，因此必须在目标会话 cwd 确定后，
+	// 才能解析项目本地设置、资源、提供商注册和模型。启动 cwd 的设置管理器
+	// 仅用于在会话选择期间查找 sessionDir。
 	const envSessionDir = process.env[ENV_SESSION_DIR];
 	const sessionDir =
 		(parsed.sessionDir ? normalizePath(parsed.sessionDir) : undefined) ??
@@ -866,7 +865,7 @@ export async function main(args: string[], options?: MainOptions) {
 		process.exit(0);
 	}
 
-	// Read piped stdin content (if any) - skip for RPC mode which uses stdin for JSON-RPC
+	// 读取通过管道传入的 stdin 内容（如果有）；RPC 模式将 stdin 用于 JSON-RPC，因此跳过
 	let stdinContent: string | undefined;
 	if (appMode !== "rpc") {
 		stdinContent = await readPipedStdin();
@@ -882,12 +881,12 @@ export async function main(args: string[], options?: MainOptions) {
 		stdinContent,
 	);
 	time("prepareInitialMessage");
-	// pi reads user-authored themes, so it opts into full validation before any theme loads.
+	// pi 会读取用户编写的主题，因此在加载任何主题前启用完整验证。
 	setThemeJsonValidator(validateThemeJson);
 	initTheme(settingsManager.getTheme(), appMode === "interactive");
 	time("initTheme");
 
-	// Show deprecation warnings in interactive mode
+	// 在交互模式下显示弃用警告
 	if (appMode === "interactive" && deprecationWarnings.length > 0) {
 		await showDeprecationWarnings(deprecationWarnings);
 	}
@@ -917,7 +916,7 @@ export async function main(args: string[], options?: MainOptions) {
 		process.exit(1);
 	}
 
-	// RPC refreshes catalogs here in the background; interactive mode starts its refresh after TUI initialization.
+	// RPC 在此处后台刷新目录；交互模式则在 TUI 初始化后开始刷新。
 	if (!offlineMode && appMode === "rpc") {
 		const controller = new AbortController();
 		const timeout = setTimeout(() => controller.abort(), 15_000);
@@ -946,8 +945,8 @@ export async function main(args: string[], options?: MainOptions) {
 		if (startupBenchmark) {
 			await interactiveMode.init();
 			time("interactiveMode.init");
-			// Give the TUI's stdin handler a brief chance to consume terminal query replies
-			// (Kitty keyboard protocol, device attributes, cell size) before restoring the terminal.
+			// 恢复终端前，给 TUI 的 stdin 处理程序短暂时间来消费终端查询响应
+			// （Kitty 键盘协议、设备属性、单元格大小）。
 			await new Promise((resolve) => setTimeout(resolve, 150));
 			interactiveMode.stop();
 			stopThemeWatcher();

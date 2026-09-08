@@ -1,20 +1,20 @@
 import hostedGitInfo from "hosted-git-info";
 
 /**
- * Parsed git URL information.
+ * 解析后的 git URL 信息。
  */
 export type GitSource = {
-	/** Always "git" for git sources */
+	/** 对于 git 来源，始终为 "git" */
 	type: "git";
-	/** Clone URL (always valid for git clone, without ref suffix) */
+	/** 克隆 URL（始终可用于 git clone，不含 ref 后缀） */
 	repo: string;
-	/** Git host domain (e.g., "github.com") */
+	/** Git 主机域名（例如 "github.com"） */
 	host: string;
-	/** Repository path (e.g., "user/repo") */
+	/** 仓库路径（例如 "user/repo"） */
 	path: string;
-	/** Git ref (branch, tag, commit) if specified */
+	/** 指定的 Git ref（分支、标签或提交） */
 	ref?: string;
-	/** True if ref was specified (package won't be auto-updated) */
+	/** 指定 ref 时为 true（包不会自动更新） */
 	pinned: boolean;
 };
 
@@ -163,11 +163,11 @@ function parseGenericGitUrl(url: string): GitSource | null {
 }
 
 /**
- * Parse git source into a GitSource.
+ * 将 git 来源解析为 GitSource。
  *
- * Rules:
- * - With git: prefix, accept all historical shorthand forms.
- * - Without git: prefix, only accept explicit protocol URLs.
+ * 规则：
+ * - 带有 git: 前缀时，接受所有历史简写形式。
+ * - 不带 git: 前缀时，仅接受显式协议 URL。
  */
 export function parseGitUrl(source: string): GitSource | null {
 	const trimmed = source.trim();

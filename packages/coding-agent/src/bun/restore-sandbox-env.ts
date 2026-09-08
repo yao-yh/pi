@@ -1,25 +1,22 @@
 /**
- * Workaround for https://github.com/oven-sh/bun/issues/27802
+ * 针对 https://github.com/oven-sh/bun/issues/27802 的解决方法。
  *
- * Bun compiled binaries have an empty `process.env` when running inside
- * sandbox environments (e.g. nono on Linux/macOS). On Linux we can recover
- * the environment from `/proc/self/environ`.
+ * Bun 编译的二进制文件在沙箱环境（例如 Linux/macOS 上的 nono）内运行时，
+ * `process.env` 为空。在 Linux 上可以从 `/proc/self/environ` 恢复环境变量。
  *
- * Keep this in sync with getBunSandboxEnvValue() in
- * packages/ai/src/utils/provider-env.ts. The ai package duplicates the lookup
- * for direct consumers that do not go through this coding-agent entrypoint.
+ * 此处需与 packages/ai/src/utils/provider-env.ts 中的 getBunSandboxEnvValue()
+ * 保持同步。ai 包为不经过此 coding-agent 入口点的直接使用方重复实现了该查找逻辑。
  */
 
 import { readFileSync } from "node:fs";
 
 /**
- * Restore environment variables from `/proc/self/environ` when running
- * inside a sandbox where Bun's `process.env` is empty.
+ * 在 Bun 的 `process.env` 为空的沙箱中运行时，从 `/proc/self/environ` 恢复环境变量。
  */
 export function restoreSandboxEnv(): void {
 	if (!process.versions?.bun) return;
 
-	// If process.env already has entries, nothing to fix.
+	// 如果 process.env 已有内容，则无需修复。
 	if (Object.keys(process.env).length > 0) return;
 
 	try {
@@ -31,6 +28,6 @@ export function restoreSandboxEnv(): void {
 			}
 		}
 	} catch {
-		// /proc/self/environ may not be readable; ignore.
+		// /proc/self/environ 可能不可读，此时忽略。
 	}
 }

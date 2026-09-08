@@ -5,8 +5,8 @@ import type { CustomEntry } from "../../../core/session-manager.ts";
 import { theme } from "../theme/theme.ts";
 
 /**
- * Component that renders a custom session entry from extensions.
- * The host owns transcript spacing; renderer output should provide only its content.
+ * 渲染扩展所提供自定义会话条目的组件。
+ * 对话记录间距由宿主负责；渲染器输出应只提供自身内容。
  */
 export class CustomEntryComponent extends Container {
 	private entry: CustomEntry<unknown>;

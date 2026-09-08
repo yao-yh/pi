@@ -37,35 +37,35 @@ import { operationSignal, raceWithAbortSignal } from "./utils/abort.ts";
 export { ModelsError, type ModelsErrorCode } from "./auth/resolve.ts";
 
 export interface ModelsPublication {
-	/** Provider-selected persisted catalog. Omit to leave storage unchanged; null deletes it. */
+	/** 由提供商选择的持久化目录。省略则不更改存储；设为 null 则删除。 */
 	persist?: ModelsStoreEntry | null;
-	/** Optional synchronous update of provider-private in-memory catalog state. */
+	/** 可选：同步更新提供商私有的内存目录状态。 */
 	update?: () => void;
 }
 
 export interface RefreshModelsContext {
-	/** Effective configured credential. OAuth credentials are refreshed before network access. */
+	/** 实际生效的已配置凭据。OAuth 凭据会在网络访问前刷新。 */
 	credential?: Credential;
-	/** Immutable provider-scoped catalog snapshot captured before this refresh phase. */
+	/** 在本次刷新阶段前捕获的不可变提供商范围目录快照。 */
 	stored?: Readonly<ModelsStoreEntry>;
 	/**
-	 * Generation-checked publication. Persistence policy remains provider-owned;
-	 * the update runs synchronously only after the selected persistence mutation.
+	 * 经过世代检查的发布操作。持久化策略仍由提供商负责；
+	 * 仅在选定的持久化变更完成后同步执行更新。
 	 */
 	publish(publication: ModelsPublication): Promise<boolean>;
-	/** False during offline/cache-only initialization. */
+	/** 离线或仅缓存初始化期间为 false。 */
 	allowNetwork: boolean;
-	/** Bypass provider freshness checks and fetch immediately when network access is allowed. */
+	/** 允许网络访问时，跳过提供商新鲜度检查并立即获取。 */
 	force?: boolean;
-	/** Always present, including when the public refresh caller omits its optional signal. */
+	/** 始终存在，包括公开刷新调用方省略其可选 signal 时。 */
 	signal: AbortSignal;
 }
 
 export interface ModelsRefreshOptions {
 	allowNetwork?: boolean;
-	/** Restrict refresh to these provider IDs. Unknown and static providers are ignored. */
+	/** 将刷新限制到这些提供商 ID；忽略未知和静态提供商。 */
 	providers?: readonly string[];
-	/** Bypass provider freshness checks and fetch immediately when network access is allowed. */
+	/** 允许网络访问时，跳过提供商新鲜度检查并立即获取。 */
 	force?: boolean;
 	signal?: AbortSignal;
 }
@@ -76,7 +76,7 @@ export interface ModelsRefreshResult {
 }
 
 export interface ModelsRequestTransforms {
-	/** Transform fully assembled model/auth/request headers before provider dispatch. */
+	/** 在分派给提供商之前转换完整组装的模型、身份验证和请求头。 */
 	transformHeaders?: (headers: ProviderHeaders) => ProviderHeaders | Promise<ProviderHeaders>;
 }
 
@@ -86,13 +86,13 @@ export type ModelsDeferredFetchOptions = DeferredFetchOptions & ModelsRequestTra
 export type ModelsDeferredCancelOptions = DeferredCancelOptions & ModelsRequestTransforms;
 
 /**
- * A provider is the concrete runtime unit. It owns id/name/base metadata,
- * auth methods, model listing, and stream behavior.
+ * 提供商是具体的运行时单元，负责 id/name/base 元数据、身份验证方法、
+ * 模型列表和流行为。
  *
- * `TApi` lets concrete provider factories declare which APIs their models
- * use (e.g. `openaiProvider(): Provider<"openai-responses" | "openai-completions">`),
- * giving typed model lists to direct factory users. Inside a `Models`
- * collection providers are held as `Provider<Api>`.
+ * `TApi` 允许具体提供商工厂声明其模型使用的 API（例如
+ * `openaiProvider(): Provider<"openai-responses" | "openai-completions">`），
+ * 从而为直接使用工厂的调用方提供带类型的模型列表。在 `Models` 集合内，
+ * 提供商以 `Provider<Api>` 保存。
  */
 export interface Provider<TApi extends Api = Api> {
 	readonly id: string;
@@ -102,34 +102,31 @@ export interface Provider<TApi extends Api = Api> {
 	readonly headers?: ProviderHeaders;
 
 	/**
-	 * Required: at least one of `apiKey`/`oauth`. Every provider has auth
-	 * semantics — even providers with only ambient credentials (env vars, AWS
-	 * profiles, ADC files) and keyless local servers provide `apiKey` auth
-	 * whose `resolve()` reports whether the provider is configured.
-	 * `Models.getAuth()` returns undefined when the provider is unconfigured.
+	 * 必填：`apiKey`/`oauth` 至少提供一项。每个提供商都有身份验证语义——
+	 * 即使仅使用环境凭据（环境变量、AWS 配置文件、ADC 文件）的提供商和
+	 * 无密钥本地服务器，也会提供 `apiKey` 身份验证，其 `resolve()` 用于报告
+	 * 提供商是否已配置。提供商未配置时，`Models.getAuth()` 返回 undefined。
 	 */
 	readonly auth: ProviderAuth;
 
 	/**
-	 * Current known models, sync. Static providers return their catalog;
-	 * dynamic providers return the list as of the last `refreshModels()`
-	 * (empty before the first). Must not throw; `Models` treats a throwing
-	 * implementation as having no models.
+	 * 同步返回当前已知模型。静态提供商返回其目录；动态提供商返回上次
+	 * `refreshModels()` 后的列表（首次刷新前为空）。不得抛出异常；
+	 * `Models` 会将抛出异常的实现视为没有模型。
 	 */
 	getModels(): readonly Model<TApi>[];
 
 	/**
-	 * Dynamic providers only: restore `context.stored` and optionally fetch a newer list using
-	 * the effective credential. Implementations retain their previous list on failure, publish
-	 * persistence and synchronous state changes through `context.publish()`, and honor the
-	 * shared abort signal for blocking work.
+	 * 仅供动态提供商使用：恢复 `context.stored`，并可选择使用实际生效的凭据获取
+	 * 更新列表。实现失败时保留原列表，通过 `context.publish()` 发布持久化和
+	 * 同步状态变更，并在阻塞操作中遵循共享的中止信号。
 	 */
 	refreshModels?(context: RefreshModelsContext): Promise<void>;
 
 	/**
-	 * Optional provider policy for credential-specific model availability.
-	 * `getModels()` remains the complete synchronous catalog; `Models.getAvailable()`
-	 * applies this filter after confirming that provider auth is configured.
+	 * 可选的提供商策略，用于确定特定凭据可用的模型。
+	 * `getModels()` 仍返回完整的同步目录；`Models.getAvailable()` 会在确认
+	 * 提供商身份验证已配置后应用此过滤器。
 	 */
 	filterModels?(models: readonly Model<TApi>[], credential: Credential | undefined): readonly Model<TApi>[];
 
@@ -149,55 +146,51 @@ export interface Provider<TApi extends Api = Api> {
 }
 
 /**
- * Runtime collection of providers plus auth application and stream
- * convenience. Providers own stream behavior; `Models` resolves auth and
- * delegates each request to the provider that owns the model.
+ * 提供商的运行时集合，同时负责应用身份验证并提供便捷流接口。
+ * 提供商负责流行为；`Models` 解析身份验证，并将每个请求委派给模型所属提供商。
  */
 export interface Models {
 	getProviders(): readonly Provider[];
 	getProvider(id: string): Provider | undefined;
 
 	/**
-	 * Sync read of last-known models from one provider or all providers.
-	 * Best-effort: a provider whose `getModels()` throws yields no models.
+	 * 同步读取一个或所有提供商最近已知的模型。
+	 * 尽力而为：提供商的 `getModels()` 抛出异常时，不返回其任何模型。
 	 */
 	getModels(provider?: string): readonly Model<Api>[];
 
 	/**
-	 * Sync runtime model lookup against last-known lists. Dynamic model lists
-	 * are typed as `Model<Api>`; narrow with the `hasApi()` type guard.
+	 * 在最近已知列表中同步查找运行时模型。动态模型列表的类型为 `Model<Api>`；
+	 * 使用 `hasApi()` 类型守卫缩小类型范围。
 	 */
 	getModel(provider: string, id: string): Model<Api> | undefined;
 
 	/**
-	 * Refresh selected configured dynamic providers concurrently (all when `providers` is omitted).
-	 * Provider errors and cancellation are returned without rejecting; static, unknown, and
-	 * unconfigured providers are skipped.
+	 * 并发刷新选定且已配置的动态提供商（省略 `providers` 时刷新全部）。
+	 * 返回提供商错误和取消状态而不拒绝；跳过静态、未知和未配置的提供商。
 	 */
 	refresh(options?: ModelsRefreshOptions): Promise<ModelsRefreshResult>;
 
-	/** Check whether a provider has complete auth configuration without refreshing OAuth. */
+	/** 在不刷新 OAuth 的情况下，检查提供商是否具有完整的身份验证配置。 */
 	checkAuth(providerId: string, options?: AuthOperationOptions): Promise<AuthCheck | undefined>;
 
-	/** Return models whose providers have complete auth configuration. */
+	/** 返回提供商已具备完整身份验证配置的模型。 */
 	getAvailable(providerId?: string, options?: AuthOperationOptions): Promise<readonly Model<Api>[]>;
 
 	/**
-	 * Resolve provider-scoped auth by provider id, or provider auth plus static
-	 * model headers when passed a model. Includes a source label for status UI.
-	 * Resolves `undefined` when the provider is unknown or unconfigured.
-	 * Rejects with `ModelsError`: code "oauth" when a token refresh fails (the
-	 * stored credential is preserved for retry; re-login fixes it), code "auth"
-	 * when api-key resolution or the credential store fails. Request paths
-	 * surface rejections as stream errors.
+	 * 传入提供商 id 时解析提供商范围的身份验证；传入模型时，还会合并静态模型请求头。
+	 * 结果包含供状态界面使用的来源标签。提供商未知或未配置时解析为 undefined。
+	 * 令牌刷新失败时以代码为 "oauth" 的 `ModelsError` 拒绝（保留已存储凭据以便
+	 * 重试，重新登录可修复）；API 密钥解析或凭据存储失败时以代码为 "auth" 的
+	 * `ModelsError` 拒绝。请求路径会将拒绝呈现为流错误。
 	 */
 	getAuth(providerId: string, overrides?: AuthResolutionOverrides): Promise<AuthResult | undefined>;
 	getAuth(model: Model<Api>, overrides?: AuthResolutionOverrides): Promise<AuthResult | undefined>;
 
-	/** Run a provider-owned login flow and persist its returned credential. */
+	/** 运行提供商自有的登录流程，并持久化其返回的凭据。 */
 	login(providerId: string, type: AuthType, interaction: AuthInteraction): Promise<Credential>;
 
-	/** Remove the stored credential for a provider. */
+	/** 删除提供商已存储的凭据。 */
 	logout(providerId: string, options?: AuthOperationOptions): Promise<void>;
 
 	stream<TApi extends Api>(
@@ -228,7 +221,7 @@ export interface Models {
 }
 
 export interface MutableModels extends Models {
-	/** Upsert/replace by provider.id. Provider ids are unique. */
+	/** 按 provider.id 插入或替换。提供商 id 唯一。 */
 	setProvider(provider: Provider): void;
 	deleteProvider(id: string): void;
 	clearProviders(): void;
@@ -312,7 +305,7 @@ class ModelsImpl implements MutableModels {
 			try {
 				models.push(...entry.getModels());
 			} catch {
-				// Best-effort: ill-behaved providers yield no models.
+				// 尽力而为：行为异常的提供商不返回任何模型。
 			}
 		}
 		return models;
@@ -412,7 +405,7 @@ class ModelsImpl implements MutableModels {
 						credentialError = error;
 					}
 
-					// Restore cached provider state before auth resolution or network access.
+					// 在解析身份验证或访问网络前恢复提供商缓存状态。
 					await this.runProviderRefreshPhase(provider, storedCredential, false, undefined, generation, signal);
 					if (credentialError !== undefined) throw credentialError;
 					if (!allowNetwork || signal.aborted) return;
@@ -656,7 +649,7 @@ class ModelsImpl implements MutableModels {
 		}
 		const auth = resolution.auth;
 
-		// Explicit request options win per-field; the Models-only transform runs last.
+		// 每个字段均以显式请求选项优先；Models 专用转换最后运行。
 		const apiKey = options?.apiKey ?? auth.apiKey;
 		let headers = mergeHeaders(auth.headers, options?.headers);
 		if (options?.transformHeaders) headers = await options.transformHeaders(headers ?? {});
@@ -751,26 +744,25 @@ export function createModels(options?: CreateModelsOptions): MutableModels {
 
 export interface CreateProviderOptions<TApi extends Api = Api> {
 	id: string;
-	/** Display name. Default: `id`. */
+	/** 显示名称，默认为 `id`。 */
 	name?: string;
 	baseUrl?: string;
 	headers?: ProviderHeaders;
-	/** Required — every provider has auth semantics, even ambient/keyless ones. */
+	/** 必填——每个提供商都有身份验证语义，包括环境凭据或无密钥提供商。 */
 	auth: ProviderAuth;
-	/** Static baseline model list (empty for purely dynamic providers). */
+	/** 静态基线模型列表（纯动态提供商为空）。 */
 	models: readonly Model<TApi>[];
-	/** Fetch a dynamic model overlay. createProvider restores and publishes it transactionally. */
+	/** 获取动态模型覆盖层。createProvider 以事务方式恢复并发布该覆盖层。 */
 	fetchModels?: (context: RefreshModelsContext) => Promise<readonly Model<TApi>[]>;
 	filterModels?: (models: readonly Model<TApi>[], credential: Credential | undefined) => readonly Model<TApi>[];
-	/** Single implementation, or map keyed by `model.api` for mixed-API providers. */
+	/** 单一实现；对于混合 API 提供商，则为以 `model.api` 为键的映射。 */
 	api: ProviderStreams | Partial<Record<TApi, ProviderStreams>>;
 }
 
 /**
- * Builds a provider from parts. Built-in provider factories and models.json
- * custom providers both go through this. A single `api` streams all models;
- * an `api` map dispatches on `model.api`, and a model whose api has no entry
- * produces a stream error.
+ * 根据各组成部分构建提供商。内置提供商工厂和 models.json 自定义提供商都经过此处。
+ * 单一 `api` 为所有模型提供流；`api` 映射按 `model.api` 分派，模型的 api 没有
+ * 对应条目时产生流错误。
  */
 export function createProvider<TApi extends Api = Api>(input: CreateProviderOptions<TApi>): Provider<TApi> {
 	const baselineModels = input.models;
@@ -875,12 +867,12 @@ export function createProvider<TApi extends Api = Api>(input: CreateProviderOpti
 }
 
 /**
- * Runtime-checked narrowing for dynamically looked-up models:
+ * 对动态查找的模型执行运行时检查并缩小类型：
  *
  * ```ts
  * const model = models.getModel("anthropic", "claude-opus-4-7");
  * if (model && hasApi(model, "anthropic-messages")) {
- *   // model: Model<"anthropic-messages">, stream options fully typed
+ *   // model: Model<"anthropic-messages">，流选项具有完整类型
  * }
  * ```
  */
@@ -899,7 +891,7 @@ export function calculateCost<TApi extends Api>(model: Model<TApi>, usage: Usage
 		}
 	}
 
-	// Anthropic charges 2x base input for 1h cache writes.
+	// Anthropic 对 1 小时缓存写入按基础输入费率的 2 倍收费。
 	const longWrite = usage.cacheWrite1h ?? 0;
 	const shortWrite = usage.cacheWrite - longWrite;
 	usage.cost.input = (rates.input / 1000000) * usage.input;
@@ -945,8 +937,8 @@ export function clampThinkingLevel<TApi extends Api>(
 }
 
 /**
- * Check if two models are equal by comparing both their id and provider.
- * Returns false if either model is null or undefined.
+ * 同时比较两个模型的 id 和提供商，检查它们是否相等。
+ * 任一模型为 null 或 undefined 时返回 false。
  */
 export function modelsAreEqual<TApi extends Api>(
 	a: Model<TApi> | null | undefined,

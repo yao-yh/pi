@@ -3,7 +3,7 @@ import { dirname } from "node:path";
 import { resolvePath } from "../utils/paths.ts";
 import { CURRENT_SESSION_VERSION, type SessionHeader, type SessionManager } from "./session-manager.ts";
 
-/** Write the current session branch and optional trailing export-only entries as JSONL. */
+/** 将当前会话分支及可选的仅供导出的尾随条目写为 JSONL。 */
 export function exportSessionToJsonl(
 	sessionManager: SessionManager,
 	outputPath?: string,

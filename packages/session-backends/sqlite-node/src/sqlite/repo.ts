@@ -31,7 +31,7 @@ export type SqliteSessionCreateOptions = SessionCreateOptions;
 
 export interface SqliteSessionRepoOptions {
 	directory: string;
-	/** Optional single container path. Defaults to one encoded `${id}.sqlite` file per session under directory. */
+	/** 可选的单一容器路径。默认在 directory 下为每个会话创建一个编码后的 `${id}.sqlite` 文件。 */
 	databasePath?: string;
 	databaseFactory: SqliteDatabaseFactory;
 	now?: () => number;
@@ -101,7 +101,7 @@ function buildForkSnapshot(source: SqliteStorageSnapshot, options: ForkOptions):
 	};
 }
 
-// TODO(WP08): Remove this snapshot path when SQLite forks use streaming staging.
+// TODO(WP08)：SQLite 派生改用流式暂存后，移除此快照路径。
 function readForkSourceEntries(
 	db: SqliteDatabase,
 	sessionId: string,
@@ -275,8 +275,8 @@ export class SqliteSessionRepo {
 					sessions.push(metadataFromSessionRow(canonicalPath, row, SQLITE_STORAGE_VERSION));
 				}
 			} catch {
-				// Discovery is best-effort: corrupt files, incompatible versions, and
-				// unrelated *.sqlite files are reported when explicitly opened.
+				// 发现过程尽力而为：损坏文件、不兼容版本和无关的 *.sqlite 文件，
+				// 会在显式打开时报告。
 			} finally {
 				db?.close();
 			}

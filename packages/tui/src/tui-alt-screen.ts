@@ -77,8 +77,8 @@ const MAX_CACHED_OFFSCREEN_KITTY_IMAGES = 16;
 const MAX_CACHED_OFFSCREEN_KITTY_TRANSMISSION_BYTES = 32 * 1024 * 1024;
 const MAX_CACHED_OFFSCREEN_KITTY_DECODED_BYTES = 64 * 1024 * 1024;
 const DOUBLE_CLICK_INTERVAL_MS = 500;
-// Regular mode delegates double-click selection to the terminal emulator. Fullscreen owns mouse selection,
-// so mirror common terminal word-selection behavior by keeping paths and kebab-case tokens whole.
+// 常规模式将双击选择委托给终端模拟器。全屏模式自行管理鼠标选择，
+// 因此通过保持路径和 kebab-case 词元完整，模拟常见的终端单词选择行为。
 const TERMINAL_WORD_SELECTION_JOINERS = new Set(["/", "-"]);
 const wordSegmenter = getWordSegmenter();
 
@@ -92,7 +92,7 @@ interface SelectionPoint {
 	row: number;
 	col: number;
 	scrollView?: ScrollView;
-	/** Whether this point lies between terminal cells rather than on a cell. */
+	/** 当前点是否位于终端单元格之间，而不是单元格上。 */
 	boundary?: boolean;
 }
 
@@ -163,35 +163,35 @@ interface SearchHighlightRange {
 }
 
 export interface TuiAltScreenOptions {
-	/** Number of logical lines moved for each mouse-wheel event. */
+	/** 每次鼠标滚轮事件移动的逻辑行数。 */
 	wheelScrollLines?: number;
-	/** Capture mouse events for viewport scrolling and application-owned text selection. */
+	/** 捕获鼠标事件，用于视口滚动和应用自行管理的文本选择。 */
 	mouse?: boolean;
-	/** Style a non-current transcript search match. */
+	/** 设置非当前记录搜索匹配项的样式。 */
 	searchMatchStyle?: (text: string) => string;
-	/** Style the current transcript search match. */
+	/** 设置当前记录搜索匹配项的样式。 */
 	searchCurrentMatchStyle?: (text: string) => string;
-	/** Style a transcript search navigation button. */
+	/** 设置记录搜索导航按钮的样式。 */
 	searchNavigationButtonStyle?: (text: string, hovered: boolean) => string;
 	/**
-	 * Render a clickable jump-to-end label. It is centered on the last row of a follow-end
-	 * primary scroll view while that view is scrolled away from its end.
+	 * 渲染可点击的跳至末尾标签。当启用末尾跟随的主滚动视图离开末尾时，
+	 * 标签居中显示在该视图最后一行。
 	 */
 	scrollToEndIndicator?: () => string;
-	/** Open an OSC 8 hyperlink activated with a primary-button click. */
+	/** 打开通过主按钮点击激活的 OSC 8 超链接。 */
 	openUrl?: (url: string) => void;
-	/** Handle an unmodified secondary-button press for clipboard paste. Currently enabled on Windows only. */
+	/** 处理无修饰键的次按钮按下，以执行剪贴板粘贴。目前仅在 Windows 上启用。 */
 	onRightClickPaste?: () => void;
-	/** Automatically copy selected text to the clipboard on mouse release (default: true). */
+	/** 鼠标释放时自动将选中文本复制到剪贴板（默认：true）。 */
 	copyOnSelect?: boolean;
 	/**
-	 * Copy selected text to the system clipboard. Return `true` on success; the caller flashes
-	 * an error otherwise. When omitted, the selection is copied via an OSC 52 write.
+	 * 将选中文本复制到系统剪贴板。成功时返回 `true`，否则调用方短暂显示错误。
+	 * 省略时，通过 OSC 52 写入复制选择内容。
 	 */
 	copySelection?: (text: string) => Promise<boolean>;
 }
 
-/** Alternate-screen TUI with a scrollable, application-owned viewport. */
+/** 带有可滚动、由应用管理视口的备用屏幕 TUI。 */
 export class TuiAltScreen extends TuiBase implements ViewportTUI {
 	readonly mode = "fullscreen" as const;
 	readonly [VIEWPORT_TUI] = true as const;
@@ -290,12 +290,12 @@ export class TuiAltScreen extends TuiBase implements ViewportTUI {
 		this.copyOnSelect = enabled;
 	}
 
-	/** Whether the fullscreen viewport has a non-empty active text selection. */
+	/** 全屏视口是否存在非空的活动文本选择。 */
 	hasActiveSelection(): boolean {
 		return this.getActiveSelectionText() !== undefined;
 	}
 
-	/** Copy the active fullscreen text selection, if any, using the configured selection clipboard path. */
+	/** 使用已配置的选择剪贴板路径，复制活动的全屏文本选择（如果有）。 */
 	async copyActiveSelectionToClipboard(): Promise<boolean> {
 		const text = this.getActiveSelectionText();
 		if (!text) return false;
@@ -348,8 +348,8 @@ export class TuiAltScreen extends TuiBase implements ViewportTUI {
 		this.lastComponentClick = undefined;
 		this.resetRenderState();
 		const term = process.env.TERM?.toLowerCase() ?? "";
-		// Multiplexers can lag when every pointer movement is forwarded. Button-motion
-		// tracking preserves clicks, wheel events, selections, and scrollbar dragging.
+		// 转发每次指针移动时，多路复用器可能出现延迟。
+		// 按钮移动跟踪仍能保留点击、滚轮事件、选择和滚动条拖动。
 		const mouseSequence =
 			process.env.TMUX !== undefined ||
 			process.env.ZELLIJ !== undefined ||
@@ -637,7 +637,7 @@ export class TuiAltScreen extends TuiBase implements ViewportTUI {
 		return scrollView.scrollTop !== before;
 	}
 
-	/** Show a transient message in the alternate-screen flash stack. */
+	/** 在备用屏幕临时消息栈中显示一条临时消息。 */
 	flash(message: string, durationMs?: number): void {
 		this.flashes.flash(message, durationMs);
 	}
@@ -966,7 +966,7 @@ export class TuiAltScreen extends TuiBase implements ViewportTUI {
 	}
 
 	private getWheelScrollLines(button: number): number {
-		// SGR mouse button codes use bit 3 (value 8) for the Alt modifier.
+		// SGR 鼠标按钮代码使用第 3 位（值 8）表示 Alt 修饰键。
 		return (button & 8) !== 0 ? this.wheelScrollLines * ALT_WHEEL_SCROLL_MULTIPLIER : this.wheelScrollLines;
 	}
 
@@ -1008,7 +1008,7 @@ export class TuiAltScreen extends TuiBase implements ViewportTUI {
 		try {
 			this.onRightClickPaste();
 		} catch {
-			// Clipboard paste is best-effort.
+			// 剪贴板粘贴尽力执行。
 		}
 		return true;
 	}
@@ -1322,7 +1322,7 @@ export class TuiAltScreen extends TuiBase implements ViewportTUI {
 				try {
 					this.openUrl(clickedUrl);
 				} catch {
-					// URL activation is best-effort.
+					// URL 激活尽力执行。
 				}
 				this.requestRender();
 				return;
@@ -1447,10 +1447,9 @@ export class TuiAltScreen extends TuiBase implements ViewportTUI {
 	}
 
 	private async copyTextToClipboard(text: string): Promise<boolean> {
-		// Prefer an injected clipboard implementation (native clipboard + platform tools with a
-		// verified success path) when the host app provides one. A bare OSC 52 write can show
-		// "Copied!" while leaving the system clipboard untouched (e.g. macOS Terminal.app, tmux
-		// without OSC 52 clipboard passthrough), so only report success when it actually copies.
+		// 宿主应用提供剪贴板实现时，优先使用注入的实现，即原生剪贴板加具有已验证成功路径的平台工具。
+		// 单纯写入 OSC 52 可能显示 "Copied!"，却未改变系统剪贴板，例如 macOS Terminal.app，
+		// 或未启用 OSC 52 剪贴板透传的 tmux。因此只有实际复制成功时才报告成功。
 		if (this.copySelection) {
 			const ok = await this.copySelection(text);
 			this.flash(ok ? "Copied!" : "Copy failed");

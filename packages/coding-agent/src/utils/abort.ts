@@ -5,12 +5,12 @@ function abortReason(signal: AbortSignal): unknown {
 	return error;
 }
 
-/** Normalize an optional public signal without imposing a deadline. */
+/** 规范化可选的公共信号，但不设置截止时间。 */
 export function operationSignal(signal?: AbortSignal): AbortSignal {
 	return signal ?? new AbortController().signal;
 }
 
-/** Stop waiting on abort while observing the abandoned operation through settlement. */
+/** 中止时停止等待，同时持续观察已放弃的操作直至其完成。 */
 export function raceWithAbortSignal<T>(operation: Promise<T>, signal: AbortSignal | undefined): Promise<T> {
 	if (!signal) return operation;
 	if (signal.aborted) {

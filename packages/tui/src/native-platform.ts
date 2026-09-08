@@ -7,11 +7,11 @@ const cjsRequire = createRequire(import.meta.url);
 export type ModifierKey = "shift" | "command" | "control" | "option";
 
 export interface NativeClipboard {
-	/** Undefined means unavailable, null means no text; transfer failures reject. */
+	/** undefined 表示不可用，null 表示没有文本；传输失败时拒绝。 */
 	getText(): Promise<string | null | undefined>;
-	/** Undefined means unavailable, null means no image; transfer failures reject. */
+	/** undefined 表示不可用，null 表示没有图像；传输失败时拒绝。 */
 	getImage(): Promise<Uint8Array | null | undefined>;
-	/** Linux uses command-line tools to retain clipboard ownership instead. */
+	/** Linux 改用命令行工具保持剪贴板所有权。 */
 	setText?(text: string): Promise<void>;
 }
 
@@ -20,7 +20,7 @@ type NativePlatformHelper = NativeClipboard & {
 	isModifierPressed?: (name: ModifierKey) => boolean;
 };
 
-// Cache module loading, not display availability: a disconnected display can recover.
+// 缓存模块加载结果，而非显示服务可用性：断开的显示服务仍可能恢复。
 const helpers = new Map<string, NativePlatformHelper | undefined>();
 
 function loadNativePlatformHelper(platform: string, suffix = ""): NativePlatformHelper | undefined {
@@ -43,7 +43,7 @@ function loadNativePlatformHelper(platform: string, suffix = ""): NativePlatform
 				return helper as NativePlatformHelper;
 			}
 		} catch {
-			// Try the next possible packaging location.
+			// 尝试下一个可能的打包位置。
 		}
 	}
 	helpers.set(nativePath, undefined);
@@ -55,7 +55,7 @@ export function getNativePlatformHelper(): NativePlatformHelper | undefined {
 	return loadNativePlatformHelper(process.platform);
 }
 
-/** Load a clipboard helper without opening the display until a read is requested. */
+/** 加载剪贴板辅助程序，但在请求读取前不打开显示服务。 */
 export function getNativeClipboard(): NativeClipboard | undefined {
 	if (process.platform !== "linux") return getNativePlatformHelper();
 	if (!process.env.DISPLAY) return undefined;

@@ -64,33 +64,33 @@ interface ModelRuntimeSnapshot {
 }
 
 export interface CreateModelRuntimeOptions {
-	/** Credential storage. Defaults to the file at authPath. */
+	/** 凭据存储。默认使用 authPath 指向的文件。 */
 	credentials?: CredentialStore;
 	authPath?: string;
 	modelsPath?: string | null;
 	modelsStore?: ModelsStore;
 	modelsStorePath?: string;
-	/** Allow create() to refresh model catalogs over the network. Defaults to false. */
+	/** 是否允许 create() 通过网络刷新模型目录。默认为 false。 */
 	allowModelNetwork?: boolean;
-	/** Timeout for the create-time network model refresh. */
+	/** 创建期间通过网络刷新模型目录的超时时间。 */
 	modelRefreshTimeoutMs?: number;
 	catalogBaseUrl?: string;
-	/** Optional caller cancellation for initial cache restoration and availability checks. */
+	/** 供调用方选择性取消初始缓存恢复和可用性检查。 */
 	signal?: AbortSignal;
-	/** Skip initial catalog and availability refresh. Static models remain available. */
+	/** 跳过初始目录和可用性刷新。静态模型仍然可用。 */
 	refreshOnCreate?: boolean;
 }
 
 export interface ModelRuntimeAuthOverrides extends AuthOperationOptions {
 	apiKey?: string;
 	env?: Record<string, string>;
-	/** Require this much remaining OAuth-token validity; defaults to five minutes. */
+	/** 要求 OAuth 令牌至少剩余这么长的有效期；默认为五分钟。 */
 	minOAuthValidityMs?: number;
 }
 
 export type CredentialSynchronizationOperation = "login" | "logout" | "setRuntimeApiKey" | "removeRuntimeApiKey";
 
-/** Credentials changed successfully, but the local model/auth snapshot could not be synchronized. */
+/** 凭据已成功更改，但无法同步本地模型/认证快照。 */
 export class CredentialSynchronizationError extends Error {
 	readonly providerId: string;
 	readonly operation: CredentialSynchronizationOperation;
@@ -126,7 +126,7 @@ function mergeHeaders(
 	return merged;
 }
 
-/** Configured pi-ai Models collection used by coding-agent and SDK consumers. */
+/** 供 coding-agent 和 SDK 使用方使用的已配置 pi-ai Models 集合。 */
 export class ModelRuntime implements Models {
 	private readonly models: MutableModels;
 	private readonly credentials: RuntimeCredentials;
@@ -251,7 +251,7 @@ export class ModelRuntime implements Models {
 			return;
 		}
 		if (base && !this.config.getProvider(providerId) && !extension) {
-			// No overlays: use the builtin untouched so its auth/login/stream behavior is exact.
+			// 没有覆盖层：原样使用内置提供商，确保其认证、登录和流式行为完全不变。
 			this.models.setProvider(base);
 			this.compositionErrors.delete(providerId);
 			return;
@@ -329,7 +329,7 @@ export class ModelRuntime implements Models {
 	}
 
 	private async refreshProviderAvailability(providerId: string, signal: AbortSignal): Promise<void> {
-		// Invalidate any full availability pass that started before this credential change.
+		// 使本次凭据变更前启动的所有完整可用性检查失效。
 		++this.availabilityRefreshSeq;
 		const providerSeq = (this.providerAvailabilitySeq.get(providerId) ?? 0) + 1;
 		this.providerAvailabilitySeq.set(providerId, providerSeq);
@@ -446,7 +446,7 @@ export class ModelRuntime implements Models {
 		return this.nativeExtensionProviders.get(providerId);
 	}
 
-	/** @internal Compatibility fallback for ModelRegistry when provider auth is unconfigured. */
+	/** @internal 提供商认证未配置时供 ModelRegistry 使用的兼容性回退。 */
 	getCompatibilityRequestConfig(model: Model<Api>): CompatibilityRequestConfig {
 		return resolveCompatibilityRequestConfig(
 			model,
@@ -708,8 +708,8 @@ export class ModelRuntime implements Models {
 			...options,
 			allowNetwork: options.allowNetwork ?? this.modelNetworkEnabled,
 		};
-		// Published pi-ai builds before ModelsStore returned void and accepted a provider ID.
-		// The fallback keeps source-mode CLI tests working without rebuilding workspace dependencies.
+		// 已发布的 pi-ai 构建早于 ModelsStore：当时它返回 void，并接受提供商 ID。
+		// 此回退可在不重新构建工作区依赖项的情况下，让源码模式的 CLI 测试继续运行。
 		const result = ((await this.models.refresh(refreshOptions)) as ModelsRefreshResult | undefined) ?? {
 			aborted: refreshOptions.signal?.aborted ?? false,
 			errors: new Map(),
@@ -732,7 +732,7 @@ export class ModelRuntime implements Models {
 			try {
 				await this.queueAvailabilityRefresh(options.signal);
 			} catch {
-				// Availability errors are recorded by the latest pass; refreshed models remain usable.
+				// 最新一轮检查已记录可用性错误；刷新后的模型仍可使用。
 			}
 		}
 		return { aborted: result.aborted || (options.signal?.aborted ?? false), errors };
@@ -748,12 +748,12 @@ export class ModelRuntime implements Models {
 	}
 
 	registerProvider(providerId: string, config: ProviderConfigInput): void {
-		// Validate the incoming registration on its own, like the legacy registry:
-		// a broken re-registration must throw without touching the stored config.
+		// 像旧版注册表一样单独验证传入的注册信息：
+		// 有问题的重新注册必须抛出异常，且不得改动已存储的配置。
 		validateExtensionProvider(providerId, this.builtins.get(providerId), this.config.getProvider(providerId), config);
 		this.nativeExtensionProviders.delete(providerId);
-		// Re-registration merges defined values over the previous registration and
-		// preserves undefined ones, matching the legacy ModelRegistry contract.
+		// 重新注册会将已定义的值合并并覆盖到先前的注册信息上，
+		// 同时保留值为 undefined 的原有字段，以符合旧版 ModelRegistry 契约。
 		const previous = this.extensionProviders.get(providerId);
 		const effective: ProviderConfigInput = { ...previous };
 		for (const [key, value] of Object.entries(config)) {
@@ -768,7 +768,7 @@ export class ModelRuntime implements Models {
 		) {
 			const configuredProviders = new Set(this.snapshot.configuredProviders).add(providerId);
 			const auth = new Map(this.snapshot.auth);
-			// Provisional entry until the async refresh lands; never clobber a real check result.
+			// 在异步刷新完成前使用临时条目；绝不覆盖真实的检查结果。
 			if (!auth.get(providerId)) {
 				auth.set(providerId, {
 					type: effective.oauth && !effective.apiKey ? "oauth" : "api_key",

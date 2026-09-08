@@ -21,7 +21,7 @@ interface SessionShareContext {
 	showError: (message: string) => void;
 }
 
-/** Export the current branch with presentation metadata for Radius. */
+/** 导出当前分支，并附带用于 Radius 的演示元数据。 */
 export function exportSessionForShare(filePath: string, session: AgentSession): void {
 	exportSessionToJsonl(session.sessionManager, filePath, (parentId, timestamp) => [
 		{
@@ -42,7 +42,7 @@ export function exportSessionForShare(filePath: string, session: AgentSession): 
 	]);
 }
 
-/** Share the current session through Radius, falling back to a private gist. */
+/** 通过 Radius 共享当前会话，并以私有 gist 作为回退方案。 */
 export async function shareSession(context: SessionShareContext): Promise<void> {
 	const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "pi-share-"));
 	const jsonlFile = path.join(tempDir, "session.jsonl");
@@ -79,7 +79,7 @@ export async function shareSession(context: SessionShareContext): Promise<void> 
 		try {
 			fs.rmSync(tempDir, { recursive: true, force: true });
 		} catch {
-			// Ignore cleanup errors
+			// 忽略清理错误
 		}
 	}
 }

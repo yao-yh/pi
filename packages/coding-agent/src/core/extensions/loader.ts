@@ -1,5 +1,5 @@
 /**
- * Extension loader - loads TypeScript extension modules using jiti.
+ * 扩展加载器——使用 jiti 加载 TypeScript 扩展模块。
  *
  */
 
@@ -15,15 +15,15 @@ import * as _bundledPiAiProviders from "@earendil-works/pi-ai/providers/all";
 import type { KeyId } from "@earendil-works/pi-tui";
 import * as _bundledPiTui from "@earendil-works/pi-tui";
 import { createJiti } from "jiti/static";
-// Static imports of packages that extensions may use.
-// These MUST be static so Bun bundles them into the compiled binary.
-// The virtualModules option then makes them available to extensions.
+// 静态导入扩展可能使用的包。
+// 这些导入必须是静态的，以便 Bun 将其打包到编译后的二进制文件中。
+// 随后通过 virtualModules 选项将其提供给扩展。
 import * as _bundledTypebox from "typebox";
 import * as _bundledTypeboxCompile from "typebox/compile";
 import * as _bundledTypeboxValue from "typebox/value";
 import { CONFIG_DIR_NAME, getAgentDir, isBunBinary, isBundledNode } from "../../config.ts";
-// NOTE: This import works because loader.ts exports are NOT re-exported from index.ts,
-// avoiding a circular dependency. Extensions can import from @earendil-works/pi-coding-agent.
+// 注意：此导入可行是因为 loader.ts 的导出未从 index.ts 重新导出，
+// 从而避免了循环依赖。扩展可以从 @earendil-works/pi-coding-agent 导入。
 import * as _bundledPiCodingAgent from "../../index.ts";
 import { resolvePath } from "../../utils/paths.ts";
 import { createEventBus, type EventBus } from "../event-bus.ts";
@@ -46,7 +46,7 @@ import type {
 	ToolDefinition,
 } from "./types.ts";
 
-/** Modules available to extensions via virtualModules (for compiled binaries) */
+/** 通过 virtualModules 提供给扩展的模块（用于编译后的二进制文件） */
 const VIRTUAL_MODULES: Record<string, unknown> = {
 	typebox: _bundledTypebox,
 	"typebox/compile": _bundledTypeboxCompile,
@@ -56,9 +56,8 @@ const VIRTUAL_MODULES: Record<string, unknown> = {
 	"@sinclair/typebox/value": _bundledTypeboxValue,
 	"@earendil-works/pi-agent-core": _bundledPiAgentCore,
 	"@earendil-works/pi-tui": _bundledPiTui,
-	// Extensions resolve the pi-ai root to the compat entrypoint (a strict
-	// superset of the core entrypoint): existing extensions using the old
-	// global API keep working at runtime until compat is removed.
+	// 扩展会将 pi-ai 根路径解析到 compat 入口点（核心入口点的严格超集）：
+	// 在 compat 被移除前，使用旧版全局 API 的现有扩展仍可在运行时正常工作。
 	"@earendil-works/pi-ai": _bundledPiAiCompat,
 	"@earendil-works/pi-ai/compat": _bundledPiAiCompat,
 	"@earendil-works/pi-ai/oauth": _bundledPiAiOauth,
@@ -81,8 +80,8 @@ const isNodeSeaBinary =
 const isTypeScriptSourceRuntime = !isBunBinary && path.extname(fileURLToPath(import.meta.url)) === ".ts";
 
 /**
- * Get aliases for jiti (used in built Node.js mode).
- * In compiled binary mode, virtualModules is used instead.
+ * 获取 jiti 的别名（用于构建后的 Node.js 模式）。
+ * 在编译后的二进制模式中改用 virtualModules。
  */
 let _aliases: Record<string, string> | null = null;
 
@@ -108,9 +107,8 @@ function getAliases(): Record<string, string> {
 	const piCodingAgentEntry = packageIndex;
 	const piAgentCoreEntry = resolveWorkspaceOrImport("agent/dist/index.js", "@earendil-works/pi-agent-core");
 	const piTuiEntry = resolveWorkspaceOrImport("tui/dist/index.js", "@earendil-works/pi-tui");
-	// Extensions resolve the pi-ai root to the compat entrypoint (a strict
-	// superset of the core entrypoint): existing extensions using the old
-	// global API keep working at runtime until compat is removed.
+	// 扩展会将 pi-ai 根路径解析到 compat 入口点（核心入口点的严格超集）：
+	// 在 compat 被移除前，使用旧版全局 API 的现有扩展仍可在运行时正常工作。
 	const piAiCompatEntry = resolveWorkspaceOrImport("ai/dist/compat.js", "@earendil-works/pi-ai/compat");
 	const piAiOauthEntry = resolveWorkspaceOrImport("ai/dist/oauth.js", "@earendil-works/pi-ai/oauth");
 	const piAiProvidersEntry = resolveWorkspaceOrImport(
@@ -171,8 +169,8 @@ function useExtensionCacheCwd(cwd: string): ExtensionCacheToken {
 }
 
 /**
- * Create a runtime with throwing stubs for action methods.
- * Runner.bindCore() replaces these with real implementations.
+ * 创建一个运行时，其操作方法使用抛出异常的桩实现。
+ * Runner.bindCore() 会将这些桩替换为真实实现。
  */
 export function createExtensionRuntime(): ExtensionRuntime {
 	const notInitialized = () => {
@@ -196,7 +194,7 @@ export function createExtensionRuntime(): ExtensionRuntime {
 		getActiveTools: notInitialized,
 		getAllTools: notInitialized,
 		setActiveTools: notInitialized,
-		// registerTool() is valid during extension load; refresh is only needed post-bind.
+		// 扩展加载期间可以调用 registerTool()；仅在绑定完成后才需要刷新。
 		refreshTools: () => {},
 		getCommands: notInitialized,
 		setModel: () => Promise.reject(new Error("Extension runtime not initialized")),
@@ -225,8 +223,8 @@ export function createExtensionRuntime(): ExtensionRuntime {
 			eventBusUnsubscribers.add(trackedUnsubscribe);
 			return trackedUnsubscribe;
 		},
-		// Pre-bind: queue registrations so bindCore() can flush them once the
-		// model registry is available. bindCore() replaces both with direct calls.
+		// 绑定前：将注册操作加入队列，以便模型注册表可用后由 bindCore() 处理。
+		// bindCore() 会将这两个方法替换为直接调用。
 		registerProvider: (name, config, extensionPath = "<unknown>") => {
 			runtime.pendingProviderRegistrations.push({ name, config, extensionPath });
 		},
@@ -245,9 +243,9 @@ export function createExtensionRuntime(): ExtensionRuntime {
 }
 
 /**
- * Create the ExtensionAPI for an extension.
- * Registration methods write to the extension object.
- * Action methods delegate to the shared runtime.
+ * 为扩展创建 ExtensionAPI。
+ * 注册方法写入扩展对象。
+ * 操作方法委托给共享运行时。
  */
 function createExtensionAPI(
 	extension: Extension,
@@ -276,7 +274,7 @@ function createExtensionAPI(
 	};
 
 	const api = {
-		// Registration methods - write to extension
+		// 注册方法——写入扩展对象
 		on(event: string, handler: HandlerFn): void {
 			assertActive();
 			const list = extension.handlers.get(event) ?? [];
@@ -349,14 +347,14 @@ function createExtensionAPI(
 			extension.entryRenderers.set(customType, renderer as EntryRenderer);
 		},
 
-		// Flag access - checks extension registered it, reads from runtime
+		// 标志访问——检查扩展是否已注册该标志，并从运行时读取
 		getFlag(name: string): boolean | string | undefined {
 			assertActive();
 			if (!extension.flags.has(name)) return undefined;
 			return runtime.flagValues.has(name) ? runtime.flagValues.get(name) : pendingFlagValues.get(name);
 		},
 
-		// Action methods - delegate to shared runtime
+		// 操作方法——委托给共享运行时
 		sendMessage(message, options): void {
 			assertActive();
 			runtime.sendMessage(message, options);
@@ -495,9 +493,9 @@ async function loadExtensionModule(extensionPath: string, cacheToken?: Extension
 
 	const jiti = createJiti(import.meta.url, {
 		moduleCache: false,
-		// Compiled binaries and the bundled Node distribution use embedded modules.
-		// Source TypeScript reuses host modules and root tsconfig paths. Unbundled
-		// Node builds use dist aliases.
+		// 编译后的二进制文件和打包的 Node 发行版使用嵌入模块。
+		// TypeScript 源码模式复用宿主模块和根 tsconfig 路径；未打包的
+		// Node 构建使用 dist 别名。
 		...(isBunBinary || isNodeSeaBinary || isBundledNode
 			? { virtualModules: VIRTUAL_MODULES, tryNative: false }
 			: isTypeScriptSourceRuntime
@@ -517,7 +515,7 @@ async function loadExtensionModule(extensionPath: string, cacheToken?: Extension
 }
 
 /**
- * Create an Extension object with empty collections.
+ * 创建一个包含空集合的 Extension 对象。
  */
 function createExtension(extensionPath: string, resolvedPath: string): Extension {
 	const source =
@@ -587,7 +585,7 @@ async function loadExtension(
 }
 
 /**
- * Create an Extension from an inline factory function.
+ * 从内联工厂函数创建 Extension。
  */
 export async function loadExtensionFromFactory(
 	factory: ExtensionFactory,
@@ -601,7 +599,7 @@ export async function loadExtensionFromFactory(
 }
 
 /**
- * Load extensions from paths.
+ * 从指定路径加载扩展。
  */
 async function loadExtensionsInternal(
 	paths: string[],
@@ -666,16 +664,16 @@ function isExtensionFile(name: string): boolean {
 }
 
 /**
- * Resolve extension entry points from a directory.
+ * 从目录中解析扩展入口点。
  *
- * Checks for:
- * 1. package.json with "pi.extensions" field -> returns declared paths
- * 2. index.ts or index.js -> returns the index file
+ * 检查：
+ * 1. 带有 "pi.extensions" 字段的 package.json -> 返回其中声明的路径
+ * 2. index.ts 或 index.js -> 返回对应入口文件
  *
- * Returns resolved paths or null if no entry points found.
+ * 返回解析后的路径；找不到入口点时返回 null。
  */
 function resolveExtensionEntries(dir: string): string[] | null {
-	// Check for package.json with "pi" field first
+	// 首先检查带有 "pi" 字段的 package.json
 	const packageJsonPath = path.join(dir, "package.json");
 	if (fs.existsSync(packageJsonPath)) {
 		const manifest = readPiManifest(packageJsonPath);
@@ -693,7 +691,7 @@ function resolveExtensionEntries(dir: string): string[] | null {
 		}
 	}
 
-	// Check for index.ts or index.js
+	// 检查 index.ts 或 index.js
 	const indexTs = path.join(dir, "index.ts");
 	const indexJs = path.join(dir, "index.js");
 	if (fs.existsSync(indexTs)) {
@@ -707,14 +705,14 @@ function resolveExtensionEntries(dir: string): string[] | null {
 }
 
 /**
- * Discover extensions in a directory.
+ * 在目录中发现扩展。
  *
- * Discovery rules:
- * 1. Direct files: `extensions/*.ts` or `*.js` → load
- * 2. Subdirectory with index: `extensions/* /index.ts` or `index.js` → load
- * 3. Subdirectory with package.json: `extensions/* /package.json` with "pi" field → load what it declares
+ * 发现规则：
+ * 1. 直接文件：`extensions/*.ts` 或 `*.js` → 加载
+ * 2. 带入口文件的子目录：`extensions/* /index.ts` 或 `index.js` → 加载
+ * 3. 带 package.json 的子目录：`extensions/* /package.json` 包含 "pi" 字段 → 加载其中声明的内容
  *
- * No recursion beyond one level. Complex packages must use package.json manifest.
+ * 最多向下遍历一层。复杂包必须使用 package.json 清单。
  */
 function discoverExtensionsInDir(dir: string): string[] {
 	if (!fs.existsSync(dir)) {
@@ -729,13 +727,13 @@ function discoverExtensionsInDir(dir: string): string[] {
 		for (const entry of entries) {
 			const entryPath = path.join(dir, entry.name);
 
-			// 1. Direct files: *.ts or *.js
+			// 1. 直接文件：*.ts 或 *.js
 			if ((entry.isFile() || entry.isSymbolicLink()) && isExtensionFile(entry.name)) {
 				discovered.push(entryPath);
 				continue;
 			}
 
-			// 2 & 3. Subdirectories
+			// 2 和 3. 子目录
 			if (entry.isDirectory() || entry.isSymbolicLink()) {
 				const entries = resolveExtensionEntries(entryPath);
 				if (entries) {
@@ -751,7 +749,7 @@ function discoverExtensionsInDir(dir: string): string[] {
 }
 
 /**
- * Discover and load extensions from standard locations.
+ * 从标准位置发现并加载扩展。
  */
 export async function discoverAndLoadExtensions(
 	configuredPaths: string[],
@@ -774,25 +772,25 @@ export async function discoverAndLoadExtensions(
 		}
 	};
 
-	// 1. Project-local extensions: cwd/${CONFIG_DIR_NAME}/extensions/
+	// 1. 项目本地扩展：cwd/${CONFIG_DIR_NAME}/extensions/
 	const localExtDir = path.join(resolvedCwd, CONFIG_DIR_NAME, "extensions");
 	addPaths(discoverExtensionsInDir(localExtDir));
 
-	// 2. Global extensions: agentDir/extensions/
+	// 2. 全局扩展：agentDir/extensions/
 	const globalExtDir = path.join(resolvedAgentDir, "extensions");
 	addPaths(discoverExtensionsInDir(globalExtDir));
 
-	// 3. Explicitly configured paths
+	// 3. 显式配置的路径
 	for (const p of configuredPaths) {
 		const resolved = resolvePath(p, resolvedCwd, { normalizeUnicodeSpaces: true });
 		if (fs.existsSync(resolved) && fs.statSync(resolved).isDirectory()) {
-			// Check for package.json with pi manifest or index.ts
+			// 检查带有 pi 清单的 package.json 或 index.ts
 			const entries = resolveExtensionEntries(resolved);
 			if (entries) {
 				addPaths(entries);
 				continue;
 			}
-			// No explicit entries - discover individual files in directory
+			// 没有显式入口——发现目录中的各个文件
 			addPaths(discoverExtensionsInDir(resolved));
 			continue;
 		}

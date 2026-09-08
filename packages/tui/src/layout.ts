@@ -342,11 +342,9 @@ function paintBox(box: LayoutBox, screen: string[], totalWidth: number): void {
 				const visibleRows = Math.min(imageMetadata.rows, clipBottom - row);
 				if (visibleRows < imageMetadata.rows) line = cropKittyImageLine(line, 0, visibleRows);
 			}
-			// Fast path: a full-width box painting onto an untouched row can use the
-			// source line reference directly. Compositing here would rebuild the row
-			// string through ANSI/grapheme segmentation every frame; padding is
-			// unnecessary because rows are written with erase-line and the final
-			// width clamp still truncates over-wide lines.
+			// 快速路径：全宽 box 绘制到未修改行时，可以直接使用源行引用。
+			// 在此合成会让每一帧都通过 ANSI/字素分段重建行字符串；行写入时会清除整行，
+			// 最终宽度限制仍会截断过宽行，因此无需填充。
 			if (box.rect.x === 0 && box.rect.width >= totalWidth && (isImageLine(line) || !screen[row])) {
 				screen[row] = line;
 			} else {
@@ -411,7 +409,7 @@ function containsPoint(rect: LayoutRect, x: number, y: number): boolean {
 	return x >= rect.x && x < rect.x + rect.width && y >= rect.y && y < rect.y + rect.height;
 }
 
-/** Return the visual hit path from the deepest component to the layout root. */
+/** 返回从最深层组件到布局根的可视命中路径。 */
 export function getLayoutBoxesAt(frame: LayoutFrame, x: number, y: number): LayoutBox[] {
 	const result: Array<{ box: LayoutBox; depth: number }> = [];
 	const visit = (box: LayoutBox, depth: number): void => {

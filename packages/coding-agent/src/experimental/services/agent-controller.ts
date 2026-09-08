@@ -35,7 +35,7 @@ export interface AgentNavigationRequest {
 	customInstructions: string | null;
 }
 
-/** Presentation-safe command facade over the worker-owned main AgentLane. */
+/** 面向演示层的安全命令门面，封装由 worker 持有的主 AgentLane。 */
 export interface AgentController {
 	prompt(request: AgentPromptRequest, context: Context): Promise<AgentOperationResponse>;
 	requestAbort(operationId: string, context: Context): Promise<void>;

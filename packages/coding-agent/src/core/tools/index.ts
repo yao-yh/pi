@@ -180,10 +180,9 @@ export function createReadOnlyToolDefinitions(cwd: string, options?: ToolsOption
 }
 
 /**
- * Build the complete definition registry before any active-tool filtering.
- * AgentSession later combines this registry with extension tools, selects the
- * active subset, and derives both AgentTool executors and system-prompt metadata
- * from the same definitions.
+ * 在执行任何活动工具过滤前构建完整的定义注册表。
+ * AgentSession 随后将该注册表与扩展工具合并，选出活动子集，
+ * 并根据同一组定义派生 AgentTool 执行器和系统提示词元数据。
  */
 export function createAllToolDefinitions(cwd: string, options?: ToolsOptions): Record<ToolName, ToolDef> {
 	return {

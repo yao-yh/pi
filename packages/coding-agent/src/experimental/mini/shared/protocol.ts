@@ -1,12 +1,12 @@
-/** Service contracts and everything that crosses the wire. */
+/** 服务契约以及所有通过线路传输的内容。 */
 
 import type { HarnessEvent, LaneSnapshot } from "@earendil-works/pi-agent-core";
 import type { AuthEvent, AuthPrompt } from "@earendil-works/pi-ai";
 
-/** Commands answer with data, never exceptions, exactly like a remote call would. */
+/** 命令始终以数据而非异常响应，与远程调用保持一致。 */
 export type CommandResult = { ok: true } | { ok: false; error: string };
 
-/** Durable model identity. Nothing outside a worker holds a `Model` object. */
+/** 持久模型身份。worker 外部不持有 `Model` 对象。 */
 export interface ModelRef {
 	provider: string;
 	modelId: string;
@@ -21,9 +21,9 @@ export interface ProviderAccount {
 	name: string;
 	authType: "oauth" | "api_key";
 	configured: boolean;
-	/** Where the credential came from, for display: "stored", "environment", an env var name. */
+	/** 用于显示的凭据来源："stored"、"environment" 或环境变量名。 */
 	source?: string;
-	/** False for ambient credentials pi cannot collect itself, such as AWS profiles or env vars. */
+	/** 对于 pi 无法自行收集的环境凭据（如 AWS 配置文件或环境变量）为 false。 */
 	interactive: boolean;
 	methodName?: string;
 }
@@ -34,22 +34,22 @@ export interface ModelsState {
 	readonly refreshing: boolean;
 }
 
-/** An auth prompt without its `AbortSignal`: the part that can cross a transport. */
+/** 不含 `AbortSignal` 的认证提示，即可通过传输层传递的部分。 */
 export type AuthPromptRequest = AuthPrompt extends infer Prompt
 	? Prompt extends unknown
 		? Omit<Prompt, "signal">
 		: never
 	: never;
 
-/** A service seen from the other side of a connection: every method returns a promise. */
+/** 从连接另一端看到的服务：每个方法都返回 promise。 */
 export type Remote<T> = {
 	[K in keyof T]: T[K] extends (...args: infer A) => infer R ? (...args: A) => Promise<Awaited<R>> : never;
 };
 
-/** Names one service and carries its call and event types. Names are globally unique. */
+/** 命名一个服务，并携带其调用和事件类型。名称全局唯一。 */
 export interface ServiceToken<TApi extends object, TEvent = never> {
 	readonly name: string;
-	/** Phantom, never read: keeps the types attached to the token. */
+	/** 幻影字段，从不读取；用于将类型附加到令牌。 */
 	readonly types?: (api: TApi, event: TEvent) => void;
 }
 
@@ -68,28 +68,28 @@ export interface SessionSnapshot {
 	sessionId: string;
 	cwd: string;
 	sessionPath: string;
-	/** Carries the lane configuration, queues, and stats: no side-channel replication. */
+	/** 携带 lane 配置、队列和统计信息，不通过旁路复制。 */
 	lane: LaneSnapshot;
 	models: ModelsState;
 }
 
-/** Everything the `Models` service publishes. */
+/** `Models` 服务发布的所有内容。 */
 export type ModelsEvent =
 	| { type: "state"; state: ModelsState }
-	// Login runs the wrong way round: the request is an event, the answer is an ordinary call.
+	// 登录流程方向相反：请求是事件，回答是普通调用。
 	| { type: "prompt"; requestId: string; request: AuthPromptRequest }
 	| { type: "notice"; notice: AuthEvent };
 
-/** The login half, for whatever drives the dialog. */
+/** 登录流程的一端，供驱动对话框的组件使用。 */
 export type AuthEventPayload = Exclude<ModelsEvent, { type: "state" }>;
 
-/** One presentation's subscription: a `lane.watch()` in the worker, named so its events can be filtered. */
+/** 单个演示端的订阅：worker 中的 `lane.watch()`，通过命名使其事件可被过滤。 */
 export interface LaneSubscription {
 	subscriptionId: string;
 	snapshot: SessionSnapshot;
 }
 
-/** Lane events are addressed to the subscription whose watch produced them. */
+/** Lane 事件寻址到生成这些事件的观察订阅。 */
 export interface LaneEvent {
 	subscriptionId: string;
 	event: HarnessEvent;
@@ -97,11 +97,11 @@ export interface LaneEvent {
 
 export interface LaneServiceApi {
 	/**
-	 * Capture a snapshot and open a subscription for one presentation. Its events are addressed to
-	 * `presentationId`, so the server routes them instead of broadcasting. Buffered until `start`.
+	 * 为一个演示端捕获快照并打开订阅。其事件寻址到 `presentationId`，
+	 * 因此服务器会对其进行路由而非广播。事件会缓冲至调用 `start`。
 	 */
 	watch(presentationId: string): Promise<LaneSubscription>;
-	/** Begin delivery, draining everything buffered since the snapshot. */
+	/** 开始投递，并排空快照之后缓冲的所有内容。 */
 	start(subscriptionId: string): Promise<void>;
 	unwatch(subscriptionId: string): Promise<void>;
 	prompt(text: string): Promise<CommandResult>;
@@ -118,7 +118,7 @@ export interface ModelsServiceApi {
 	authReply(requestId: string, answer: string | null): Promise<void>;
 }
 
-/** Provided by a worker so the server can identify the session it opened, without naming lane methods. */
+/** 由 worker 提供，使服务器无需调用 lane 方法即可识别其打开的会话。 */
 export interface WorkerServiceApi {
 	describe(): Promise<{ sessionId: string }>;
 }
@@ -128,11 +128,11 @@ export interface SessionsServiceApi {
 	attach(sessionId: string | null, cwd: string, presentationId: string): Promise<string>;
 }
 
-/** Provided by the worker. One subscription per presentation; `watch` again to rebase. */
+/** 由 worker 提供。每个演示端对应一个订阅；再次调用 `watch` 以变基。 */
 export const Lane = defineService<LaneServiceApi, LaneEvent>("lane");
-/** Provided by the worker. Small enough to publish whole. */
+/** 由 worker 提供。体量足够小，可整体发布。 */
 export const Models = defineService<ModelsServiceApi, ModelsEvent>("models");
-/** Provided by the worker, consumed only by the server. */
+/** 由 worker 提供，仅供服务器使用。 */
 export const Worker = defineService<WorkerServiceApi>("worker");
-/** Provided by the server. */
+/** 由服务器提供。 */
 export const Sessions = defineService<SessionsServiceApi>("sessions");

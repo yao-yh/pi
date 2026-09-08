@@ -5,13 +5,13 @@ export const FACET_BUNDLE_ARTIFACT_FORMAT = "chord.facet-bundle-artifact";
 export const FACET_BUNDLE_ARTIFACT_FORMAT_VERSION = 2;
 
 export interface FacetBundleEntry {
-	/** Content-addressed CommonJS filename relative to the manifest. */
+	/** 相对于清单的内容寻址 CommonJS 文件名。 */
 	readonly file: string;
-	/** SHA-256 subresource-integrity value for the JavaScript file. */
+	/** JavaScript 文件的 SHA-256 子资源完整性值。 */
 	readonly integrity: string;
-	/** Imports intentionally left for the loading application to resolve. */
+	/** 特意留给加载方应用解析的导入项。 */
 	readonly externalImports: readonly string[];
-	/** Source map filename relative to the manifest, when emitted. */
+	/** 生成源映射时，其相对于清单的文件名。 */
 	readonly sourceMap?: string;
 }
 
@@ -27,7 +27,7 @@ export interface FacetBundlePlugin {
 	readonly version?: string;
 }
 
-/** One self-contained manifest entry suitable for storage or transport to another Node host. */
+/** 一个自包含的清单条目，适合存储或传输到其他 Node 宿主。 */
 export interface FacetBundleArtifact {
 	readonly format: typeof FACET_BUNDLE_ARTIFACT_FORMAT;
 	readonly formatVersion: typeof FACET_BUNDLE_ARTIFACT_FORMAT_VERSION;

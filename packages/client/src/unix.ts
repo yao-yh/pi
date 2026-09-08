@@ -27,13 +27,13 @@ export interface UnixServerRoute {
 }
 
 export interface DiscoverUnixServersOptions {
-	/** Directory containing server-addressed Unix sockets. */
+	/** 包含按服务器寻址的 Unix 套接字的目录。 */
 	directory: string;
-	/** Maximum time for each connection and handshake. Defaults to 1,000 ms. */
+	/** 每次连接和握手的最长时间。默认为 1,000 ms。 */
 	timeoutMs?: number;
 }
 
-/** Discover reachable local servers by probing server-addressed Unix sockets. */
+/** 通过探测按服务器寻址的 Unix 套接字，发现可访问的本地服务器。 */
 export async function discoverUnixServers(options: DiscoverUnixServersOptions): Promise<UnixServerRoute[]> {
 	if (process.platform === "win32") throw new Error("Unix transport is not supported on Windows");
 	const directory = options.directory;
@@ -68,7 +68,7 @@ export async function discoverUnixServers(options: DiscoverUnixServersOptions): 
 					try {
 						if (!(await lstat(candidate.path)).isSocket()) continue;
 					} catch (error) {
-						// A socket can disappear between readdir and lstat during normal server shutdown.
+						// 服务器正常关闭时，套接字可能在 readdir 与 lstat 之间消失。
 						if (isErrorCode(error, "ENOENT")) continue;
 						throw error;
 					}
@@ -84,7 +84,7 @@ export async function discoverUnixServers(options: DiscoverUnixServersOptions): 
 	return routes.sort((left, right) => left.serverId.localeCompare(right.serverId));
 }
 
-/** Creates fresh Unix-domain socket transports for Client connection attempts in Node-compatible runtimes. */
+/** 为兼容 Node 的运行时中的 Client 连接尝试创建全新的 Unix 域套接字传输。 */
 export function createUnixTransportFactory(options: UnixTransportOptions): ByteTransportFactory {
 	const maxPendingBytes = validateUnixTransportOptions(options);
 	return (handlers) => connectUnixSocket(options.path, maxPendingBytes, handlers);
@@ -258,8 +258,8 @@ async function probeUnixServer(route: UnixServerRoute, timeoutMs: number): Promi
 		]);
 		return route;
 	} catch (error) {
-		// Missing/refused sockets are stale or shutting down. Protocol failures mean
-		// the endpoint is not the advertised server. Both are safe to omit.
+		// 不存在或拒绝连接的套接字已经失效或正在关闭。协议失败表示端点并非其声明的服务器。
+		// 两种情况都可以安全忽略。
 		if (
 			error instanceof UnixDiscoveryTimeoutError ||
 			error instanceof ProtocolValidationError ||

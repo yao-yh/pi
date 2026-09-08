@@ -1,8 +1,8 @@
 /**
- * Anthropic OAuth flow (Claude Pro/Max)
+ * Anthropic OAuth 流程（Claude Pro/Max）
  *
- * NOTE: This module uses Node.js http.createServer for the OAuth callback server.
- * It is only intended for CLI use, not browser environments.
+ * 注意：此模块使用 Node.js http.createServer 创建 OAuth 回调服务器。
+ * 仅用于 CLI，不适用于浏览器环境。
  */
 
 import type { Server } from "node:http";
@@ -60,7 +60,7 @@ function parseAuthorizationInput(input: string): { code?: string; state?: string
 			state: url.searchParams.get("state") ?? undefined,
 		};
 	} catch {
-		// not a URL
+		// 不是 URL
 	}
 
 	if (value.includes("#")) {
@@ -312,7 +312,7 @@ async function loginAnthropic(interaction: ProviderAuthInteraction): Promise<OAu
 }
 
 /**
- * Refresh Anthropic OAuth token
+ * 刷新 Anthropic OAuth 令牌
  */
 async function refreshAnthropicToken(refreshToken: string, signal: AbortSignal): Promise<OAuthCredential> {
 	let responseBody: string;

@@ -42,12 +42,12 @@ export interface GoogleOptions extends StreamOptions {
 	toolChoice?: "auto" | "none" | "any";
 	thinking?: {
 		enabled: boolean;
-		budgetTokens?: number; // -1 for dynamic, 0 to disable
+		budgetTokens?: number; // -1 表示动态预算，0 表示禁用
 		level?: GoogleApiThinkingLevel;
 	};
 }
 
-// Counter for generating unique tool call IDs
+// 用于生成唯一工具调用 ID 的计数器
 let toolCallCounter = 0;
 
 export const stream: StreamFunction<"google-generative-ai", GoogleOptions> = (
@@ -97,8 +97,8 @@ export const stream: StreamFunction<"google-generative-ai", GoogleOptions> = (
 			const blocks = output.content;
 			const blockIndex = () => blocks.length - 1;
 			for await (const chunk of googleStream) {
-				// @google/genai documents GenerateContentResponse.responseId as an output-only field
-				// used to identify each response. Keep the first non-empty one from the stream.
+				// @google/genai 将 GenerateContentResponse.responseId 记录为仅输出字段，
+				// 用于标识每个响应。保留流中的第一个非空值。
 				output.responseId ||= chunk.responseId;
 				const candidate = chunk.candidates?.[0];
 				if (candidate?.content?.parts) {
@@ -184,7 +184,7 @@ export const stream: StreamFunction<"google-generative-ai", GoogleOptions> = (
 								currentBlock = null;
 							}
 
-							// Generate unique ID if not provided or if it's a duplicate
+							// 未提供 ID 或 ID 重复时生成唯一 ID
 							const providedId = part.functionCall.id;
 							const needsNewId =
 								!providedId || output.content.some((b) => b.type === "toolCall" && b.id === providedId);
@@ -278,7 +278,7 @@ export const stream: StreamFunction<"google-generative-ai", GoogleOptions> = (
 			stream.push({ type: "done", reason: output.stopReason, message: output });
 			stream.end();
 		} catch (error) {
-			// Remove internal index property used during streaming
+			// 移除流式传输期间使用的内部 index 属性
 			for (const block of output.content) {
 				if ("index" in block) {
 					delete (block as { index?: number }).index;
@@ -343,7 +343,7 @@ function createClient(
 	const httpOptions: { baseUrl?: string; apiVersion?: string; headers?: Record<string, string> } = {};
 	if (model.baseUrl) {
 		httpOptions.baseUrl = model.baseUrl;
-		httpOptions.apiVersion = ""; // baseUrl already includes version path, don't append
+		httpOptions.apiVersion = ""; // baseUrl 已包含版本路径，不再追加
 	}
 	const headers = providerHeadersToRecord({ "User-Agent": getPiUserAgent(), ...model.headers, ...optionsHeaders });
 	if (headers) {
@@ -390,7 +390,7 @@ function buildParams(
 	if (options.thinking?.enabled && model.reasoning) {
 		const thinkingConfig: ThinkingConfig = { includeThoughts: true };
 		if (options.thinking.level !== undefined) {
-			// Cast to any since our GoogleApiThinkingLevel mirrors Google's ThinkingLevel enum values
+			// 由于 GoogleApiThinkingLevel 与 Google 的 ThinkingLevel 枚举值一致，因此转换为 any
 			thinkingConfig.thinkingLevel = options.thinking.level as any;
 		} else if (options.thinking.budgetTokens !== undefined) {
 			thinkingConfig.thinkingBudget = options.thinking.budgetTokens;
@@ -430,9 +430,9 @@ function isGemini3FlashModel(model: Model<"google-generative-ai">): boolean {
 }
 
 function getDisabledThinkingConfig(model: Model<"google-generative-ai">): ThinkingConfig {
-	// Google docs: Gemini 3.1 Pro cannot disable thinking, and Gemini 3 Flash / Flash-Lite
-	// do not support full thinking-off either. For Gemini 3 models, use the lowest supported
-	// thinkingLevel without includeThoughts so hidden thinking remains invisible to pi.
+	// Google 文档：Gemini 3.1 Pro 无法禁用思考，Gemini 3 Flash / Flash-Lite 也不支持
+	// 完全关闭思考。对于 Gemini 3 模型，使用支持的最低 thinkingLevel 且不设置
+	// includeThoughts，使隐藏思考对 pi 保持不可见。
 	if (isGemini3ProModel(model)) {
 		return { thinkingLevel: "LOW" as any };
 	}
@@ -443,7 +443,7 @@ function getDisabledThinkingConfig(model: Model<"google-generative-ai">): Thinki
 		return { thinkingLevel: "MINIMAL" as any };
 	}
 
-	// Gemini 2.x supports disabling via thinkingBudget = 0.
+	// Gemini 2.x 支持通过 thinkingBudget = 0 禁用思考。
 	return { thinkingBudget: 0 };
 }
 

@@ -57,8 +57,7 @@ function getActiveManagedInstallRoot(): string | undefined {
 
 	const managedRoot = resolve(configuredRoot);
 	const releasesDir = canonicalizePath(join(managedRoot, "releases"));
-	// The launcher environment is inherited by child processes. Do not classify a
-	// source checkout or another Pi installation launched from managed Pi as managed.
+	// 子进程会继承启动器环境。不要将由托管 Pi 启动的源码检出目录或其他 Pi 安装识别为托管安装。
 	if (getCwdRelativePath(canonicalizePath(getPackageDir()), releasesDir) === undefined) return undefined;
 
 	const markerPath = join(managedRoot, MANAGED_INSTALL_MARKER);
@@ -143,7 +142,7 @@ function cleanupManagedStaging(managedRoot: string): void {
 			}
 		}
 	} catch {
-		// The staging directory does not exist yet or is not writable.
+		// 暂存目录尚不存在或不可写。
 	}
 }
 
@@ -164,7 +163,7 @@ export function cleanupManagedInstall(): void {
 			releaseLock();
 		}
 	} catch {
-		// A live update owns the staging directory, or cleanup is unavailable.
+		// 正在进行的更新占用了暂存目录，或当前无法清理。
 	}
 }
 

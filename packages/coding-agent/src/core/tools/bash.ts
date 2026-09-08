@@ -52,16 +52,16 @@ export interface BashToolDetails {
 }
 
 /**
- * Pluggable operations for the bash tool.
- * Override these to delegate command execution to remote systems (for example SSH).
+ * bash 工具的可插拔操作。
+ * 覆盖这些操作可将命令执行委托给远程系统（例如 SSH）。
  */
 export interface BashOperations {
 	/**
-	 * Execute a command and stream output.
-	 * @param command The command to execute
-	 * @param cwd Working directory
-	 * @param options Execution options
-	 * @returns Promise resolving to exit code (null if killed)
+	 * 执行命令并流式输出。
+	 * @param command 要执行的命令
+	 * @param cwd 工作目录
+	 * @param options 执行选项
+	 * @returns 解析为退出码的 Promise（被终止时为 null）
 	 */
 	exec: (
 		command: string,
@@ -75,7 +75,7 @@ export interface BashOperations {
 	) => Promise<{ exitCode: number | null }>;
 }
 
-/** Shared process execution used by the built-in shell tools. */
+/** 内置 shell 工具使用的共享进程执行实现。 */
 export function createLocalShellOperations(shellName: string, resolveShellConfig: () => ShellConfig): BashOperations {
 	return {
 		exec: async (command, cwd, { onData, signal, timeout, env }) => {
@@ -110,23 +110,23 @@ export function createLocalShellOperations(shellName: string, resolveShellConfig
 			};
 
 			try {
-				// Set timeout if provided.
+				// 如果提供了超时时间，则进行设置。
 				if (timeoutMs !== undefined) {
 					timeoutHandle = setTimeout(() => {
 						timedOut = true;
 						if (child.pid) killProcessTree(child.pid);
 					}, timeoutMs);
 				}
-				// Stream stdout and stderr.
+				// 流式传递 stdout 和 stderr。
 				child.stdout?.on("data", onData);
 				child.stderr?.on("data", onData);
-				// Handle abort signal by killing the entire process tree.
+				// 收到中止信号时终止整个进程树。
 				if (signal) {
 					if (signal.aborted) onAbort();
 					else signal.addEventListener("abort", onAbort, { once: true });
 				}
-				// Handle shell spawn errors and wait for the process to terminate without hanging
-				// on inherited stdio handles held by detached descendants.
+				// 处理 shell 启动错误并等待进程终止，避免因脱离的后代进程
+				// 保持继承的 stdio 句柄而挂起。
 				const exitCode = await waitForChildProcess(child);
 				if (signal?.aborted) {
 					throw new Error("aborted");
@@ -145,10 +145,10 @@ export function createLocalShellOperations(shellName: string, resolveShellConfig
 }
 
 /**
- * Create bash operations using pi's built-in local shell execution backend.
+ * 使用 pi 的内置本地 shell 执行后端创建 bash 操作。
  *
- * This is useful for extensions that intercept user_bash and still want pi's
- * standard local shell behavior while wrapping or rewriting commands.
+ * 适用于拦截 user_bash，同时仍希望在包装或重写命令时
+ * 保留 pi 标准本地 shell 行为的扩展。
  */
 export function createLocalBashOperations(options?: { shellPath?: string }): BashOperations {
 	return createLocalShellOperations("bash", () => getShellConfig(options?.shellPath));
@@ -191,15 +191,15 @@ function resolveSpawnContext(
 }
 
 export interface BashToolOptions {
-	/** Custom operations for command execution. Default: local shell */
+	/** 命令执行的自定义操作，默认为本地 shell */
 	operations?: BashOperations;
-	/** Command prefix prepended to every command (for example shell setup commands) */
+	/** 添加到每条命令之前的命令前缀（例如 shell 设置命令） */
 	commandPrefix?: string;
-	/** Optional explicit shell path from settings */
+	/** 设置中显式指定的可选 shell 路径 */
 	shellPath?: string;
-	/** Expose current Pi session metadata as PI_* environment variables. Default: true */
+	/** 是否以 PI_* 环境变量暴露当前 Pi 会话元数据，默认值：true */
 	exposeSessionEnvironment?: boolean;
-	/** Hook to adjust command, cwd, or env before execution */
+	/** 执行前调整命令、cwd 或 env 的钩子 */
 	spawnHook?: BashSpawnHook;
 }
 

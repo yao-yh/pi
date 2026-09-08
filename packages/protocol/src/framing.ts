@@ -2,7 +2,7 @@ const FRAME_HEADER_LENGTH = 4;
 const MAX_UINT32 = 0xffff_ffff;
 const PAYLOAD_BLOCK_SIZE = 64 * 1024;
 
-/** Default upper bound for one framed CBOR payload. */
+/** 单个已分帧 CBOR 载荷的默认上限。 */
 export const DEFAULT_MAX_FRAME_LENGTH = 16 * 1024 * 1024;
 
 export interface FrameDecoderOptions {
@@ -24,7 +24,7 @@ function resolveMaxFrameLength(options: FrameDecoderOptions | undefined): number
 	return value;
 }
 
-/** Prefixes a payload with its unsigned 32-bit big-endian byte length. */
+/** 在载荷前添加其无符号 32 位大端字节长度。 */
 export function encodeFrame(payload: Uint8Array): Uint8Array {
 	if (!(payload instanceof Uint8Array)) throw new TypeError("Frame payload must be a Uint8Array");
 	if (payload.byteLength > MAX_UINT32) throw new RangeError("Frame payload exceeds the unsigned 32-bit length limit");
@@ -40,7 +40,7 @@ export function encodeFrame(payload: Uint8Array): Uint8Array {
 
 type DecoderState = "open" | "ended" | "failed";
 
-/** Incrementally splits arbitrary byte chunks into length-prefixed payloads. */
+/** 将任意字节块增量拆分为带长度前缀的载荷。 */
 export class FrameDecoder {
 	private readonly header = new Uint8Array(FRAME_HEADER_LENGTH);
 	private headerLength = 0;

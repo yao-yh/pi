@@ -13,9 +13,8 @@ async function resolveValue(
 	credential: ApiKeyCredential | undefined,
 	signal: AbortSignal,
 ): Promise<string | undefined> {
-	// Per-field merge: prefer the credential value, fall back to ambient env.
-	// A credential carrying only the API key must still pick up the account /
-	// gateway id from the environment.
+	// 逐字段合并：优先使用凭据值，回退到环境变量。
+	// 只携带 API 密钥的凭据仍必须从环境中获取账户/网关 id。
 	const fromCredential = credential
 		? name === CLOUDFLARE_API_KEY
 			? credential.key

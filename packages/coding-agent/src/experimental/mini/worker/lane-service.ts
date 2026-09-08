@@ -1,9 +1,9 @@
 /**
- * Worker-side implementation of the `Lane` service.
+ * `Lane` 服务的 worker 端实现。
  *
- * The lane, harness, and model registry stay here. Each presentation gets its own `lane.watch()`,
- * whose snapshot and event stream the harness already pairs with no gap and no duplicate, so nothing
- * here re-implements that alignment: a subscription is just a watch handle plus an id.
+ * lane、harness 和模型注册表均保留在此处。每个演示端都有自己的 `lane.watch()`；
+ * harness 已将其快照和事件流配对，既无间隙也无重复，因此此处无需重新实现该对齐逻辑：
+ * 订阅只是一个观察句柄和一个 ID。
  */
 
 import { randomUUID } from "node:crypto";
@@ -23,7 +23,7 @@ export interface LaneServiceOptions {
 	models: Models;
 	context: Context;
 	session: { id: string; cwd: string; path: string };
-	/** Model catalog state belongs to the `Models` service; the snapshot carries a copy. */
+	/** 模型目录状态属于 `Models` 服务；快照携带其副本。 */
 	modelsState: () => ModelsState;
 	publish: (subscriptionId: string, to: string, event: HarnessEvent) => void;
 }
@@ -36,7 +36,7 @@ export class LaneService implements LaneServiceApi {
 		this.#options = options;
 	}
 
-	/** Capture a snapshot. The harness buffers this subscription's events until `start`. */
+	/** 捕获快照。harness 会缓冲此订阅的事件，直至调用 `start`。 */
 	async watch(presentationId: string): Promise<LaneSubscription> {
 		const { lane, context, session } = this.#options;
 		const subscriptionId = randomUUID();
@@ -52,13 +52,13 @@ export class LaneService implements LaneServiceApi {
 			};
 			return { subscriptionId, snapshot };
 		} catch (error) {
-			// A watcher that is never started buffers without bound.
+			// 从未启动的观察器会无限缓冲。
 			handle.unsubscribe();
 			throw error;
 		}
 	}
 
-	/** Begin delivery, draining what buffered since the snapshot. */
+	/** 开始投递，并排空快照之后缓冲的内容。 */
 	async start(subscriptionId: string): Promise<void> {
 		const watch = this.#watches.get(subscriptionId);
 		if (!watch) throw new Error(`Unknown subscription: ${subscriptionId}`);
@@ -91,8 +91,8 @@ export class LaneService implements LaneServiceApi {
 	}
 
 	/**
-	 * The lane stores a durable identity, so the ref passes straight through. The registry lookup is
-	 * only a courtesy: an identity this worker cannot serve fails at generation time otherwise.
+	 * lane 存储持久身份，因此 ref 可直接传递。注册表查找只是提前提供便利：
+	 * 否则，此 worker 无法服务的身份会在生成阶段失败。
 	 */
 	async setModel(ref: ModelRef): Promise<CommandResult> {
 		if (!this.#options.models.getModel(ref.provider, ref.modelId)) {

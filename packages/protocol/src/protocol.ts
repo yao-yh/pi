@@ -25,18 +25,18 @@ const ProtocolErrorSchema = StrictObject({
 export type ProtocolErrorCode = string;
 export type ProtocolError = Static<typeof ProtocolErrorSchema>;
 
-/** Must be the first frame sent by a client. */
+/** 必须作为客户端发送的第一帧。 */
 const ClientHelloSchema = StrictObject({
 	type: Type.Literal("hello"),
 	version: Type.Integer({ minimum: 0 }),
 });
 export type ClientHello = Static<typeof ClientHelloSchema>;
 
-/** A server-wide call, fenced to one logical server. */
+/** 服务器范围调用，限定到一个逻辑服务器。 */
 const ServerTargetSchema = StrictObject({
 	serverId: ServerIdSchema,
 });
-/** A session call, fenced to one logical server, durable session, and live attachment. */
+/** 会话调用，限定到一个逻辑服务器、持久会话和活动连接。 */
 const SessionTargetSchema = StrictObject({
 	serverId: ServerIdSchema,
 	sessionId: IdSchema,
@@ -90,7 +90,7 @@ const ServiceEventEnvelopeSchema = StrictObject({
 	subscriptionId: IdSchema,
 	update: OpaqueJsonValueSchema,
 });
-/** Out-of-band update to this presentation's selected Session route. */
+/** 对当前呈现层所选 Session 路由的带外更新。 */
 const AttachmentEnvelopeSchema = StrictObject({
 	type: Type.Literal("attachment"),
 	attachment: Type.Union([SessionTargetSchema, Type.Null()]),

@@ -3,26 +3,24 @@ type FetchInput = Parameters<typeof fetch>[0];
 const RETRYABLE_STATUS_CODES = new Set([408, 425, 429, 500, 502, 503, 504]);
 
 export interface FetchRetryOptions {
-	/** Number of additional attempts after the initial request. Defaults to two. */
+	/** 初始请求后的额外尝试次数。默认两次。 */
 	maxRetries?: number;
-	/** Retry transient HTTP responses as well as transport failures. Defaults to true. */
+	/** 除传输故障外，是否也重试暂时性 HTTP 响应。默认值为 true。 */
 	retryOnStatus?: boolean;
-	/** Overall time budget shared by all attempts. */
+	/** 所有尝试共享的总时间预算。 */
 	timeoutMs?: number;
-	/** Per-attempt timeout. A new timeout is created for every attempt. */
+	/** 单次尝试的超时时间。每次尝试都会创建新的超时计时器。 */
 	attemptTimeoutMs?: number;
 }
 
 /**
- * Fetch a management HTTP resource with a bounded immediate retry.
+ * 获取管理类 HTTP 资源，并进行次数受限的立即重试。
  *
- * This is intentionally a transport-level helper for idempotent management
- * requests (version checks, catalogs, and downloads). It must not be used for
- * agent/model operations: those can fail after the HTTP request starts and are
- * retried by their semantic caller instead.
+ * 此工具有意定位为传输层辅助函数，用于幂等的管理请求（版本检查、目录和下载）。
+ * 不得用于 agent 或模型操作：这类操作可能在 HTTP 请求开始后失败，应由理解其语义的调用方重试。
  *
- * Caller cancellation and timeoutMs are terminal. attemptTimeoutMs aborts
- * only the current attempt so a hung connection can be retried.
+ * 调用方取消和 timeoutMs 超时会终止整个流程。attemptTimeoutMs 只中止当前尝试，
+ * 从而允许重试挂起的连接。
  */
 export async function fetchWithRetry(
 	input: FetchInput,
@@ -56,8 +54,7 @@ export async function fetchWithRetry(
 			try {
 				await response.body?.cancel();
 			} catch {
-				// The response is being discarded before a retry. There is nothing useful to
-				// do if cancelling its body also fails.
+				// 响应会在重试前被丢弃；如果取消响应正文也失败，则无需再做处理。
 			}
 		} catch (error) {
 			const attemptTimedOut =

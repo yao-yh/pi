@@ -1,36 +1,35 @@
 /**
- * System prompt construction and project context loading
+ * 系统提示词构建与项目上下文加载。
  */
 
 import { getDocsPath, getExamplesPath, getReadmePath } from "../config.ts";
 import { formatSkillsForPrompt, type Skill } from "./skills.ts";
 
 export interface BuildSystemPromptOptions {
-	/** Custom system prompt (replaces default). */
+	/** 自定义系统提示词（替换默认内容）。 */
 	customPrompt?: string;
-	/** Tools to include in prompt. Default: [read, bash, edit, write] */
+	/** 提示词中包含的工具，默认值：[read, bash, edit, write] */
 	selectedTools?: string[];
-	/** Optional one-line tool snippets keyed by tool name. */
+	/** 以工具名称为键的可选单行工具摘要。 */
 	toolSnippets?: Record<string, string>;
-	/** Additional guideline bullets appended to the default system prompt guidelines. */
+	/** 追加到默认系统提示词准则中的其他准则项。 */
 	promptGuidelines?: string[];
-	/** Text to append to system prompt. */
+	/** 追加到系统提示词的文本。 */
 	appendSystemPrompt?: string;
-	/** Working directory. */
+	/** 工作目录。 */
 	cwd: string;
-	/** Pre-loaded context files. */
+	/** 预加载的上下文文件。 */
 	contextFiles?: Array<{ path: string; content: string }>;
-	/** Pre-loaded skills. */
+	/** 预加载的 skill。 */
 	skills?: Skill[];
 }
 
 /**
- * Build the system prompt from the currently active runtime resources.
+ * 根据当前活动的运行时资源构建系统提示词。
  *
- * A custom prompt replaces only the built-in base text. Appended prompt text,
- * project context files, readable skills, and the current working directory are
- * still added afterward. Without a custom prompt, tool snippets determine the
- * visible tool list and active tools contribute their prompt guidelines.
+ * 自定义提示词仅替换内置基础文本；追加的提示词文本、项目上下文文件、
+ * 可读取的 skill 和当前工作目录仍会随后加入。没有自定义提示词时，
+ * 工具摘要决定可见工具列表，活动工具则提供各自的提示词准则。
  */
 export function buildSystemPrompt(options: BuildSystemPromptOptions): string {
 	const {
@@ -59,7 +58,7 @@ export function buildSystemPrompt(options: BuildSystemPromptOptions): string {
 			prompt += appendSection;
 		}
 
-		// Append project context files
+		// 追加项目上下文文件
 		if (contextFiles.length > 0) {
 			prompt += "\n\n<project_context>\n\n";
 			prompt += "Project-specific instructions and guidelines:\n\n";
@@ -69,7 +68,7 @@ export function buildSystemPrompt(options: BuildSystemPromptOptions): string {
 			prompt += "</project_context>\n";
 		}
 
-		// Append skills when a tool capable of reading their files is available.
+		// 存在能够读取 skill 文件的工具时追加 skill。
 		if (skillFileReadTool && skills.length > 0) {
 			prompt += formatSkillsForPrompt(skills, skillFileReadTool);
 		}
@@ -79,18 +78,18 @@ export function buildSystemPrompt(options: BuildSystemPromptOptions): string {
 		return prompt;
 	}
 
-	// Get absolute paths to documentation and examples
+	// 获取文档和示例的绝对路径
 	const readmePath = getReadmePath();
 	const docsPath = getDocsPath();
 	const examplesPath = getExamplesPath();
 
-	// Build tools list based on selected tools.
-	// A tool appears in Available tools only when the caller provides a one-line snippet.
+	// 根据选中的工具构建工具列表。
+	// 仅当调用方提供单行摘要时，工具才会出现在 Available tools 中。
 	const visibleTools = tools.filter((name) => !!toolSnippets?.[name]);
 	const toolsList =
 		visibleTools.length > 0 ? visibleTools.map((name) => `- ${name}: ${toolSnippets![name]}`).join("\n") : "(none)";
 
-	// Build guidelines based on which tools are actually available
+	// 根据实际可用的工具构建准则
 	const guidelinesList: string[] = [];
 	const guidelinesSet = new Set<string>();
 	const addGuideline = (guideline: string): void => {
@@ -107,7 +106,7 @@ export function buildSystemPrompt(options: BuildSystemPromptOptions): string {
 	const hasFind = tools.includes("find");
 	const hasLs = tools.includes("ls");
 
-	// File exploration guidelines
+	// 文件探索准则
 	if ((hasBash || hasPowerShell) && !hasGrep && !hasFind && !hasLs) {
 		if (hasBash && hasPowerShell) {
 			addGuideline("Use bash or PowerShell for file operations like listing, searching, and finding files");
@@ -125,7 +124,7 @@ export function buildSystemPrompt(options: BuildSystemPromptOptions): string {
 		}
 	}
 
-	// Always include these
+	// 始终包含以下准则
 	addGuideline("Be concise in your responses");
 	addGuideline("Show file paths clearly when working with files");
 
@@ -154,7 +153,7 @@ Pi documentation (read only when the user asks about pi itself, its SDK, extensi
 		prompt += appendSection;
 	}
 
-	// Append project context files
+	// 追加项目上下文文件
 	if (contextFiles.length > 0) {
 		prompt += "\n\n<project_context>\n\n";
 		prompt += "Project-specific instructions and guidelines:\n\n";
@@ -164,7 +163,7 @@ Pi documentation (read only when the user asks about pi itself, its SDK, extensi
 		prompt += "</project_context>\n";
 	}
 
-	// Append skills when a tool capable of reading their files is available.
+	// 存在能够读取 skill 文件的工具时追加 skill。
 	if (skillFileReadTool && skills.length > 0) {
 		prompt += formatSkillsForPrompt(skills, skillFileReadTool);
 	}

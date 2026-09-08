@@ -9,11 +9,11 @@ const KITTY_SEQUENCE_PREFIX = "\x1b_G";
 const MAX_RENDER_WRITE_CHARS = 1024 * 1024;
 
 /**
- * Streams terminal output in 1 MiB chunks so a full render never forms one string large enough to exceed V8's limit.
+ * 以 1 MiB 分块流式写入终端输出，避免完整渲染形成超过 V8 限制的单个字符串。
  *
- * `append()` fills the current chunk and flushes it when full. Oversized input is split at chunk boundaries, preserving
- * surrogate pairs so each write remains valid UTF-16. Callers append synchronized-output begin/end sequences themselves;
- * the final `flush()` writes any remainder, including the end sequence.
+ * `append()` 填充当前块，并在块满时刷新。过大输入会在块边界拆分，同时保留代理项对，
+ * 以确保每次写入都是有效 UTF-16。调用方自行追加同步输出的开始/结束序列；
+ * 最后的 `flush()` 会写入包括结束序列在内的所有剩余内容。
  */
 class BoundedTerminalWriter {
 	private buffer = "";
@@ -25,8 +25,8 @@ class BoundedTerminalWriter {
 	}
 
 	/**
-	 * Append terminal data, flushing full chunks as needed. Callers must call `flush()` after the final append.
-	 * @param value Terminal data to write in order; oversized values are split without splitting surrogate pairs.
+	 * 追加终端数据，并按需刷新已满的数据块。调用方必须在最后一次追加后调用 `flush()`。
+	 * @param value 按顺序写入的终端数据；过大值会拆分，但不会拆开代理项对。
 	 */
 	append(value: string): void {
 		let offset = 0;
@@ -60,7 +60,7 @@ class BoundedTerminalWriter {
 		}
 	}
 
-	/** Write the current chunk, if any, and retain only its character count for debug output. */
+	/** 写入当前数据块（如果有），仅保留字符数用于调试输出。 */
 	flush(): void {
 		if (!this.buffer) return;
 		this.write(this.buffer);
@@ -120,7 +120,7 @@ export interface TuiMainScreenRenderState {
 	previousViewportTop: number;
 }
 
-/** TUI implementation that renders into the terminal's main screen and scrollback. */
+/** 渲染到终端主屏幕和回滚区的 TUI 实现。 */
 export class TuiMainScreen extends TuiBase implements TUI {
 	readonly mode = "regular" as const;
 	private previousLines: string[] = [];
@@ -260,27 +260,27 @@ export class TuiMainScreen extends TuiBase implements TUI {
 			return targetScreenRow - currentScreenRow;
 		};
 
-		// Render all components to get new lines
+		// 渲染所有组件以获得新行。
 		let newLines = this.render(width);
 
-		// Composite overlays into the rendered lines (before differential compare)
+		// 在差异比较前，将覆盖层合成到渲染行中。
 		if (this.hasOverlayEntries) {
 			newLines = this.compositeOverlays(newLines, width, height);
 		}
 
-		// Extract cursor position before applying line resets (marker must be found first)
+		// 应用行重置前提取光标位置，必须先找到标记。
 		const cursorPos = this.extractCursorPosition(newLines, height);
 
 		newLines = this.applyLineResets(newLines);
 
-		// Helper to clear scrollback and viewport and render all new lines
+		// 用于清除回滚区和视口并渲染全部新行的辅助函数。
 		const fullRender = (clear: boolean): void => {
 			this.fullRedrawCount += 1;
 			const output = new BoundedTerminalWriter((data) => this.terminal.write(data));
-			output.append("\x1b[?2026h"); // Begin synchronized output
+			output.append("\x1b[?2026h"); // 开始同步输出
 			if (clear) {
 				output.append(this.deleteKittyImages(this.previousKittyImageIds));
-				output.append("\x1b[2J\x1b[H\x1b[3J"); // Clear screen, home, then clear scrollback
+				output.append("\x1b[2J\x1b[H\x1b[3J"); // 清除屏幕、返回起始位置，然后清除回滚区
 			}
 			for (let i = 0; i < newLines.length; i++) {
 				if (i > 0) output.append("\r\n");
@@ -299,11 +299,11 @@ export class TuiMainScreen extends TuiBase implements TUI {
 				}
 				output.append(line);
 			}
-			output.append("\x1b[?2026l"); // End synchronized output
+			output.append("\x1b[?2026l"); // 结束同步输出
 			output.flush();
 			this.cursorRow = Math.max(0, newLines.length - 1);
 			this.hardwareCursorRow = this.cursorRow;
-			// Reset max lines when clearing, otherwise track growth
+			// 清除时重置最大行数，否则跟踪增长。
 			if (clear) {
 				this.maxLinesRendered = newLines.length;
 			} else {
@@ -327,39 +327,37 @@ export class TuiMainScreen extends TuiBase implements TUI {
 			fs.appendFileSync(logPath, msg);
 		};
 
-		// First render - just output everything without clearing (assumes clean screen)
+		// 首次渲染：假设屏幕干净，不清除并直接输出全部内容。
 		if (this.previousLines.length === 0 && !widthChanged && !heightChanged) {
 			logRedraw("first render");
 			fullRender(false);
 			return;
 		}
 
-		// Width changes always need a full re-render because wrapping changes.
+		// 宽度变化会改变换行，因此始终需要完整重绘。
 		if (widthChanged) {
 			logRedraw(`terminal width changed (${this.previousWidth} -> ${width})`);
 			fullRender(true);
 			return;
 		}
 
-		// Height changes normally need a full re-render to keep the visible viewport aligned,
-		// but Termux changes height when the software keyboard shows or hides.
-		// In that environment, a full redraw causes the entire history to replay on every toggle.
+		// 高度变化通常需要完整重绘，以保持可见视口对齐；
+		// 但 Termux 会在软键盘显示或隐藏时改变高度，在该环境中完整重绘会导致每次切换都重放全部历史。
 		if (heightChanged && !isTermuxSession()) {
 			logRedraw(`terminal height changed (${this.previousHeight} -> ${height})`);
 			fullRender(true);
 			return;
 		}
 
-		// Content shrunk below the working area and no overlays - re-render to clear empty rows
-		// (overlays need the padding, so only do this when no overlays are active)
-		// Configurable via setClearOnShrink()
+		// 内容缩小到工作区以内且没有覆盖层时，重新渲染以清除空行。
+		// 覆盖层需要这些填充，因此仅在没有活动覆盖层时执行。可通过 setClearOnShrink() 配置。
 		if (this.getClearOnShrink() && newLines.length < this.maxLinesRendered && !this.hasOverlayEntries) {
 			logRedraw(`clearOnShrink (maxLinesRendered=${this.maxLinesRendered})`);
 			fullRender(true);
 			return;
 		}
 
-		// Find first and last changed lines
+		// 查找第一行和最后一行变更。
 		let firstChanged = -1;
 		let lastChanged = -1;
 		const maxLines = Math.max(newLines.length, this.previousLines.length);
@@ -388,7 +386,7 @@ export class TuiMainScreen extends TuiBase implements TUI {
 		}
 		const appendStart = appendedLines && firstChanged === this.previousLines.length && firstChanged > 0;
 
-		// No changes - but still need to update hardware cursor position if it moved
+		// 内容没有变化，但硬件光标移动时仍需更新其位置。
 		if (firstChanged === -1) {
 			this.positionHardwareCursor(cursorPos, newLines.length);
 			this.previousViewportTop = prevViewportTop;
@@ -396,13 +394,13 @@ export class TuiMainScreen extends TuiBase implements TUI {
 			return;
 		}
 
-		// All changes are in deleted lines (nothing to render, just clear)
+		// 所有变化都位于已删除行中，无需渲染，只需清除。
 		if (firstChanged >= newLines.length) {
 			if (this.previousLines.length > newLines.length) {
 				const output = new BoundedTerminalWriter((data) => this.terminal.write(data));
 				output.append("\x1b[?2026h");
 				output.append(this.deleteChangedKittyImages(firstChanged, lastChanged));
-				// Move to end of new content (clamp to 0 for empty content)
+				// 移动到新内容末尾；内容为空时限制为 0。
 				const targetRow = Math.max(0, newLines.length - 1);
 				if (targetRow < prevViewportTop) {
 					logRedraw(`deleted lines moved viewport up (${targetRow} < ${prevViewportTop})`);
@@ -413,7 +411,7 @@ export class TuiMainScreen extends TuiBase implements TUI {
 				if (lineDiff > 0) output.append(`\x1b[${lineDiff}B`);
 				else if (lineDiff < 0) output.append(`\x1b[${-lineDiff}A`);
 				output.append("\r");
-				// Clear extra lines without scrolling
+				// 清除多余行，但不滚动。
 				const extraLines = this.previousLines.length - newLines.length;
 				if (extraLines > height) {
 					logRedraw(`extraLines > height (${extraLines} > ${height})`);
@@ -446,18 +444,18 @@ export class TuiMainScreen extends TuiBase implements TUI {
 			return;
 		}
 
-		// Differential rendering can only touch what was actually visible.
-		// If the first changed line is above the previous viewport, we need a full redraw.
+		// 差异渲染只能修改实际可见的内容。
+		// 如果第一处变更位于先前视口上方，则需要完整重绘。
 		if (firstChanged < prevViewportTop) {
 			logRedraw(`firstChanged < viewportTop (${firstChanged} < ${prevViewportTop})`);
 			fullRender(true);
 			return;
 		}
 
-		// Render from first changed line to end
-		// Keep updates wrapped in synchronized output while writing bounded chunks.
+		// 从第一处变更行开始渲染。
+		// 写入有界数据块时，始终用同步输出包裹更新。
 		const output = new BoundedTerminalWriter((data) => this.terminal.write(data));
-		output.append("\x1b[?2026h"); // Begin synchronized output
+		output.append("\x1b[?2026h"); // 开始同步输出
 		output.append(this.deleteChangedKittyImages(firstChanged, lastChanged));
 		const prevViewportBottom = prevViewportTop + height - 1;
 		const moveTargetRow = appendStart ? firstChanged - 1 : firstChanged;
@@ -474,18 +472,18 @@ export class TuiMainScreen extends TuiBase implements TUI {
 			hardwareCursorRow = moveTargetRow;
 		}
 
-		// Move cursor to first changed line (use hardwareCursorRow for actual position)
+		// 将光标移到第一处变更行，并用 hardwareCursorRow 表示实际位置。
 		const lineDiff = computeLineDiff(moveTargetRow);
 		if (lineDiff > 0) {
-			output.append(`\x1b[${lineDiff}B`); // Move down
+			output.append(`\x1b[${lineDiff}B`); // 向下移动
 		} else if (lineDiff < 0) {
-			output.append(`\x1b[${-lineDiff}A`); // Move up
+			output.append(`\x1b[${-lineDiff}A`); // 向上移动
 		}
 
-		output.append(appendStart ? "\r\n" : "\r"); // Move to column 0
+		output.append(appendStart ? "\r\n" : "\r"); // 移到第 0 列
 
-		// Only render changed lines (firstChanged to lastChanged), not all lines to end
-		// This reduces flicker when only a single line changes (e.g., spinner animation)
+		// 只渲染变更行（firstChanged 到 lastChanged），而不是一直渲染到末尾。
+		// 这样可减少仅有单行变化时的闪烁，例如旋转动画。
 		const renderEnd = Math.min(lastChanged, newLines.length - 1);
 		for (let i = firstChanged; i <= renderEnd; i++) {
 			if (i > firstChanged) output.append("\r\n");
@@ -513,9 +511,9 @@ export class TuiMainScreen extends TuiBase implements TUI {
 				continue;
 			}
 
-			output.append("\x1b[2K"); // Clear current line
+			output.append("\x1b[2K"); // 清除当前行
 			if (!isImage && visibleWidth(line) > width) {
-				// Log all lines to crash file for debugging
+				// 将所有行记录到崩溃文件以便调试。
 				const crashLogPath = path.join(this.logDirectory ?? os.tmpdir(), "pi-tui-crash.log");
 				const crashData = [
 					`Crash at ${new Date().toISOString()}`,
@@ -529,7 +527,7 @@ export class TuiMainScreen extends TuiBase implements TUI {
 				fs.mkdirSync(path.dirname(crashLogPath), { recursive: true });
 				fs.writeFileSync(crashLogPath, crashData);
 
-				// Clean up terminal state before throwing
+				// 抛出错误前清理终端状态。
 				this.stop();
 
 				const errorMsg = [
@@ -545,12 +543,12 @@ export class TuiMainScreen extends TuiBase implements TUI {
 			output.append(line);
 		}
 
-		// Track where cursor ended up after rendering
+		// 跟踪渲染后光标的最终位置。
 		let finalCursorRow = renderEnd;
 
-		// If we had more lines before, clear them and move cursor back
+		// 如果先前有更多行，则清除这些行并移回光标。
 		if (this.previousLines.length > newLines.length) {
-			// Move to end of new content first if we stopped before it
+			// 如果渲染在新内容末尾前停止，则先移到新内容末尾。
 			if (renderEnd < newLines.length - 1) {
 				const moveDown = newLines.length - 1 - renderEnd;
 				output.append(`\x1b[${moveDown}B`);
@@ -560,11 +558,11 @@ export class TuiMainScreen extends TuiBase implements TUI {
 			for (let i = newLines.length; i < this.previousLines.length; i++) {
 				output.append("\r\n\x1b[2K");
 			}
-			// Move cursor back to end of new content
+			// 将光标移回新内容末尾。
 			output.append(`\x1b[${extraLines}A`);
 		}
 
-		output.append("\x1b[?2026l"); // End synchronized output
+		output.append("\x1b[?2026l"); // 结束同步输出
 
 		if (process.env.PI_TUI_DEBUG === "1") {
 			const debugDir = "/tmp/tui";
@@ -597,16 +595,16 @@ export class TuiMainScreen extends TuiBase implements TUI {
 
 		output.flush();
 
-		// Track cursor position for next render
-		// cursorRow tracks end of content (for viewport calculation)
-		// hardwareCursorRow tracks actual terminal cursor position (for movement)
+		// 为下一次渲染跟踪光标位置。
+		// cursorRow 跟踪内容末尾，用于视口计算；
+		// hardwareCursorRow 跟踪终端光标实际位置，用于移动。
 		this.cursorRow = Math.max(0, newLines.length - 1);
 		this.hardwareCursorRow = finalCursorRow;
-		// Track terminal's working area (grows but doesn't shrink unless cleared)
+		// 跟踪终端工作区；除非清除，否则只增长不缩小。
 		this.maxLinesRendered = Math.max(this.maxLinesRendered, newLines.length);
 		this.previousViewportTop = Math.max(prevViewportTop, finalCursorRow - height + 1);
 
-		// Position hardware cursor for IME
+		// 为 IME 定位硬件光标。
 		this.positionHardwareCursor(cursorPos, newLines.length);
 
 		this.previousLines = newLines;
@@ -616,9 +614,9 @@ export class TuiMainScreen extends TuiBase implements TUI {
 	}
 
 	/**
-	 * Position the hardware cursor for IME candidate window.
-	 * @param cursorPos The cursor position extracted from rendered output, or null
-	 * @param totalLines Total number of rendered lines
+	 * 为 IME 候选窗口定位硬件光标。
+	 * @param cursorPos 从渲染输出中提取的光标位置，或 null
+	 * @param totalLines 渲染行总数
 	 */
 	private positionHardwareCursor(cursorPos: { row: number; col: number } | null, totalLines: number): void {
 		if (!cursorPos || totalLines <= 0) {
@@ -626,19 +624,19 @@ export class TuiMainScreen extends TuiBase implements TUI {
 			return;
 		}
 
-		// Clamp cursor position to valid range
+		// 将光标位置限制在有效范围内。
 		const targetRow = Math.max(0, Math.min(cursorPos.row, totalLines - 1));
 		const targetCol = Math.max(0, cursorPos.col);
 
-		// Move cursor from current position to target
+		// 将光标从当前位置移到目标位置。
 		const rowDelta = targetRow - this.hardwareCursorRow;
 		let buffer = "";
 		if (rowDelta > 0) {
-			buffer += `\x1b[${rowDelta}B`; // Move down
+			buffer += `\x1b[${rowDelta}B`; // 向下移动
 		} else if (rowDelta < 0) {
-			buffer += `\x1b[${-rowDelta}A`; // Move up
+			buffer += `\x1b[${-rowDelta}A`; // 向上移动
 		}
-		// Move to absolute column (1-indexed)
+		// 移到绝对列位置（从 1 开始计数）。
 		buffer += `\x1b[${targetCol + 1}G`;
 
 		if (buffer) {

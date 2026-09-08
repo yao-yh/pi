@@ -3,12 +3,12 @@ import type { AppKeybinding, KeybindingsManager } from "../../../core/keybinding
 import type { WorkingStatusIndicator } from "./status-indicator.ts";
 
 export type CustomEditorOptions = EditorOptions & {
-	/** Render the streaming working status in the editor's top border. */
+	/** 在编辑器上边框中渲染流式工作状态。 */
 	embedWorkingStatus?: boolean;
 };
 
 /**
- * Custom editor that handles app-level keybindings for coding-agent.
+ * 处理 coding-agent 应用级按键绑定的自定义编辑器。
  */
 export class CustomEditor extends Editor {
 	private keybindings: KeybindingsManager;
@@ -16,11 +16,11 @@ export class CustomEditor extends Editor {
 	public readonly embedWorkingStatus: boolean;
 	public actionHandlers: Map<AppKeybinding, () => void> = new Map();
 
-	// Special handlers that can be dynamically replaced
+	// 可动态替换的特殊处理程序
 	public onEscape?: () => void;
 	public onCtrlD?: () => void;
 	public onPasteImage?: () => void;
-	/** Handler for extension-registered shortcuts. Returns true if handled. */
+	/** 扩展注册快捷键的处理程序。已处理时返回 true。 */
 	public onExtensionShortcut?: (data: string) => boolean;
 
 	constructor(tui: TUI, theme: EditorTheme, keybindings: KeybindingsManager, options?: CustomEditorOptions) {
@@ -79,53 +79,53 @@ export class CustomEditor extends Editor {
 	}
 
 	/**
-	 * Register a handler for an app action.
+	 * 为应用操作注册处理程序。
 	 */
 	onAction(action: AppKeybinding, handler: () => void): void {
 		this.actionHandlers.set(action, handler);
 	}
 
 	handleInput(data: string): void {
-		// Check extension-registered shortcuts first
+		// 优先检查扩展注册的快捷键
 		if (this.onExtensionShortcut?.(data)) {
 			return;
 		}
 
-		// Check for clipboard paste keybinding
+		// 检查剪贴板粘贴按键绑定
 		if (this.keybindings.matches(data, "app.clipboard.pasteImage")) {
 			this.onPasteImage?.();
 			return;
 		}
 
-		// Check app keybindings first
+		// 优先检查应用按键绑定
 
-		// Escape/interrupt - only if autocomplete is NOT active
+		// Escape/中断：仅在自动补全未激活时处理
 		if (this.keybindings.matches(data, "app.interrupt")) {
 			if (!this.isShowingAutocomplete()) {
-				// Use dynamic onEscape if set, otherwise registered handler
+				// 如果设置了动态 onEscape 则使用它，否则使用已注册的处理程序
 				const handler = this.onEscape ?? this.actionHandlers.get("app.interrupt");
 				if (handler) {
 					handler();
 					return;
 				}
 			}
-			// Let parent handle escape for autocomplete cancellation
+			// 由父类处理 Escape，以取消自动补全
 			super.handleInput(data);
 			return;
 		}
 
-		// Exit (Ctrl+D) - only when editor is empty
+		// 退出（Ctrl+D）：仅在编辑器为空时处理
 		if (this.keybindings.matches(data, "app.exit")) {
 			if (this.getText().length === 0) {
 				const handler = this.onCtrlD ?? this.actionHandlers.get("app.exit");
 				if (handler) handler();
 				return;
 			}
-			// Fall through to editor handling for delete-char-forward when not empty
+			// 非空时继续交给编辑器处理向前删除字符
 		}
 
-		// Explicit history bindings take precedence over app actions while the editor is focused.
-		// This lets users bind Ctrl+P even though it cycles models by default.
+		// 编辑器获得焦点时，显式历史记录绑定优先于应用操作。
+		// 即使 Ctrl+P 默认用于循环切换模型，用户仍可将其绑定到历史记录。
 		if (
 			this.keybindings.matches(data, "tui.editor.historyPrevious") ||
 			this.keybindings.matches(data, "tui.editor.historyNext")
@@ -134,7 +134,7 @@ export class CustomEditor extends Editor {
 			return;
 		}
 
-		// Check all other app actions
+		// 检查其他所有应用操作
 		for (const [action, handler] of this.actionHandlers) {
 			if (action !== "app.interrupt" && action !== "app.exit" && this.keybindings.matches(data, action)) {
 				handler();
@@ -142,7 +142,7 @@ export class CustomEditor extends Editor {
 			}
 		}
 
-		// Pass to parent for editor handling
+		// 传递给父类进行编辑器处理
 		super.handleInput(data);
 	}
 }

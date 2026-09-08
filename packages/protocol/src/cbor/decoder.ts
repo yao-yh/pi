@@ -157,7 +157,7 @@ class CborReader {
 	}
 }
 
-/** Decodes exactly one item from the protocol's strict RFC 8949 subset. */
+/** 从协议采用的严格 RFC 8949 子集中精确解码一个数据项。 */
 export function decodeCbor(bytes: Uint8Array, options?: CborOptions): unknown {
 	if (!(bytes instanceof Uint8Array)) throw new TypeError("CBOR input must be a Uint8Array");
 	const resolved = resolveOptions(options);

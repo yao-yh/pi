@@ -8,7 +8,7 @@ import {
 
 export type MouseRegionHandler = (event: TuiMouseEvent) => TuiMouseEventResult | undefined;
 
-/** Adds mouse handling to an existing component without changing its rendering. */
+/** 为现有组件添加鼠标处理能力，同时不改变其渲染。 */
 export class MouseRegion implements Component {
 	private readonly child: Component;
 	private readonly onMouse: MouseRegionHandler;

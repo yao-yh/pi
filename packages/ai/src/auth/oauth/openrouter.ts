@@ -1,14 +1,12 @@
 /**
- * OpenRouter OAuth PKCE flow.
+ * OpenRouter OAuth PKCE 流程。
  *
- * OpenRouter exchanges an authorization code for a permanent, user-controlled
- * API key rather than an expiring access/refresh token pair. The callback is
- * handled by a one-shot loopback server on an ephemeral port, raced against a
- * manual prompt so remote/headless sessions can paste the redirect URL when
- * the browser cannot reach the loopback server.
+ * OpenRouter 将授权代码交换为由用户控制的永久 API 密钥，而不是会到期的访问/刷新令牌对。
+ * 临时端口上的一次性回环服务器负责处理回调，并与手动提示竞争；浏览器无法访问回环服务器时，
+ * 远程/无头会话可以粘贴重定向 URL。
  *
- * NOTE: This module uses Node.js http.createServer for the OAuth callback server.
- * It is only intended for CLI use, not browser environments.
+ * 注意：此模块使用 Node.js http.createServer 创建 OAuth 回调服务器。
+ * 仅用于 CLI，不适用于浏览器环境。
  */
 
 import { createServer, type Server, type ServerResponse } from "node:http";
@@ -30,14 +28,13 @@ type JsonObject = Record<string, unknown>;
 
 type OpenRouterCallbackServer = {
 	callbackUrl: string;
-	/** Stop listening and release timers without settling `waitForCredential`. */
+	/** 停止监听并释放计时器，但不结束 `waitForCredential`。 */
 	close: () => void;
-	/** Hand the login over to manual code entry unless a callback already claimed the exchange. */
+	/** 除非回调已占用交换流程，否则将登录移交给手动代码输入。 */
 	cancelWait: () => void;
 	/**
-	 * Resolves with the credential once a browser callback completes the key
-	 * exchange, or with null once `cancelWait` hands the login over to manual
-	 * code entry. Rejects on timeout, cancellation, or a failed exchange.
+	 * 浏览器回调完成密钥交换后解析为凭据；`cancelWait` 将登录移交给手动代码输入后解析为 null。
+	 * 超时、取消或交换失败时拒绝。
 	 */
 	waitForCredential: () => Promise<OAuthCredential | null>;
 };
@@ -56,7 +53,7 @@ function parseAuthorizationInput(input: string): string | undefined {
 	try {
 		return new URL(value).searchParams.get("code") ?? undefined;
 	} catch {
-		// not a URL
+		// 不是 URL
 	}
 
 	if (value.includes("code=")) {
@@ -231,7 +228,7 @@ async function startCallbackServer(
 	return {
 		callbackUrl: `http://${callbackHost}:${address.port}${callbackPath}`,
 		close,
-		// A claimed callback is already exchanging its code; let that exchange settle the login.
+		// 已占用的回调正在交换代码；让该交换完成登录。
 		cancelWait: () => {
 			if (!claimed) finish({ credential: null });
 		},

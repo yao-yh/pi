@@ -15,13 +15,13 @@ export type ClientResult =
 	| { readonly kind: "prompted"; readonly serverId: string; readonly sessionId: string; readonly text: string };
 
 export interface RunClientOptions {
-	/** Directory searched when --connect is omitted. Defaults to PI_SERVER_DIR or ~/.pi/server. */
+	/** 省略 --connect 时搜索的目录。默认使用 PI_SERVER_DIR 或 ~/.pi/server。 */
 	readonly directory?: string;
-	/** Receives snapshot-ordered main-lane events while a prompt is active. */
+	/** 提示词处于活动状态时，接收按快照顺序排列的主 lane 事件。 */
 	readonly onEvent?: (event: LaneWatchEvent) => void | Promise<void>;
 }
 
-/** Discover servers, then list Sessions, attach to one, or create one for a prompt. */
+/** 发现服务器，然后列出 Session、附加到其中一个会话，或为提示词创建会话。 */
 export async function runClient(command: ClientCommand, options: RunClientOptions = {}): Promise<ClientResult> {
 	const runtime = await openClientRuntime(command, { directory: options.directory });
 	try {

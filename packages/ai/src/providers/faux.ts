@@ -118,7 +118,7 @@ export interface RegisterFauxProviderOptions {
 	provider?: string;
 	models?: FauxModelDefinition[];
 	deferred?: {
-		/** Number of fetches that return the original handle before the scripted response becomes ready. */
+		/** 脚本响应就绪前，返回原始句柄的获取次数。 */
 		pendingFetches?: number;
 		pollAfterMs?: number;
 	};
@@ -673,7 +673,7 @@ export function createFauxCore(options: RegisterFauxProviderOptions) {
 }
 
 /**
- * Faux provider for tests built on explicit `Models` collections:
+ * 用于基于显式 `Models` 集合构建测试的 Faux 提供商：
  *
  * ```ts
  * const faux = fauxProvider();

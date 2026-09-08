@@ -1,20 +1,19 @@
 /**
- * StdinBuffer buffers input and emits complete sequences.
+ * StdinBuffer 缓冲输入并发出完整序列。
  *
- * This is necessary because stdin data events can arrive in partial chunks,
- * especially for escape sequences like mouse events. Without buffering,
- * partial sequences can be misinterpreted as regular keypresses.
+ * stdin 数据事件可能分块到达，鼠标事件等转义序列尤其如此，因此必须进行缓冲。
+ * 如果不缓冲，残缺序列可能被误解为普通按键。
  *
- * For example, the mouse SGR sequence `\x1b[<35;20;5m` might arrive as:
- * - Event 1: `\x1b`
- * - Event 2: `[<35`
- * - Event 3: `;20;5m`
+ * 例如，鼠标 SGR 序列 `\x1b[<35;20;5m` 可能按以下方式到达：
+ * - 事件 1：`\x1b`
+ * - 事件 2：`[<35`
+ * - 事件 3：`;20;5m`
  *
- * The buffer accumulates these until a complete sequence is detected.
- * Call the `process()` method to feed input data.
+ * 缓冲区会持续累积，直到检测到完整序列。
+ * 调用 `process()` 方法输入数据。
  *
- * Based on code from OpenTUI (https://github.com/anomalyco/opentui)
- * MIT License - Copyright (c) 2025 opentui
+ * 基于 OpenTUI（https://github.com/anomalyco/opentui）的代码。
+ * MIT 许可证 - Copyright (c) 2025 opentui
  */
 
 import { EventEmitter } from "events";
@@ -26,7 +25,7 @@ const BRACKETED_PASTE_START = "\x1b[200~";
 const BRACKETED_PASTE_END = "\x1b[201~";
 
 /**
- * Check if a string is a complete escape sequence or needs more data
+ * 检查字符串是完整转义序列，还是仍需更多数据。
  */
 function isCompleteSequence(data: string): "complete" | "incomplete" | "not-escape" {
 	if (!data.startsWith(ESC)) {
@@ -39,79 +38,79 @@ function isCompleteSequence(data: string): "complete" | "incomplete" | "not-esca
 
 	const afterEsc = data.slice(1);
 
-	// CSI sequences: ESC [
+	// CSI 序列：ESC [
 	if (afterEsc.startsWith("[")) {
-		// Check for old-style mouse sequence: ESC[M + 3 bytes
+		// 检查旧式鼠标序列：ESC[M + 3 字节。
 		if (afterEsc.startsWith("[M")) {
-			// Old-style mouse needs ESC[M + 3 bytes = 6 total
+			// 旧式鼠标序列需要 ESC[M + 3 字节，共 6 字节。
 			return data.length >= 6 ? "complete" : "incomplete";
 		}
 		return isCompleteCsiSequence(data);
 	}
 
-	// OSC sequences: ESC ]
+	// OSC 序列：ESC ]
 	if (afterEsc.startsWith("]")) {
 		return isCompleteOscSequence(data);
 	}
 
-	// DCS sequences: ESC P ... ESC \ (includes XTVersion responses)
+	// DCS 序列：ESC P ... ESC \（包括 XTVersion 响应）。
 	if (afterEsc.startsWith("P")) {
 		return isCompleteDcsSequence(data);
 	}
 
-	// APC sequences: ESC _ ... ESC \ (includes Kitty graphics responses)
+	// APC 序列：ESC _ ... ESC \（包括 Kitty 图形响应）。
 	if (afterEsc.startsWith("_")) {
 		return isCompleteApcSequence(data);
 	}
 
-	// SS3 sequences: ESC O
+	// SS3 序列：ESC O
 	if (afterEsc.startsWith("O")) {
-		// ESC O followed by a single character
+		// ESC O 后跟单个字符。
 		return afterEsc.length >= 2 ? "complete" : "incomplete";
 	}
 
-	// Meta key sequences: ESC followed by a single character
+	// Meta 键序列：ESC 后跟单个字符。
 	if (afterEsc.length === 1) {
 		return "complete";
 	}
 
-	// Unknown escape sequence - treat as complete
+	// 未知转义序列按完整序列处理。
 	return "complete";
 }
 
 /**
- * Check if CSI sequence is complete
- * CSI sequences: ESC [ ... followed by a final byte (0x40-0x7E)
+ * 检查 CSI 序列是否完整。
+ * CSI 序列：ESC [ ... 后跟结束字节（0x40-0x7E）。
  */
 function isCompleteCsiSequence(data: string): "complete" | "incomplete" {
 	if (!data.startsWith(`${ESC}[`)) {
 		return "complete";
 	}
 
-	// Need at least ESC [ and one more character
+	// 至少需要 ESC [ 和另一个字符。
 	if (data.length < 3) {
 		return "incomplete";
 	}
 
 	const payload = data.slice(2);
 
-	// CSI sequences end with a byte in the range 0x40-0x7E (@-~)
-	// This includes all letters and several special characters
+	// CSI 序列以 0x40-0x7E（@-~）范围内的字节结尾，
+	// 其中包括所有字母和若干特殊字符。
 	const lastChar = payload[payload.length - 1];
 	const lastCharCode = lastChar.charCodeAt(0);
 
 	if (lastCharCode >= 0x40 && lastCharCode <= 0x7e) {
-		// Special handling for SGR mouse sequences
-		// Format: ESC[<B;X;Ym or ESC[<B;X;YM
+		// 对 SGR 鼠标序列进行特殊处理。
+		// 格式：ESC[<B;X;Ym 或 ESC[<B;X;YM。
 		if (payload.startsWith("<")) {
-			// Must have format: <digits;digits;digits[Mm]
+			// 必须采用格式：<数字;数字;数字[Mm]。
 			const mouseMatch = /^<\d+;\d+;\d+[Mm]$/.test(payload);
 			if (mouseMatch) {
 				return "complete";
 			}
-			// If it ends with M or m but doesn't match the pattern, still incomplete
+			// 如果以 M 或 m 结尾但不匹配该模式，仍视为不完整。
 			if (lastChar === "M" || lastChar === "m") {
-				// Check if we have the right structure
+				// 检查结构是否正确。
 				const parts = payload.slice(1, -1).split(";");
 				if (parts.length === 3 && parts.every((p) => /^\d+$/.test(p))) {
 					return "complete";
@@ -128,15 +127,15 @@ function isCompleteCsiSequence(data: string): "complete" | "incomplete" {
 }
 
 /**
- * Check if OSC sequence is complete
- * OSC sequences: ESC ] ... ST (where ST is ESC \ or BEL)
+ * 检查 OSC 序列是否完整。
+ * OSC 序列：ESC ] ... ST（其中 ST 为 ESC \ 或 BEL）。
  */
 function isCompleteOscSequence(data: string): "complete" | "incomplete" {
 	if (!data.startsWith(`${ESC}]`)) {
 		return "complete";
 	}
 
-	// OSC sequences end with ST (ESC \) or BEL (\x07)
+	// OSC 序列以 ST（ESC \）或 BEL（\x07）结尾。
 	if (data.endsWith(`${ESC}\\`) || data.endsWith("\x07")) {
 		return "complete";
 	}
@@ -145,16 +144,16 @@ function isCompleteOscSequence(data: string): "complete" | "incomplete" {
 }
 
 /**
- * Check if DCS (Device Control String) sequence is complete
- * DCS sequences: ESC P ... ST (where ST is ESC \)
- * Used for XTVersion responses like ESC P >| ... ESC \
+ * 检查 DCS（设备控制字符串）序列是否完整。
+ * DCS 序列：ESC P ... ST（其中 ST 为 ESC \）。
+ * 用于 ESC P >| ... ESC \ 等 XTVersion 响应。
  */
 function isCompleteDcsSequence(data: string): "complete" | "incomplete" {
 	if (!data.startsWith(`${ESC}P`)) {
 		return "complete";
 	}
 
-	// DCS sequences end with ST (ESC \)
+	// DCS 序列以 ST（ESC \）结尾。
 	if (data.endsWith(`${ESC}\\`)) {
 		return "complete";
 	}
@@ -163,16 +162,16 @@ function isCompleteDcsSequence(data: string): "complete" | "incomplete" {
 }
 
 /**
- * Check if APC (Application Program Command) sequence is complete
- * APC sequences: ESC _ ... ST (where ST is ESC \)
- * Used for Kitty graphics responses like ESC _ G ... ESC \
+ * 检查 APC（应用程序命令）序列是否完整。
+ * APC 序列：ESC _ ... ST（其中 ST 为 ESC \）。
+ * 用于 ESC _ G ... ESC \ 等 Kitty 图形响应。
  */
 function isCompleteApcSequence(data: string): "complete" | "incomplete" {
 	if (!data.startsWith(`${ESC}_`)) {
 		return "complete";
 	}
 
-	// APC sequences end with ST (ESC \)
+	// APC 序列以 ST（ESC \）结尾。
 	if (data.endsWith(`${ESC}\\`)) {
 		return "complete";
 	}
@@ -181,7 +180,7 @@ function isCompleteApcSequence(data: string): "complete" | "incomplete" {
 }
 
 /**
- * Split accumulated buffer into complete sequences
+ * 将累积的缓冲区拆分为完整序列。
  */
 function parseUnmodifiedKittyPrintableCodepoint(sequence: string): number | undefined {
 	const match = sequence.match(/^\x1b\[(\d+)(?::\d*)?(?::\d+)?u$/);
@@ -198,32 +197,29 @@ function extractCompleteSequences(buffer: string): { sequences: string[]; remain
 	while (pos < buffer.length) {
 		const remaining = buffer.slice(pos);
 
-		// Try to extract a sequence starting at this position
+		// 尝试提取从当前位置开始的序列。
 		if (remaining.startsWith(ESC)) {
-			// Find the end of this escape sequence
+			// 查找当前转义序列的末尾。
 			let seqEnd = 1;
 			while (seqEnd <= remaining.length) {
 				const candidate = remaining.slice(0, seqEnd);
 				const status = isCompleteSequence(candidate);
 
 				if (status === "complete") {
-					// WezTerm with enable_kitty_keyboard sends the Escape key press as a
-					// raw '\x1b' byte (simple text path in encode_kitty, ignoring
-					// DISAMBIGUATE_ESCAPE_CODES) and the release as a full Kitty CSI-u
-					// sequence. These arrive concatenated as '\x1b\x1b[27;...u'.
-					// The buffer would normally treat '\x1b\x1b' as a complete meta-key
-					// sequence (ESC + single char), leaving '[27;...u' to be typed as
-					// plain text. If the character immediately following '\x1b\x1b'
-					// would begin a new escape sequence, emit only the first ESC and
-					// restart from the second.
+					// 启用 enable_kitty_keyboard 的 WezTerm 会将 Escape 按下事件作为原始 '\x1b' 字节发送
+					//（encode_kitty 中忽略 DISAMBIGUATE_ESCAPE_CODES 的简单文本路径），
+					// 并将释放事件作为完整 Kitty CSI-u 序列发送。两者会连接为 '\x1b\x1b[27;...u' 到达。
+					// 缓冲区通常会把 '\x1b\x1b' 当作完整 Meta 键序列（ESC + 单字符），
+					// 导致余下的 '[27;...u' 被作为普通文本输入。如果紧跟 '\x1b\x1b' 的字符会开始新转义序列，
+					// 则只发出第一个 ESC，并从第二个 ESC 重新开始。
 					if (candidate === "\x1b\x1b") {
 						const nextChar = remaining[seqEnd];
 						if (
-							nextChar === "[" || // CSI
-							nextChar === "]" || // OSC
-							nextChar === "O" || // SS3
-							nextChar === "P" || // DCS
-							nextChar === "_" // APC
+							nextChar === "[" || // CSI 序列
+							nextChar === "]" || // OSC 序列
+							nextChar === "O" || // SS3 序列
+							nextChar === "P" || // DCS 序列
+							nextChar === "_" // APC 序列
 						) {
 							sequences.push(ESC);
 							pos += 1;
@@ -236,7 +232,7 @@ function extractCompleteSequences(buffer: string): { sequences: string[]; remain
 				} else if (status === "incomplete") {
 					seqEnd++;
 				} else {
-					// Should not happen when starting with ESC
+					// 以 ESC 开头时不应发生。
 					sequences.push(candidate);
 					pos += seqEnd;
 					break;
@@ -247,7 +243,7 @@ function extractCompleteSequences(buffer: string): { sequences: string[]; remain
 				return { sequences, remainder: remaining };
 			}
 		} else {
-			// Not an escape sequence - take a single character
+			// 不是转义序列，读取单个字符。
 			sequences.push(remaining[0]!);
 			pos++;
 		}
@@ -258,13 +254,12 @@ function extractCompleteSequences(buffer: string): { sequences: string[]; remain
 
 export type StdinBufferOptions = {
 	/**
-	 * Maximum time to wait for an incomplete sequence such as CSI or mouse
-	 * (default: 50ms).
+	 * 等待 CSI 或鼠标序列等不完整序列的最长时间（默认：50ms）。
 	 */
 	timeout?: number;
 	/**
-	 * Maximum time to wait after a lone ESC before treating it as Escape
-	 * (default: 10ms). Increase for high-latency Alt+key input (SSH).
+	 * 收到单独 ESC 后，将其视为 Escape 前的最长等待时间（默认：10ms）。
+	 * 对高延迟 Alt+键输入（SSH）可增大该值。
 	 */
 	escapeTimeout?: number;
 };
@@ -275,8 +270,8 @@ export type StdinBufferEventMap = {
 };
 
 /**
- * Buffers stdin input and emits complete sequences via the 'data' event.
- * Handles partial escape sequences that arrive across multiple chunks.
+ * 缓冲 stdin 输入，并通过 'data' 事件发出完整序列。
+ * 处理跨多个数据块到达的残缺转义序列。
  */
 export class StdinBuffer extends EventEmitter<StdinBufferEventMap> {
 	private buffer: string = "";
@@ -294,14 +289,14 @@ export class StdinBuffer extends EventEmitter<StdinBufferEventMap> {
 	}
 
 	public process(data: string | Buffer): void {
-		// Clear any pending timeout
+		// 清除待处理的超时。
 		if (this.timeout) {
 			clearTimeout(this.timeout);
 			this.timeout = null;
 		}
 
-		// Handle high-byte conversion (for compatibility with parseKeypress)
-		// If buffer has single byte > 127, convert to ESC + (byte - 128)
+		// 处理高位字节转换，以兼容 parseKeypress。
+		// 如果缓冲区只有一个大于 127 的字节，则转换为 ESC +（字节 - 128）。
 		let str: string;
 		if (Buffer.isBuffer(data)) {
 			if (data.length === 1 && data[0]! > 127) {

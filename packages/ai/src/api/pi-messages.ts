@@ -1,12 +1,11 @@
 /**
- * pi-messages API implementation.
+ * pi-messages API 实现。
  *
- * Streams pi's own message protocol directly to a backend: the request is a
- * single POST of `{ model, context, options }` to `<baseUrl>/messages`, the
- * response is an SSE stream of serialized assistant-message events plus a
- * terminal `done`/`error` event. This is the wire protocol spoken by the
- * Radius gateway, but any backend implementing it can be used, e.g. via a
- * models.json custom provider with `"api": "pi-messages"`.
+ * 将 pi 自有的消息协议直接流式传输到后端：向 `<baseUrl>/messages` 发送一次包含
+ * `{ model, context, options }` 的 POST 请求，响应是由序列化助手消息事件和终止
+ * `done`/`error` 事件组成的 SSE 流。这是 Radius 网关使用的线协议，但也可使用
+ * 任何实现该协议的后端，例如通过设置 `"api": "pi-messages"` 的 models.json
+ * 自定义提供商。
  */
 
 import type {
@@ -31,14 +30,14 @@ import { getProviderEnvValue } from "../utils/provider-env.ts";
 export interface PiMessagesOptions extends StreamOptions {
 	reasoning?: ThinkingLevel;
 	toolChoice?: "auto" | "none" | "required" | { type: "function"; function: { name: string } };
-	/** Ask the backend for debug metadata (e.g. routing response headers). */
+	/** 要求后端返回调试元数据（例如路由响应头）。 */
 	debug?: boolean;
 }
 
 type PiMessagesUsage = AssistantMessage["usage"];
 type PiMessagesStopReason = AssistantMessage["stopReason"];
 
-/** Impact summary of a server-side message rewrite (e.g. a gateway policy). */
+/** 服务端消息重写（例如网关策略）的影响摘要。 */
 export type PiMessagesRewriteImpact = {
 	policyId: string;
 	policyVersion: number;
@@ -48,7 +47,7 @@ export type PiMessagesRewriteImpact = {
 	systemPromptChanged: boolean;
 };
 
-/** Serialized assistant-message event as sent by a pi-messages backend. */
+/** pi-messages 后端发送的序列化助手消息事件。 */
 export type PiMessagesEvent =
 	| { type: "start" }
 	| { type: "text_start"; contentIndex: number }
@@ -346,7 +345,7 @@ function resolveCacheRetention(cacheRetention?: CacheRetention, env?: ProviderEn
 	if (cacheRetention) {
 		return cacheRetention;
 	}
-	// Backend defaults apply when unset; only the legacy env opt-in is mapped.
+	// 未设置时应用后端默认值；只映射旧版环境变量选择项。
 	return getProviderEnvValue("PI_CACHE_RETENTION", env) === "long" ? "long" : undefined;
 }
 

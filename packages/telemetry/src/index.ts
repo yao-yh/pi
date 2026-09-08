@@ -68,7 +68,7 @@ export interface TelemetrySchemaDefinition {
 	spans: Record<string, TelemetrySpanDefinition>;
 }
 
-/** Typed identity helper for serializable telemetry schema data. */
+/** 用于可序列化遥测架构数据的类型化恒等辅助函数。 */
 export function defineTelemetrySchema<const T extends TelemetrySchemaDefinition>(schema: T): T {
 	return schema;
 }
@@ -314,7 +314,7 @@ type TypedSpanStarterForName<Schemas extends TelemetrySchemaTuple, Name extends 
 	) => Result | Promise<Result>,
 ) => Promise<Result>;
 
-/** A per-span overload set bound to one explicit parent context and one or more schemas. */
+/** 绑定到一个显式父上下文及一个或多个架构的逐 span 重载集合。 */
 export type TypedSpanStarter<Schemas extends TelemetrySchemaTuple> = UnionToIntersection<
 	{
 		[Name in SpanNameInSchemas<Schemas>]: TypedSpanStarterForName<Schemas, Name>;
@@ -343,8 +343,8 @@ function bindTypedSpanStarter<Schemas extends TelemetrySchemaTuple>(
 }
 
 /**
- * Bind an explicit parent context to the combined span vocabulary of one or more schemas.
- * Schema values are used only for type inference; no runtime schema validation is performed.
+ * 将显式父上下文绑定到一个或多个架构的组合 span 词汇表。
+ * 架构值仅用于类型推断，不执行运行时架构验证。
  */
 export function createTypedSpanStarter<const Schemas extends TelemetrySchemaTuple>(
 	telemetryContext: TelemetryContext,

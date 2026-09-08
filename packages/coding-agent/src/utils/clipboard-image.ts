@@ -64,8 +64,8 @@ function isSupportedImageMimeType(mimeType: string): boolean {
 }
 
 /**
- * Convert unsupported image formats to PNG using Photon.
- * Returns null if conversion is unavailable or fails.
+ * 使用 Photon 将不受支持的图像格式转换为 PNG。
+ * 如果转换功能不可用或转换失败，则返回 null。
  */
 async function convertToPng(bytes: Uint8Array): Promise<Uint8Array | null> {
 	const photon = await loadPhoton();
@@ -85,8 +85,8 @@ async function convertToPng(bytes: Uint8Array): Promise<Uint8Array | null> {
 	}
 }
 
-// Undefined means the backend failed; null means it has no image. An empty
-// Wayland clipboard must not fall through to stale X11 clipboard contents.
+// undefined 表示后端失败；null 表示没有图像。Wayland 剪贴板为空时，
+// 不得回退读取过期的 X11 剪贴板内容。
 async function readClipboardImageViaWlPaste(): Promise<ClipboardImage | null | undefined> {
 	const list = await runClipboardCommand("wl-paste", ["--list-types"], { timeoutMs: DEFAULT_LIST_TIMEOUT_MS });
 	if (list === undefined) return undefined;
@@ -123,9 +123,8 @@ function isWSL(env: NodeJS.ProcessEnv = process.env): boolean {
 }
 
 /**
- * On WSL, the Linux clipboard (Wayland/X11) does not receive image data from
- * Windows screenshots (Win+Shift+S). PowerShell can access the Windows clipboard
- * directly, so we use it as a fallback.
+ * 在 WSL 上，Linux 剪贴板（Wayland/X11）无法接收 Windows 截图（Win+Shift+S）的图像数据。
+ * PowerShell 可以直接访问 Windows 剪贴板，因此将其用作回退方案。
  */
 async function readClipboardImageViaPowerShell(): Promise<ClipboardImage | null> {
 	const tmpFile = join(tmpdir(), `pi-wsl-clip-${randomUUID()}.png`);
@@ -176,7 +175,7 @@ async function readClipboardImageViaPowerShell(): Promise<ClipboardImage | null>
 		try {
 			unlinkSync(tmpFile);
 		} catch {
-			// Ignore cleanup errors.
+			// 忽略清理错误。
 		}
 	}
 }
@@ -235,7 +234,7 @@ export async function readClipboardImage(options?: {
 			image = await readClipboardImageViaWlPaste();
 		}
 		if (image === undefined) image = await readClipboardImageViaXclip();
-		// Preserve Linux's empty/unavailable distinction if Windows has no image.
+		// 如果 Windows 中没有图像，则保留 Linux 对“为空”和“不可用”的区分。
 		if (!image && wsl) image = (await readClipboardImageViaPowerShell()) ?? image;
 		if (image === undefined) image = await readClipboardImageViaNativeClipboard();
 	} else {
@@ -246,7 +245,7 @@ export async function readClipboardImage(options?: {
 		return null;
 	}
 
-	// Convert unsupported formats (e.g., Windows DIB data wrapped as BMP) to PNG
+	// 将不受支持的格式（例如封装为 BMP 的 Windows DIB 数据）转换为 PNG
 	if (!isSupportedImageMimeType(image.mimeType)) {
 		const pngBytes = await convertToPng(image.bytes);
 		if (!pngBytes) {

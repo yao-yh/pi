@@ -2,13 +2,13 @@ import type { Api, Model } from "./types.ts";
 
 export interface ModelsStoreEntry {
 	models: readonly Model<Api>[];
-	/** Unix timestamp from the remote catalog's Last-Modified header. */
+	/** 远程目录 Last-Modified 响应头中的 Unix 时间戳。 */
 	lastModified?: number;
-	/** Unix timestamp of the last completed remote check. */
+	/** 上次完成远程检查时的 Unix 时间戳。 */
 	checkedAt?: number;
 	/**
-	 * Opaque validator from the remote catalog's ETag header, stored verbatim
-	 * (quotes included) and echoed back as If-None-Match.
+	 * 远程目录 ETag 响应头中的不透明校验值，按原样存储（包括引号），
+	 * 并通过 If-None-Match 原样回传。
 	 */
 	etag?: string;
 }
@@ -17,7 +17,7 @@ export interface ModelsStoreOperationOptions {
 	signal?: AbortSignal;
 }
 
-/** Persistent model catalogs keyed by provider ID. */
+/** 以提供商 ID 为键的持久化模型目录。 */
 export interface ModelsStore {
 	read(providerId: string, options?: ModelsStoreOperationOptions): Promise<ModelsStoreEntry | undefined>;
 	write(providerId: string, entry: ModelsStoreEntry, options?: ModelsStoreOperationOptions): Promise<void>;

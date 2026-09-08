@@ -3,7 +3,7 @@ import type { ClientMessageDecoder, RpcTarget } from "@earendil-works/pi-protoco
 
 import type { MaybePromise, RoutedServerServiceAttachment } from "./types.ts";
 
-/** An established, authorized ordered byte connection. */
+/** 已建立、已授权且保证顺序的字节连接。 */
 export interface ByteConnection {
 	readonly closed: boolean;
 	send(chunk: Uint8Array): Promise<void>;

@@ -3,11 +3,11 @@ import type { LaneTranscriptSnapshot, LaneWatchEvent } from "@earendil-works/pi-
 
 export interface TranscriptState {
 	snapshot: LaneTranscriptSnapshot | null;
-	/** The source event is retained for presentation side effects; hydration does not replay it. */
+	/** 保留源事件用于呈现层副作用；水合不会重放该事件。 */
 	event: LaneWatchEvent | null;
 }
 
-/** Coherent main-lane state replicated through Chord's operation stream. */
+/** 通过 Chord 操作流复制的一致主通道状态。 */
 export interface Transcript {
 	readonly state: ReplicatedState<TranscriptState>;
 }

@@ -1,7 +1,7 @@
 /**
- * The `mini` command. Runs the presentation host.
+ * `mini` 命令。运行演示宿主。
  *
- * Run: node packages/coding-agent/src/experimental/mini/main.ts [--continue]
+ * 运行方式：node packages/coding-agent/src/experimental/mini/main.ts [--continue]
  */
 
 import { runTui, type TuiOptions } from "./tui/run.ts";

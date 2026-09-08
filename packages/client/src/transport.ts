@@ -1,18 +1,18 @@
 export interface ByteTransport {
-	/** Sends one byte chunk. Calls must be delivered in invocation order. */
+	/** 发送一个字节块。各次调用必须按调用顺序投递。 */
 	send(chunk: Uint8Array): Promise<void>;
-	/** Closes the transport. Implementations must make repeated calls harmless. */
+	/** 关闭传输。实现必须确保重复调用无害。 */
 	close(): void;
 }
 
 export interface ByteTransportHandlers {
-	/** Delivers an arbitrary inbound byte chunk. */
+	/** 投递任意传入字节块。 */
 	onData(chunk: Uint8Array): void;
-	/** Reports an orderly terminal close. */
+	/** 报告正常的最终关闭。 */
 	onClose(): void;
-	/** Reports a terminal transport failure. */
+	/** 报告导致传输终止的故障。 */
 	onError(error: Error): void;
 }
 
-/** Creates a fresh connected, authenticated transport. Exactly one terminal handler is expected. */
+/** 创建全新的已连接且已认证传输。预期只会调用一个终止处理器。 */
 export type ByteTransportFactory = (handlers: ByteTransportHandlers) => ByteTransport | Promise<ByteTransport>;

@@ -1,11 +1,9 @@
 /**
- * The whole protocol: call, result, error, cancel, event, ping. Plus named services and one routing
- * rule.
+ * 完整协议：调用、结果、错误、取消、事件、ping，以及命名服务和一条路由规则。
  *
- * A peer provides any number of services and uses the other side's. A call for a service this peer
- * does not provide goes to `forward`, which is what makes the server transparent: a TUI uses
- * `lane.prompt`, the server does not provide `lane`, so it hands the call to the attached worker.
- * The same rule lets a worker use `sessions.list` back through the server.
+ * peer 可以提供任意数量的服务，并使用另一端的服务。调用本 peer 未提供的服务时会进入
+ * `forward`，从而使服务器保持透明：TUI 使用 `lane.prompt`，而服务器不提供 `lane`，
+ * 因此会将调用交给已附加的 worker。同一规则也允许 worker 通过服务器反向使用 `sessions.list`。
  */
 
 import type { Remote, ServiceToken } from "./protocol.ts";
@@ -23,36 +21,36 @@ type Frame =
 export type Forward = (method: string, args: unknown[]) => Promise<unknown>;
 
 export interface CallOptions {
-	/** Abandon the call and tell the peer to stop. */
+	/** 放弃调用并通知 peer 停止。 */
 	signal?: AbortSignal;
-	/** Reject if the peer has not answered in time. Omit for calls with no bounded duration. */
+	/** peer 未及时响应时拒绝。无时限调用应省略此项。 */
 	timeoutMs?: number;
 }
 
 export interface PeerOptions {
-	/** Handles calls for services this peer does not provide. */
+	/** 处理对本 peer 未提供服务的调用。 */
 	forward?: Forward;
-	/** Silence tolerated before the peer is declared gone. Default 15s; 0 disables liveness. */
+	/** 宣告 peer 已断开前允许的静默时间。默认 15 秒；设为 0 时禁用存活检测。 */
 	deadMs?: number;
 }
 
 const DEFAULT_DEAD_MS = 15_000;
 
 export interface RpcPeer {
-	/** Register an implementation and announce the name to the other side. */
+	/** 注册实现并向另一端声明名称。 */
 	provide<TApi extends object, TEvent>(token: ServiceToken<TApi, TEvent>, implementation: TApi): void;
-	/** Services this peer provides. */
+	/** 本 peer 提供的服务。 */
 	readonly provided: ReadonlySet<string>;
-	/** Services the other side announced. */
+	/** 另一端声明的服务。 */
 	readonly announced: ReadonlySet<string>;
-	/** Use a service, wherever it is provided: this peer's other side, or its next hop. */
+	/** 使用服务，无论它由本 peer 的另一端还是下一跃点提供。 */
 	use<TApi extends object, TEvent>(token: ServiceToken<TApi, TEvent>, options?: CallOptions): Remote<TApi>;
-	/** Publish to everyone listening on the other side. */
+	/** 发布给另一端的所有监听方。 */
 	emit<TApi extends object, TEvent>(token: ServiceToken<TApi, TEvent>, event: TEvent): void;
-	/** Publish for one destination. A router delivers it there instead of broadcasting. */
+	/** 发布给一个目标。路由器会将其投递到该目标，而不是广播。 */
 	emitTo<TApi extends object, TEvent>(token: ServiceToken<TApi, TEvent>, event: TEvent, to: string): void;
 	on<TApi extends object, TEvent>(token: ServiceToken<TApi, TEvent>, handler: (event: TEvent) => void): void;
-	/** Router half of the event channel: observe and republish without knowing the service. */
+	/** 事件通道的路由器端：无需了解服务即可观察并重新发布。 */
 	onEvent(handler: (service: string, payload: unknown, to: string | undefined) => void): void;
 	emitRaw(service: string, payload: unknown, to?: string): void;
 	call(method: string, ...args: unknown[]): Promise<unknown>;
@@ -61,21 +59,21 @@ export interface RpcPeer {
 	close(): void;
 }
 
-/** A bidirectional peer on one connection. */
+/** 单个连接上的双向 peer。 */
 export function createPeer(connection: Connection, options: PeerOptions = {}): RpcPeer {
 	const services = new Map<string, object>();
 	const provided = new Set<string>();
-	/** What the other side told us it provides, so routing is a lookup rather than a guess. */
+	/** 另一端声明其提供的服务，使路由通过查找而非猜测完成。 */
 	const announced = new Set<string>();
 	const pending = new Map<number, { resolve: (value: unknown) => void; reject: (error: Error) => void }>();
-	/** Controllers for calls this peer is currently answering, so a `cancel` frame can stop them. */
+	/** 本 peer 当前正在响应的调用控制器，使 `cancel` 帧可以停止这些调用。 */
 	const inflight = new Map<number, AbortController>();
 	const eventHandlers: ((service: string, payload: unknown, to: string | undefined) => void)[] = [];
 	let nextId = 1;
 	let lastFrameAt = Date.now();
 
-	// The signal is appended to every handler call: services that care declare a trailing
-	// `AbortSignal` parameter, the rest ignore an extra argument.
+	// 每次处理程序调用都会在末尾附加 signal：需要它的服务声明尾随 `AbortSignal` 参数，
+	// 其余服务忽略这个额外参数。
 	const dispatch = async (method: string, args: unknown[], signal: AbortSignal): Promise<unknown> => {
 		const dot = method.indexOf(".");
 		const local = dot === -1 ? undefined : services.get(method.slice(0, dot));
@@ -101,7 +99,7 @@ export function createPeer(connection: Connection, options: PeerOptions = {}): R
 				inflight.set(frame.id, controller);
 				void dispatch(frame.method, frame.args, controller.signal)
 					.then(
-						// `undefined` vanishes through JSON, so an absent result is sent as null.
+						// `undefined` 经过 JSON 后会消失，因此缺失的结果以 null 发送。
 						(result) => connection.send({ kind: "result", id: frame.id, result: result ?? null }),
 						(error: unknown) => connection.send({ kind: "error", id: frame.id, error: message(error) }),
 					)
@@ -144,8 +142,8 @@ export function createPeer(connection: Connection, options: PeerOptions = {}): R
 	});
 
 	/**
-	 * A peer can vanish without closing: a killed machine, a wedged event loop. Any frame counts as
-	 * proof of life, and pings keep an idle connection proving it.
+	 * peer 可能在未关闭连接的情况下消失，例如机器被关闭或事件循环卡死。
+	 * 任意帧都可作为存活证明，ping 则让空闲连接持续证明其仍然存活。
 	 */
 	const deadMs = options.deadMs ?? DEFAULT_DEAD_MS;
 	const liveness =
@@ -168,7 +166,7 @@ export function createPeer(connection: Connection, options: PeerOptions = {}): R
 				if (!pending.delete(id)) return;
 				if (timer) clearTimeout(timer);
 				callOptions.signal?.removeEventListener("abort", onAbort);
-				// Tell the peer to stop; it may already be gone, in which case this is a no-op.
+				// 通知 peer 停止；它可能已经消失，此时该操作无效果。
 				connection.send({ kind: "cancel", id });
 				reject(error);
 			};

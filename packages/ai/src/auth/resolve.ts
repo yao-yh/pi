@@ -18,7 +18,7 @@ export type ModelsErrorCode = "model_source" | "model_validation" | "provider" |
 export interface AuthResolutionOverrides {
 	apiKey?: string;
 	env?: ProviderEnv;
-	/** Require this much remaining OAuth-token validity; defaults to five minutes. */
+	/** 要求 OAuth 令牌至少剩余这么长的有效期；默认为五分钟。 */
 	minOAuthValidityMs?: number;
 	signal?: AbortSignal;
 }
@@ -33,7 +33,7 @@ export class ModelsError extends Error {
 	}
 }
 
-/** Callers surface `error.message` only, so keep the underlying reason in it. */
+/** 调用方只显示 `error.message`，因此在其中保留底层原因。 */
 function withCauseDetail(message: string, cause: unknown): string {
 	if (cause === undefined || cause === null) return message;
 	const detail = formatThrownValue(cause).trim();
@@ -42,10 +42,9 @@ function withCauseDetail(message: string, cause: unknown): string {
 }
 
 /**
- * Auth resolution shared by the `Models` and `ImagesModels` collections.
- * A stored credential owns the provider: ambient/env is consulted only when
- * nothing is stored. No silent env fallback after a failed refresh or for a
- * credential type without a matching handler.
+ * `Models` 和 `ImagesModels` 集合共享的身份验证解析。
+ * 已存储凭据拥有提供商的身份验证权；仅在没有存储任何凭据时查询环境凭据/环境变量。
+ * 刷新失败后，或凭据类型没有匹配处理器时，不会静默回退到环境变量。
  */
 export function resolveProviderAuth(
 	provider: { id: string; auth: ProviderAuth },
@@ -103,7 +102,7 @@ async function resolveProviderAuthWithSignal(
 		return undefined;
 	}
 
-	// Ambient (env vars, AWS profiles, ADC files).
+	// 环境凭据（环境变量、AWS 配置文件、ADC 文件）。
 	return provider.auth.apiKey
 		? resolveApiKey(requestAuthContext, provider.auth.apiKey, provider.id, undefined, signal)
 		: undefined;
@@ -120,9 +119,8 @@ const DEFAULT_OAUTH_MINIMUM_VALIDITY_MS = 5 * 60 * 1000;
 const DEFAULT_OAUTH_REFRESH_TIMEOUT_MS = 15_000;
 
 /**
- * OAuth resolution with double-checked locking: tokens with less than five
- * minutes remaining lock, re-check expiry under the lock, refresh once
- * globally, and persist the rotated credential before release.
+ * 使用双重检查锁定解析 OAuth：剩余有效期不足五分钟的令牌会获取锁，
+ * 在锁内重新检查到期时间，全局只刷新一次，并在释放锁前持久化轮换后的凭据。
  */
 async function resolveStoredOAuth(
 	credentials: CredentialStore,
@@ -137,14 +135,14 @@ async function resolveStoredOAuth(
 	let credential = stored;
 
 	if (expiresSoon(credential)) {
-		// Optimistic check said expired; the authoritative check runs under the lock.
+		// 乐观检查判断即将到期；权威检查在锁内运行。
 		let post: Credential | undefined;
 		try {
 			post = await credentials.modify(
 				providerId,
 				async (current) => {
-					if (current?.type !== "oauth") return undefined; // logged out meanwhile
-					if (!expiresSoon(current)) return undefined; // another process/request refreshed
+					if (current?.type !== "oauth") return undefined; // 此期间已注销
+					if (!expiresSoon(current)) return undefined; // 另一进程/请求已刷新
 					try {
 						const refreshSignal = AbortSignal.any([
 							signal,
@@ -161,11 +159,10 @@ async function resolveStoredOAuth(
 			if (error instanceof ModelsError) throw error;
 			throw new ModelsError("auth", `Credential store modify failed for ${providerId}`, { cause: error });
 		}
-		if (post?.type !== "oauth") return undefined; // logged out meanwhile
+		if (post?.type !== "oauth") return undefined; // 此期间已注销
 		credential = post;
-		// The normal five-minute window triggers a refresh but does not impose a
-		// provider contract. Explicit callers (such as bearer-token export) do
-		// require the requested minimum after the refresh.
+		// 常规五分钟窗口会触发刷新，但不强制提供商遵守该契约。
+		// 显式调用方（例如 Bearer 令牌导出）确实要求刷新后满足请求的最短有效期。
 		if (minOAuthValidityMs !== undefined && expiresSoon(credential)) {
 			throw new ModelsError("oauth", `OAuth refresh returned a token that expires too soon for ${providerId}`);
 		}

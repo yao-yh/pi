@@ -1,5 +1,5 @@
 /**
- * Shared utilities for Google Generative AI and Google Vertex providers.
+ * Google Generative AI 和 Google Vertex 提供商的共享工具。
  */
 
 import { type Content, FinishReason, FunctionCallingConfigMode, type Part } from "@google/genai";
@@ -22,13 +22,13 @@ import { transformMessages } from "./transform-messages.ts";
 type GoogleApiType = "google-generative-ai" | "google-vertex";
 
 /**
- * Thinking level for Gemini 3 models.
- * Mirrors Google's ThinkingLevel enum values.
+ * Gemini 3 模型的思考级别。
+ * 与 Google 的 ThinkingLevel 枚举值保持一致。
  */
 export type GoogleApiThinkingLevel = "THINKING_LEVEL_UNSPECIFIED" | "MINIMAL" | "LOW" | "MEDIUM" | "HIGH";
 export type ResolvedGoogleThinkingLevel = Exclude<ThinkingLevel, "xhigh" | "max">;
 
-/** Resolve a supported pi level or model-specific Google mapping to a standard Google level. */
+/** 将受支持的 pi 级别或模型专用 Google 映射解析为标准 Google 级别。 */
 export function resolveGoogleThinkingLevel<T extends GoogleApiType>(
 	model: Model<T>,
 	level: ModelThinkingLevel,
@@ -51,39 +51,37 @@ export function resolveGoogleThinkingLevel<T extends GoogleApiType>(
 }
 
 /**
- * Determines whether a streamed Gemini `Part` should be treated as "thinking".
+ * 判断流式 Gemini `Part` 是否应视为“思考”内容。
  *
- * Protocol note (Gemini / Vertex AI thought signatures):
- * - `thought: true` is the definitive marker for thinking content (thought summaries).
- * - `thoughtSignature` is an encrypted representation of the model's internal thought process
- *   used to preserve reasoning context across multi-turn interactions.
- * - `thoughtSignature` can appear on ANY part type (text, functionCall, etc.) - it does NOT
- *   indicate the part itself is thinking content.
- * - For non-functionCall responses, the signature appears on the last part for context replay.
- * - When persisting/replaying model outputs, signature-bearing parts must be preserved as-is;
- *   do not merge/move signatures across parts.
+ * 协议说明（Gemini / Vertex AI 思考签名）：
+ * - `thought: true` 是思考内容（思考摘要）的确定标记。
+ * - `thoughtSignature` 是模型内部思考过程的加密表示，用于在多轮交互中保留推理上下文。
+ * - `thoughtSignature` 可以出现在任意 Part 类型（text、functionCall 等）上，
+ *   并不表示该 Part 本身是思考内容。
+ * - 对于非 functionCall 响应，签名会出现在最后一个 Part 上，用于上下文重放。
+ * - 持久化或重放模型输出时，必须原样保留带签名的 Part；不得跨 Part 合并或移动签名。
  *
- * See: https://ai.google.dev/gemini-api/docs/thought-signatures
+ * 参见：https://ai.google.dev/gemini-api/docs/thought-signatures
  */
 export function isThinkingPart(part: Pick<Part, "thought" | "thoughtSignature">): boolean {
 	return part.thought === true;
 }
 
 /**
- * Retain thought signatures during streaming.
+ * 在流式传输期间保留思考签名。
  *
- * Some backends only send `thoughtSignature` on the first delta for a given part/block; later deltas may omit it.
- * This helper preserves the last non-empty signature for the current block.
+ * 某些后端只在给定 Part/块的第一个增量中发送 `thoughtSignature`，后续增量可能省略。
+ * 此辅助函数为当前块保留最后一个非空签名。
  *
- * Note: this does NOT merge or move signatures across distinct response parts. It only prevents
- * a signature from being overwritten with `undefined` within the same streamed block.
+ * 注意：此函数不会跨不同响应 Part 合并或移动签名，只会防止同一流式块内的签名被
+ * `undefined` 覆盖。
  */
 export function retainThoughtSignature(existing: string | undefined, incoming: string | undefined): string | undefined {
 	if (typeof incoming === "string" && incoming.length > 0) return incoming;
 	return existing;
 }
 
-// Thought signatures must be base64 for Google APIs (TYPE_BYTES).
+// Google API 的思考签名必须是 base64（TYPE_BYTES）。
 const base64SignaturePattern = /^[A-Za-z0-9+/]+={0,2}$/;
 
 function isValidThoughtSignature(signature: string | undefined): boolean {
@@ -93,14 +91,14 @@ function isValidThoughtSignature(signature: string | undefined): boolean {
 }
 
 /**
- * Only keep signatures from the same provider/model and with valid base64.
+ * 只保留来自同一提供商/模型且 base64 有效的签名。
  */
 function resolveThoughtSignature(isSameProviderAndModel: boolean, signature: string | undefined): string | undefined {
 	return isSameProviderAndModel && isValidThoughtSignature(signature) ? signature : undefined;
 }
 
 /**
- * Models via Google APIs that require explicit tool call IDs in function calls/responses.
+ * 通过 Google API 调用且要求在函数调用/响应中显式提供工具调用 ID 的模型。
  */
 export function requiresToolCallId(modelId: string): boolean {
 	const geminiMajorVersion = getGeminiMajorVersion(modelId);
@@ -126,7 +124,7 @@ function supportsMultimodalFunctionResponse(modelId: string): boolean {
 }
 
 /**
- * Convert internal messages to Gemini Content[] format.
+ * 将内部消息转换为 Gemini Content[] 格式。
  */
 export function convertMessages<T extends GoogleApiType>(model: Model<T>, context: Context): Content[] {
 	const contents: Content[] = [];
@@ -165,28 +163,27 @@ export function convertMessages<T extends GoogleApiType>(model: Model<T>, contex
 			}
 		} else if (msg.role === "assistant") {
 			const parts: Part[] = [];
-			// Check if message is from same provider and model - only then keep thinking blocks
+			// 检查消息是否来自同一提供商和模型，只有此时才保留思考块
 			const isSameProviderAndModel = msg.provider === model.provider && msg.model === model.id;
 
 			for (const block of msg.content) {
 				if (block.type === "text") {
 					const thoughtSignature = resolveThoughtSignature(isSameProviderAndModel, block.textSignature);
-					// Skip empty text blocks — unless they carry a thought signature. Gemini can attach
-					// the signature to a part whose visible text is empty and requires it echoed back;
-					// dropping it breaks the reasoning chain and the model intermittently ends mid-task
-					// turns with a thought-only STOP (empty completion, no tool call).
+					// 跳过空文本块，除非它携带思考签名。Gemini 可以将签名附加到可见文本为空的
+					// Part，并要求将其回传；丢弃它会破坏推理链，导致模型偶尔在任务进行中的轮次
+					// 以仅含思考的 STOP 结束（补全为空且没有工具调用）。
 					if ((!block.text || block.text.trim() === "") && !thoughtSignature) continue;
 					parts.push({
 						text: sanitizeSurrogates(block.text),
 						...(thoughtSignature && { thoughtSignature }),
 					});
 				} else if (block.type === "thinking") {
-					// Only keep as thinking block if same provider AND same model
-					// Otherwise convert to plain text (no tags to avoid model mimicking them)
+					// 仅在提供商和模型都相同时保留为思考块
+					// 否则转换为纯文本（不添加标签，以避免模型模仿）
 					if (isSameProviderAndModel) {
 						const thoughtSignature = resolveThoughtSignature(isSameProviderAndModel, block.thinkingSignature);
-						// Same rule as text blocks: an empty thinking block is dropped only when it
-						// carries no signature (mirrors the anthropic converter's handling).
+						// 规则与文本块相同：仅当空思考块不携带签名时才丢弃
+						// （与 Anthropic 转换器的处理方式一致）。
 						if ((!block.thinking || block.thinking.trim() === "") && !thoughtSignature) continue;
 						parts.push({
 							thought: true,
@@ -194,7 +191,7 @@ export function convertMessages<T extends GoogleApiType>(model: Model<T>, contex
 							...(thoughtSignature && { thoughtSignature }),
 						});
 					} else {
-						// Cross-provider/model: the signature is unusable, empty blocks stay dropped.
+						// 跨提供商/模型时签名不可用，仍丢弃空块。
 						if (!block.thinking || block.thinking.trim() === "") continue;
 						parts.push({
 							text: sanitizeSurrogates(block.thinking),
@@ -220,7 +217,7 @@ export function convertMessages<T extends GoogleApiType>(model: Model<T>, contex
 				parts,
 			});
 		} else if (msg.role === "toolResult") {
-			// Extract text and image content
+			// 提取文本和图像内容
 			const textContent = msg.content.filter((c): c is TextContent => c.type === "text");
 			const textResult = textContent.map((c) => c.text).join("\n");
 			const imageContent = model.input.includes("image")
@@ -230,12 +227,12 @@ export function convertMessages<T extends GoogleApiType>(model: Model<T>, contex
 			const hasText = textResult.length > 0;
 			const hasImages = imageContent.length > 0;
 
-			// Gemini 3+ models support multimodal function responses with images nested inside
-			// functionResponse.parts. Claude and other non-Gemini models behind Cloud Code Assist /
-			// Gemini < 3 still needs a separate user image turn.
+			// Gemini 3+ 模型支持多模态函数响应，可将图像嵌套在 functionResponse.parts 中。
+			// Cloud Code Assist 背后的 Claude 及其他非 Gemini 模型，以及 Gemini < 3，
+			// 仍需要单独的用户图像轮次。
 			const modelSupportsMultimodalFunctionResponse = supportsMultimodalFunctionResponse(model.id);
 
-			// Use "output" key for success, "error" key for errors as per SDK documentation
+			// 按照 SDK 文档，成功时使用 "output" 键，出错时使用 "error" 键
 			const responseValue = hasText ? sanitizeSurrogates(textResult) : hasImages ? "(see attached image)" : "";
 
 			const imageParts: Part[] = imageContent.map((imageBlock) => ({
@@ -255,8 +252,8 @@ export function convertMessages<T extends GoogleApiType>(model: Model<T>, contex
 				},
 			};
 
-			// Cloud Code Assist API requires all function responses to be in a single user turn.
-			// Check if the last content is already a user turn with function responses and merge.
+			// Cloud Code Assist API 要求所有函数响应位于同一个用户轮次。
+			// 检查最后一项内容是否已经是包含函数响应的用户轮次，如果是则合并。
 			const lastContent = contents[contents.length - 1];
 			if (lastContent?.role === "user" && lastContent.parts?.some((p) => p.functionResponse)) {
 				lastContent.parts.push(functionResponsePart);
@@ -267,7 +264,7 @@ export function convertMessages<T extends GoogleApiType>(model: Model<T>, contex
 				});
 			}
 
-			// For Gemini < 3, add images in a separate user message
+			// 对于 Gemini < 3，在单独的用户消息中添加图像
 			if (hasImages && !modelSupportsMultimodalFunctionResponse) {
 				contents.push({
 					role: "user",
@@ -288,11 +285,11 @@ const JSON_SCHEMA_META_DECLARATIONS = new Set([
 	"$vocabulary",
 	"$comment",
 	"$defs",
-	"definitions", // pre-draft-2019-09 equivalent of $defs
+	"definitions", // draft-2019-09 之前与 $defs 等效的字段
 ]);
 
 /**
- * Strip meta-declarations from a schema obj
+ * 从 Schema 对象中移除元声明
  */
 function sanitizeForOpenApi(schema: unknown): unknown {
 	if (typeof schema !== "object" || schema === null || Array.isArray(schema)) {
@@ -308,12 +305,12 @@ function sanitizeForOpenApi(schema: unknown): unknown {
 }
 
 /**
- * Convert tools to Gemini function declarations format.
+ * 将工具转换为 Gemini 函数声明格式。
  *
- * By default uses `parametersJsonSchema` which supports full JSON Schema (including
- * anyOf, oneOf, const, etc.). Set `useParameters` to true to use the legacy `parameters`
- * field instead (OpenAPI 3.03 Schema). This is needed for Cloud Code Assist with Claude
- * models, where the API translates `parameters` into Anthropic's `input_schema`.
+ * 默认使用支持完整 JSON Schema（包括 anyOf、oneOf、const 等）的 `parametersJsonSchema`。
+ * 将 `useParameters` 设为 true 可改用旧版 `parameters` 字段（OpenAPI 3.03 Schema）。
+ * Cloud Code Assist 搭配 Claude 模型时需要此设置，此时 API 会将 `parameters`
+ * 转换为 Anthropic 的 `input_schema`。
  */
 export function convertTools(
 	tools: Tool[],
@@ -338,13 +335,13 @@ export function convertTools(
 	];
 }
 
-/** Gemini 3+ enforces required function parameters in validated tool-calling modes. */
+/** Gemini 3+ 在经过验证的工具调用模式下强制要求必填函数参数。 */
 export function supportsGoogleStrictToolSampling(modelId: string): boolean {
 	const majorVersion = getGeminiMajorVersion(modelId);
 	return majorVersion !== undefined && majorVersion >= 3;
 }
 
-/** Map tool choice string to Gemini FunctionCallingConfigMode. */
+/** 将工具选择字符串映射为 Gemini FunctionCallingConfigMode。 */
 export function mapToolChoice(choice: string): FunctionCallingConfigMode {
 	switch (choice) {
 		case "auto":
@@ -374,7 +371,7 @@ export function resolveGoogleFunctionCallingMode(
 }
 
 /**
- * Map Gemini FinishReason to our StopReason.
+ * 将 Gemini FinishReason 映射为内部 StopReason。
  */
 export function mapStopReason(reason: FinishReason): StopReason {
 	switch (reason) {
@@ -406,7 +403,7 @@ export function mapStopReason(reason: FinishReason): StopReason {
 }
 
 /**
- * Map string finish reason to our StopReason (for raw API responses).
+ * 将字符串形式的结束原因映射为内部 StopReason（用于原始 API 响应）。
  */
 export function mapStopReasonString(reason: string): StopReason {
 	switch (reason) {
@@ -420,13 +417,11 @@ export function mapStopReasonString(reason: string): StopReason {
 }
 
 /**
- * Run a Google GenAI SDK request with the shared provider retry policy
- * (408/409/429/5xx with backoff, honoring retry-after), mirroring how the
- * Anthropic and OpenAI adapters wrap their initial request in
- * retryProviderRequest. The SDK's ApiError has a `status` property but no
- * `headers` property, and retryProviderRequest only retries errors that carry
- * both, so normalize the error by adding the missing `headers` before
- * rethrowing.
+ * 使用共享的提供商重试策略运行 Google GenAI SDK 请求（对 408/409/429/5xx 执行退避，
+ * 并遵循 retry-after），与 Anthropic 和 OpenAI 适配器使用 retryProviderRequest
+ * 包装初始请求的方式一致。SDK 的 ApiError 有 `status` 属性但没有 `headers` 属性，
+ * 而 retryProviderRequest 只重试同时具有两者的错误，因此在重新抛出前补充缺失的
+ * `headers` 以规范化错误。
  */
 export function retryGoogleRequest<T>(
 	request: () => Promise<T>,

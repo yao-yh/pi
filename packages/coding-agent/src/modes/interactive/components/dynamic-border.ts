@@ -2,11 +2,11 @@ import type { Component } from "@earendil-works/pi-tui";
 import { theme } from "../theme/theme.ts";
 
 /**
- * Dynamic border component that adjusts to viewport width.
+ * 根据视口宽度进行调整的动态边框组件。
  *
- * Note: When used from extensions loaded via jiti, the global `theme` may be undefined
- * because jiti creates a separate module cache. Always pass an explicit color
- * function when using DynamicBorder in components exported for extension use.
+ * 注意：通过 jiti 加载的扩展使用此组件时，全局 `theme` 可能为 undefined，
+ * 因为 jiti 会创建独立的模块缓存。在为扩展导出的组件中使用 DynamicBorder 时，
+ * 始终应显式传入颜色函数。
  */
 export class DynamicBorder implements Component {
 	private color: (str: string) => string;
@@ -16,7 +16,7 @@ export class DynamicBorder implements Component {
 	}
 
 	invalidate(): void {
-		// No cached state to invalidate currently
+		// 当前没有需要失效的缓存状态
 	}
 
 	render(width: number): string[] {
